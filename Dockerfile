@@ -4,7 +4,6 @@ WORKDIR /src
 
 COPY  ./hone /src/hone
 COPY ./pyproject.toml /src
-COPY ./tests /src/tests
 
 RUN apt-get update && apt-get install -y
 RUN python -m pip install --upgrade pip
