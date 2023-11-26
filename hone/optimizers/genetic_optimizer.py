@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List
 from uuid import uuid4
+from enum import Enum
 
 import numpy as np
 import numpy.random as random
@@ -50,6 +51,15 @@ class Population:
     def add_individuals(self, individuals: List[Individual]):
         self.individuals.extend(individuals)
         self.size += len(individuals)
+
+class SelectionMethod(Enum):
+    """Selection methods for the genetic algorithm."""
+    TOURNAMENT = 'tournament'
+    ROULETTE = 'roulette'
+
+class CrossoverMethod(Enum):
+    """Crossover methods for the genetic algorithm."""
+    SINGLE_POINT = 'single_point'
 
 @dataclass
 class Generation:
