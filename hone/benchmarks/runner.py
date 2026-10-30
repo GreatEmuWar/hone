@@ -172,7 +172,7 @@ def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: 
 
     trace, best = [], float("inf")
     for generation in result.generations:
-        if generation.best_fitness is not None:
+        if generation.best_fitness is not None and generation.best_params is not None:
             best = min(best, true_value(generation.best_fitness, generation.best_params) - problem.optimum)
         trace.append((generation.evaluations, max(best, 0.0)))
     return Run(

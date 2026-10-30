@@ -24,6 +24,8 @@ jobs:
         poetry install --no-interaction
     - name: Lint
       run: poetry run ruff check hone tests
+    - name: Type check
+      run: poetry run mypy
     - name: Test
       run: poetry run pytest
 

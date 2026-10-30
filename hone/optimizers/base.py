@@ -279,8 +279,9 @@ class Optimizer(ABC):
             self._finish_generation()
 
     def _finish_generation(self, final: bool = False) -> None:
+        assert self._population is not None
         self._history.append(self._summarize(self._generation, self._evaluations, self._population))
-        if self._best is not None and self._reached(self._best.fitness):
+        if self._best is not None and self._reached(_fitness(self._best)):
             self._reached_threshold = True
             self._done = True
         elif final or self._generation + 1 >= self.config.generations or self._budget_left() == 0:
@@ -341,7 +342,7 @@ class Optimizer(ABC):
 
     def _ranked(self, individuals: list[Individual]) -> list[Individual]:
         """The individuals, best first. Failed individuals sort last."""
-        return sorted(individuals, key=lambda x: x.fitness, reverse=self.config.maximize)
+        return sorted(individuals, key=_fitness, reverse=self.config.maximize)
 
     def _reached(self, fitness: float) -> bool:
         """Whether fitness is good enough to stop early. Never true without a threshold."""
@@ -355,7 +356,7 @@ class Optimizer(ABC):
         failures = len(evaluated) - len(succeeded)
         if not succeeded:
             return GenerationStats(generation=generation, evaluations=evaluations, failures=failures)
-        fitnesses = [ind.fitness for ind in succeeded]
+        fitnesses = [_fitness(ind) for ind in succeeded]
         return GenerationStats(
             generation=generation,
             evaluations=evaluations,
@@ -367,6 +368,12 @@ class Optimizer(ABC):
             median=float(np.median(fitnesses)),
             std=float(np.std(fitnesses)),
         )
+
+
+def _fitness(individual: Individual) -> float:
+    """The fitness of an individual that has been evaluated."""
+    assert individual.fitness is not None, "an individual was ranked before it was evaluated"
+    return individual.fitness
 
 
 def _key(params: dict[str, Any]) -> tuple:

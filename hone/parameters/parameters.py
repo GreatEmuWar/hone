@@ -1,5 +1,6 @@
 import math
 import numbers
+from collections.abc import Sequence
 from typing import Annotated, Any, Literal
 
 import numpy as np
@@ -13,6 +14,10 @@ class _Parameter(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     name: str
+
+    def __init__(self, **data: Any) -> None:
+        # Each kind takes its own fields positionally and passes them all here as keywords.
+        super().__init__(**data)
 
 
 class RangeParameter(_Parameter):
@@ -83,13 +88,14 @@ class RangeParameter(_Parameter):
         """value as this parameter holds it, or ValueError if it isn't one of its values."""
         if isinstance(value, bool) or not isinstance(value, numbers.Real):
             raise ValueError(f"{self.name}: {value!r} is not a number")
-        if not self.minimum <= value <= self.maximum:
+        number = float(value)
+        if not self.minimum <= number <= self.maximum:
             raise ValueError(f"{self.name}: {value} is outside [{self.minimum}, {self.maximum}]")
         if self.integer:
-            if not float(value).is_integer():
+            if not number.is_integer():
                 raise ValueError(f"{self.name}: {value} is not an integer")
-            return int(value)
-        return float(value)
+            return int(number)
+        return number
 
     def mutate(self, value: float | int, rng: np.random.Generator, scale: float) -> float | int:
         """Nudge value by Gaussian noise with a standard deviation of scale times the range width.
@@ -185,8 +191,8 @@ class SearchSpace(BaseModel):
 
     parameters: list[Parameter] = Field(min_length=1)
 
-    def __init__(self, parameters: list[Parameter], **data: Any) -> None:
-        super().__init__(parameters=parameters, **data)
+    def __init__(self, parameters: Sequence[Parameter], **data: Any) -> None:
+        super().__init__(parameters=list(parameters), **data)
 
     @model_validator(mode="after")
     def _check_unique_names(self):
@@ -215,7 +221,14 @@ class SearchSpace(BaseModel):
         missing = [p.name for p in self.parameters if p.name not in params and not isinstance(p, FixedParameter)]
         if missing:
             raise ValueError(f"missing values for: {', '.join(missing)}")
-        return {p.name: p.check(params[p.name]) if p.name in params else p.value for p in self.parameters}
+        checked = {}
+        for p in self.parameters:
+            if p.name in params:
+                checked[p.name] = p.check(params[p.name])
+            else:
+                assert isinstance(p, FixedParameter)  # every other kind was found missing above
+                checked[p.name] = p.value
+        return checked
 
     def __getitem__(self, name: str) -> Parameter:
         for parameter in self.parameters:

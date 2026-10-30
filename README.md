@@ -222,7 +222,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | Command | Does |
 | --- | --- |
 | `make test` | Install the dependencies and run the tests with coverage |
-| `make lint` | Run ruff |
+| `make lint` | Run ruff, then mypy to check types |
 | `make docker-test` | Build the Docker image and run the tests inside it |
 | `make benchmark` | Run the full benchmark suite and update `benchmarks/results.md` |
 | `make benchmark-noisy` | Run the noisy problems and update `benchmarks/noisy-results.md` |

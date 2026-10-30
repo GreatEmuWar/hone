@@ -11,7 +11,7 @@ class BayesianConfig(OptimizerConfig):
     Each generation is a batch of candidates chosen together. When max_evaluations is set and
     generations isn't, generations defaults to the budget, so the run ends when the budget is spent.
     """
-    population_size: int | None = Field(default=None, ge=1)  # candidates per batch; None: 1, or the number of workers
+    population_size: int | None = Field(default=None, ge=1)  # type: ignore[assignment]  # candidates per batch; None: 1, or the number of workers
     generations: int = Field(default=100, ge=1)
     initial_samples: int | None = Field(default=None, ge=1)  # spread-out candidates before the model is used; None: 2 × (variables + 1)
 

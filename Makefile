@@ -11,6 +11,7 @@ test: install
 .PHONY: lint
 lint: install
 	@poetry run ruff check hone tests
+	@poetry run mypy
 
 .PHONY: benchmark
 benchmark: install
