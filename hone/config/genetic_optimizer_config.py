@@ -1,58 +1,48 @@
-from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
-import json
+from typing import Self
+
 import yaml
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-@dataclass
-class GeneticOptimizerConfig:
+
+class SelectionMethod(StrEnum):
+    """Selection methods for the genetic algorithm."""
+    TOURNAMENT = 'tournament'
+    ROULETTE = 'roulette'
+
+
+class GeneticOptimizerConfig(BaseModel):
     """Configuration for the genetic optimizer."""
-    population_size: int = field(default=100)
-    generations: int = field(default=25)
-    mutation_rate: float = field(default=0.05)
-    mutation_threshold: float = field(default=0.1)
-    crossover_rate: float = field(default=0.8)
-    elitism: bool = field(default=True)
-    elitism_rate: float = field(default=0.1)
-    selection_method: str = field(default='tournament')
-    tournament_size: int = field(default=4)
-    tournament_p: float = field(default=0.75)
-    selection_p: float = field(default=0.5)
-    crossover_method: str = field(default='single_point')
-    maximize: bool = field(default=True)
-    threshold: float | int | None = field(default=None)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
+    population_size: int = Field(default=100, ge=2)
+    generations: int = Field(default=25, ge=1)
+    mutation_rate: float = Field(default=0.05, ge=0, le=1)  # chance a child is mutated at all
+    mutation_threshold: float = Field(default=0.1, ge=0, le=1)  # chance each gene of a mutated child is resampled
+    crossover_rate: float = Field(default=0.8, ge=0, le=1)
+    elitism: bool = True
+    elitism_rate: float = Field(default=0.1, ge=0, lt=1)
+    selection_method: SelectionMethod = SelectionMethod.TOURNAMENT
+    tournament_size: int = Field(default=4, ge=2)
+    tournament_p: float = Field(default=0.75, ge=0, le=1)
+    maximize: bool = False
+    threshold: float | None = None
+    seed: int | None = None  # fixes the random number generator, so runs can be repeated
 
-    @classmethod
-    def from_jsonfile(cls, filepath: Path):
-        """Create a GeneticOptimizerConfig from a file."""
-        try:
-
-            with open(filepath, 'r') as f:
-                config = cls(**json.loads(f.read()))
-                f.close()
-
-            return config
-
-        except Exception as e:
-            print(f'Error loading config file: {e}')
-
+    @model_validator(mode="after")
+    def _check_tournament_size(self):
+        if self.tournament_size > self.population_size:
+            raise ValueError(
+                f"tournament_size {self.tournament_size} cannot exceed population_size {self.population_size}"
+            )
+        return self
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
-        """Create a GeneticOptimizerConfig from a dictionary."""
-        try:
-            return cls(**config_dict)
-        except Exception as e:
-            print(f'Error loading config dict: {e}')
-
-    @classmethod
-    def from_yamlfile(cls, filepath: Path):
-        """Create a GeneticOptimizerConfig from a YAML file."""
-        
-        try:
-            with open(filepath, 'r') as f:
-                config = cls(**yaml.safe_load(f.read()))
-            return config
-        
-        except Exception as e:
-            print(f'Error loading config file: {e}')
+    def from_file(cls, filepath: str | Path) -> Self:
+        """Create a GeneticOptimizerConfig from a JSON or YAML file."""
+        filepath = Path(filepath)
+        text = filepath.read_text()
+        if filepath.suffix.lower() in {".yaml", ".yml"}:
+            return cls.model_validate(yaml.safe_load(text) or {})
+        return cls.model_validate_json(text)

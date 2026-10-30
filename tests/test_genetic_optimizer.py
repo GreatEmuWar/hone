@@ -2,8 +2,8 @@ import math
 
 import pytest
 
-from hone.constraint import Constraint
 from hone.optimizers import Generation, Individual, Population
+from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter, SearchSpace
 
 from conftest import individual, make_optimizer
 
@@ -12,10 +12,36 @@ def generation_of(*fitnesses):
     return Generation(0, population=Population(individuals=[individual(f, x=f) for f in fitnesses]))
 
 
+# --- construction ---------------------------------------------------------
+
+
+def test_accepts_search_space_or_list():
+    params = [RangeParameter("x", 0, 1), RangeParameter("y", 0, 1)]
+    from_list = make_optimizer(search_space=params)
+    from_space = make_optimizer(search_space=SearchSpace(params))
+    assert from_list.objective_function.search_space == from_space.objective_function.search_space
+
+
+def test_config_defaults_when_omitted():
+    from hone import GeneticOptimizer
+    from conftest import sphere
+
+    assert GeneticOptimizer(sphere, [RangeParameter("x", 0, 1), RangeParameter("y", 0, 1)]).config.maximize is False
+
+
+def test_rejects_function_that_does_not_match_search_space():
+    with pytest.raises(ValueError, match="missing from the search space: y"):
+        make_optimizer(search_space=[RangeParameter("x", 0, 1)])
+
+
+def test_same_seed_gives_same_parameters():
+    a, b = make_optimizer(seed=42), make_optimizer(seed=42)
+    assert [a._random_parameters() for _ in range(5)] == [b._random_parameters() for _ in range(5)]
+
+
 # --- parameter sampling ---------------------------------------------------
 
 
-@pytest.mark.xfail(reason="bug 1: optimizer reads Constraint.param, class defines param_name")
 def test_random_parameters_respect_bounds():
     optimizer = make_optimizer()
     for _ in range(50):
@@ -24,31 +50,11 @@ def test_random_parameters_respect_bounds():
         assert -5 <= params["y"] <= 5
 
 
-@pytest.mark.xfail(reason="bug 1: optimizer reads Constraint.param, class defines param_name")
-def test_random_parameters_literal_and_choices():
-    optimizer = make_optimizer(
-        constraints=[
-            Constraint(param_name="x", literal=3.0),
-            Constraint(param_name="y", choices=[1, 2, 3]),
-        ]
-    )
+def test_random_parameters_fixed_and_choices():
+    optimizer = make_optimizer(search_space=[FixedParameter("x", 3.0), ChoiceParameter("y", [1, 2, 3])])
     params = optimizer._random_parameters()
     assert params["x"] == 3.0
     assert params["y"] in (1, 2, 3)
-
-
-@pytest.mark.xfail(reason="bug 3: type check compares str(type(value)) to 'float'")
-def test_random_parameters_without_constraints_perturb_seed():
-    optimizer = make_optimizer(constraints=[], seed_parameters={"x": 1.0, "y": 2})
-    params = optimizer._random_parameters()
-    assert abs(params["x"] - 1.0) <= 1
-    assert isinstance(params["y"], int)
-
-
-@pytest.mark.xfail(reason="bug 4: a constraint with only one bound passes None to uniform")
-def test_random_parameters_with_one_bound():
-    optimizer = make_optimizer(constraints=[Constraint(param_name="x", minimum=0)], seed_parameters={"x": 1.0})
-    assert optimizer._random_parameters()["x"] >= 0
 
 
 # --- crossover and mutation -----------------------------------------------
@@ -101,12 +107,6 @@ def test_roulette_handles_negative_fitness():
     optimizer._select_individual(generation_of(-5, 1, 3))
 
 
-def test_unknown_selection_method_raises():
-    optimizer = make_optimizer(selection_method="foo")
-    with pytest.raises(ValueError):
-        optimizer._select_individual(generation_of(1, 2))
-
-
 # --- evaluation -----------------------------------------------------------
 
 
@@ -129,33 +129,50 @@ def test_evaluate_population_records_stats(maximize):
 # --- full optimization ----------------------------------------------------
 
 
-@pytest.mark.xfail(reason="bugs 1, 2: constraint field mismatch; threshold=None crashes")
+@pytest.mark.xfail(reason="bug 2: threshold=None crashes")
 def test_optimize_runs_with_default_threshold():
     result = make_optimizer(generations=3, population_size=10).optimize()
     assert len(result.generations) == 3
 
 
-@pytest.mark.xfail(reason="bugs 1, 8: population grows by one after the first generation")
+def test_optimize_is_reproducible_with_a_seed():
+    def run():
+        result = make_optimizer(generations=3, population_size=10, threshold=-1, seed=7).optimize()
+        return [g.best.fitness for g in result.generations]
+
+    assert run() == run()
+
+
+def test_optimize_keeps_values_within_the_search_space():
+    space = [RangeParameter("x", -5, 5, integer=True), ChoiceParameter("y", [-1, 0.5, 2])]
+    result = make_optimizer(search_space=space, generations=4, population_size=10, threshold=-1).optimize()
+    for generation in result.generations:
+        for ind in generation.population:
+            assert type(ind.params["x"]) is int and -5 <= ind.params["x"] <= 5
+            assert ind.params["y"] in (-1, 0.5, 2)
+
+
+@pytest.mark.xfail(reason="bug 8: population grows by one after the first generation")
 def test_population_size_is_constant():
-    result = make_optimizer(generations=4, population_size=10, threshold=float("inf")).optimize()
+    result = make_optimizer(generations=4, population_size=10, threshold=float("-inf")).optimize()
     assert [len(g.population) for g in result.generations] == [10] * 4
 
 
-@pytest.mark.xfail(reason="bugs 1, 5, 6: minimizing never updates the optimum; best uses max()")
+@pytest.mark.xfail(reason="bugs 5, 6: minimizing never updates the optimum; best uses max()")
 def test_minimizing_reports_lowest_fitness():
-    result = make_optimizer(generations=5, population_size=20, maximize=False, threshold=-1).optimize()
+    result = make_optimizer(generations=5, population_size=20, threshold=-1).optimize()
     lowest = min(g.best.fitness for g in result.generations)
     assert result.best_fitness == lowest
     assert result.optimum == lowest
 
 
-@pytest.mark.xfail(reason="bugs 1, 7: Result.best is an id string, not an Individual")
+@pytest.mark.xfail(reason="bug 7: Result.best is an id string, not an Individual")
 def test_result_best_is_an_individual():
-    result = make_optimizer(generations=2, population_size=10, threshold=float("inf")).optimize()
+    result = make_optimizer(generations=2, population_size=10, threshold=-1).optimize()
     assert isinstance(result.best, Individual)
 
 
-@pytest.mark.xfail(reason="bugs 1, 2, 9: README example cannot run, and the default maximizes")
+@pytest.mark.xfail(reason="bug 2: the README example uses the default threshold=None")
 def test_readme_example_finds_minimum():
     """Mirrors the README: default config, minimizing x**2 + y**2 within [-5, 5]."""
     result = make_optimizer().optimize()
