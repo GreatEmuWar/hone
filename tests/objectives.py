@@ -58,3 +58,30 @@ class UnpicklableError(Exception):
 
 def raises_unpicklable(x, y):
     raise UnpicklableError()
+
+
+class SlowToStart:
+    """A callable that takes a while to unpickle, as a worker importing a heavy simulation package would."""
+
+    def __init__(self, function, delay):
+        self.function, self.delay = function, delay
+
+    def __call__(self, params):
+        return self.function(**params)
+
+    def __setstate__(self, state):
+        time.sleep(state["delay"])
+        self.__dict__.update(state)
+
+
+class CannotStart:
+    """A callable that fails to unpickle in a worker, as an objective whose module won't import would."""
+
+    def __init__(self):
+        self.package = "simulation"  # pickle only calls __setstate__ when there is state
+
+    def __call__(self, params):
+        return 0.0
+
+    def __setstate__(self, state):
+        raise ImportError("a missing simulation package")

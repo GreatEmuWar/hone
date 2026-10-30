@@ -10,6 +10,7 @@ from multiprocessing.connection import Connection, wait
 from typing import Any, Callable
 
 STOP = None  # sent to a worker to make it exit
+READY = "ready"  # sent by a worker once it has started and can evaluate
 
 
 class _Worker:
@@ -18,6 +19,7 @@ class _Worker:
         self.process = context.Process(target=_serve, args=(child, evaluate), daemon=True)
         self.process.start()
         child.close()
+        self.ready = False
         self.task: int | None = None  # index of the candidate being evaluated
         self.deadline = float("inf")
 
@@ -41,6 +43,7 @@ class _Worker:
 
 def _serve(connection: Connection, evaluate: Callable[[dict], float | None]) -> None:
     """A worker's loop: evaluate each candidate it is sent, and send back the outcome."""
+    connection.send(READY)
     while (message := connection.recv()) is not STOP:
         task, params = message
         try:
@@ -59,8 +62,14 @@ class EvaluationPool:
     evaluation, and any exception it raises stops every worker and is raised again here.
     """
 
-    def __init__(self, evaluate: Callable[[dict], float | None], workers: int, timeout: float | None = None) -> None:
-        self._context = multiprocessing.get_context()
+    def __init__(
+        self,
+        evaluate: Callable[[dict], float | None],
+        workers: int,
+        timeout: float | None = None,
+        start_method: str | None = None,
+    ) -> None:
+        self._context = multiprocessing.get_context(start_method)
         self._evaluate = evaluate
         self._timeout = timeout
         self._workers = [self._new_worker() for _ in range(workers)]
@@ -74,15 +83,16 @@ class EvaluationPool:
         waiting = list(range(len(candidates)))[::-1]
         while waiting or any(w.task is not None for w in self._workers):
             for worker in self._workers:
-                if worker.task is None and waiting:
+                if worker.ready and worker.task is None and waiting:
                     task = waiting.pop()
                     worker.start(task, candidates[task], self._timeout)
-            busy = [w for w in self._workers if w.task is not None]
-            deadline = min(w.deadline for w in busy)
+            # The time limit starts once a worker has started, so it never counts start-up time.
+            watched = [w for w in self._workers if w.task is not None or not w.ready]
+            deadline = min((w.deadline for w in watched), default=float("inf"))
             limit = None if deadline == float("inf") else max(deadline - time.monotonic(), 0)
-            ready = wait([w.connection for w in busy], timeout=limit)
-            for worker in busy:
-                if worker.connection in ready:
+            heard = wait([w.connection for w in watched], timeout=limit)
+            for worker in watched:
+                if worker.connection in heard:
                     self._collect(worker, outcomes)
                 elif time.monotonic() >= worker.deadline:
                     self._replace(worker)  # out of time: its outcome stays None
@@ -90,10 +100,16 @@ class EvaluationPool:
 
     def _collect(self, worker: _Worker, outcomes: list[float | None]) -> None:
         try:
-            task, value, error = worker.connection.recv()
+            message = worker.connection.recv()
         except (EOFError, OSError):
+            if not worker.ready:
+                raise RuntimeError("a worker process failed to start; its error is printed above") from None
             self._replace(worker)  # the worker died, taking the evaluation with it
             return
+        if message == READY:
+            worker.ready = True
+            return
+        task, value, error = message
         if error is not None:
             raise error
         outcomes[task] = value

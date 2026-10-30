@@ -84,3 +84,17 @@ def test_pool_keeps_working_after_replacing_a_worker():
 
 def objectives_evaluate(function, params):
     return function(**params)
+
+
+@pytest.mark.parametrize("start_method", ["spawn", "forkserver"])
+def test_the_time_limit_does_not_count_a_workers_start_up(start_method):
+    """With spawn and forkserver, a new worker unpickles the objective before it can evaluate anything."""
+    evaluate = objectives.SlowToStart(objectives.hangs_right_of_zero, delay=1.0)
+    with EvaluationPool(evaluate, workers=2, timeout=0.5, start_method=start_method) as pool:
+        assert pool.map([{"x": 1, "y": 0}, {"x": -1, "y": 2}, {"x": -2, "y": 0}]) == [None, 5, 4]
+
+
+def test_a_worker_that_cannot_start_stops_the_run():
+    with pytest.raises(RuntimeError, match="failed to start"):
+        with EvaluationPool(objectives.CannotStart(), workers=1, start_method="spawn") as pool:
+            pool.map([{"x": 1}])
