@@ -1,0 +1,51 @@
+# Changelog
+
+## 0.6.0 (2026-10-30)
+
+New optimizers and parameter types, noise handling, time limits, and fixes from an expert review of 0.5.0. Benchmark results are in [benchmarks/README.md](benchmarks/README.md).
+
+### Added
+
+- **Bayesian optimization.** `BayesianOptimizer` models the objective with a Gaussian process and evaluates where it expects the most improvement. It is the best optimizer in the benchmark when evaluations are scarce: at 10 and 20 evaluations per dimension it has the lowest median error on 30 and 31 of the 36 problems. It supports range and choice parameters, but not `choose_n`.
+- **Log-scale ranges.** `RangeParameter(..., log=True)` searches a range evenly in its logarithm, for settings that span orders of magnitude such as learning rates. It needs a positive minimum and works with `integer=True`.
+- **Noisy objectives.** `noise=True` averages every evaluation of the same point, and each optimizer uses the averages. `final_evaluations` (off by default) keeps evaluations back to re-evaluate the most promising points at the end.
+- **Starting points.** Every optimizer takes `initial_points`, such as a known good design or an earlier run's best parameters.
+- **Time limits.** `optimize(timeout=...)` stops any evaluation that runs longer than that many seconds and counts it as failed. Evaluations now run in hone's own pool of worker processes, so a hung or crashed evaluation is replaced instead of stalling the run.
+- **Niches for the genetic optimizer.** `niche_share` (off by default) breeds part of each generation within groups of parents that share the same choice parameter values. Set it to 0.5 when the best option of a choice parameter may be found late: on material-selection-10d it finds the right material in 10 of 10 runs, against 4 of 10 without.
+- **Benchmarks.**
+  - Every problem runs at five budgets, 10, 20, 50, 100 and 1,000 evaluations per dimension.
+  - Rotated versions of four test functions, in which the variables interact: 36 problems in all.
+  - `--ml` tunes three scikit-learn models by cross-validation, and `--noisy` adds noise to six problems.
+  - `--jobs` shares the runs among processes.
+- **An example**, `examples/tune_iris.py`, tuning a model on the Iris dataset.
+
+### Changed
+
+These change the results of existing code:
+
+- **The genetic optimizer sizes its population from its budget.** With `max_evaluations` set and no `population_size`, the population is about a twentieth of the budget, between 16 and 50, and the run continues until the budget is spent. Without a budget the defaults are unchanged.
+- **Tournaments pick their best entrant.** `tournament_p` now defaults to 1.0 rather than 0.75. The genetic optimizer's error falls by 11% to 64% across the benchmark's budgets.
+- **CMA-ES with workers.** Unless `population_size` is set, `optimize(workers=n)` gives CMA-ES at least 2n candidates per generation, so its results depend on the number of workers as well as the seed.
+- **Infinite values count as failed evaluations**, as NaN already did, and `tell()` rejects booleans.
+- **An exception from the objective stops every worker at once**, rather than waiting for the evaluations already running.
+- **Benchmark command line.** `--budget-per-dimension` is replaced by `--budgets`, and `run_benchmark` takes `budgets_per_dimension`.
+
+### Fixed
+
+- CMA-ES widened the steps of integer variables before learning from them, which inflated its step size on problems with integers. It now learns from the steps as drawn, as CMA-ES with Margin does.
+- With the spawn and forkserver start methods, the default from Python 3.14, the time limit counted each worker's start-up, so on slow machines every evaluation could time out.
+
+### Dependencies
+
+- `scipy` and `threadpoolctl` are now required. `scikit-learn` is needed only for the machine learning benchmark.
+
+## 0.5.0
+
+A rewrite of the 2023 version.
+
+- Parameters and configs are validated pydantic models: `RangeParameter`, `ChoiceParameter` and `FixedParameter` replace `Constraint`.
+- Every optimizer shares a base class with an ask/tell interface, parallel workers, failed evaluations, an exact `max_evaluations` budget, seeds and a savable `Result`.
+- CMA-ES, alongside the genetic optimizer and random search.
+- Fixes to the genetic optimizer's loop, selection, mutation and result.
+- A benchmark suite with a regression check in CI.
+- Python 3.12 or later; licensed under BSD-3-Clause.

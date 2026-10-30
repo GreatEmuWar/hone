@@ -1,6 +1,6 @@
 [project]
 name = "hone"
-version = "0.5.0"
+version = "0.6.0"
 description = "A python-based optimization engine/library."
 authors = [{ name = "David Beare", email = "rnbeare@gmail.com" }]
 readme = "README.md"
