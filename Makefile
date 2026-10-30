@@ -16,4 +16,4 @@ install-requirements:
 .PHONY: run-tests
 run-tests: install-requirements
 	@echo "Running tests..."
-	@python -m unittest discover -s tests -p '*_test.py'
+	@poetry run pytest

@@ -9,6 +9,6 @@ RUN apt-get update && apt-get install -y
 RUN python -m pip install --upgrade pip
 RUN python -m pip install poetry
 RUN poetry config virtualenvs.create false
-RUN poetry install --no-dev --no-interaction --no-ansi
+RUN poetry install --only main --no-interaction --no-ansi
 
 CMD ["python", "-m", "unittest", "discover", "-s", "hone/tests"]
