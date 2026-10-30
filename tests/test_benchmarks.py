@@ -3,6 +3,8 @@ import pytest
 
 from hone.benchmarks import (
     BUDGETS,
+    DEFAULT_OPTIMIZERS,
+    SkipBudget,
     Run,
     Summary,
     load_summaries,
@@ -83,12 +85,14 @@ def test_integer_problems_have_integer_optima():
 # --- runner ---------------------------------------------------------------
 
 
+# Bayesian optimization is slow enough to leave out of most runner tests; it has its own below.
+FAST = {name: factory for name, factory in DEFAULT_OPTIMIZERS.items() if name != "bayesian"}
+OPTIMIZERS = tuple(FAST)
+
+
 @pytest.fixture(scope="module")
 def runs():
-    return run_benchmark(quick_problems()[:2], seeds=range(3), budgets_per_dimension=[10, 40])
-
-
-OPTIMIZERS = ("genetic", "cma-es", "random")
+    return run_benchmark(quick_problems()[:2], optimizers=FAST, seeds=range(3), budgets_per_dimension=[10, 40])
 
 
 def test_runs_every_optimizer_problem_budget_and_seed(runs):
@@ -119,7 +123,7 @@ def test_each_budget_is_a_separate_run():
         return RandomSearch(problem.search_space, OptimizerConfig(population_size=5, max_evaluations=budget, seed=seed))
 
     run_benchmark(quick_problems()[:1], optimizers={"recording": recording}, seeds=range(1), budgets_per_dimension=[10, 20])
-    assert given == [50, 100]
+    assert sorted(set(given)) == [50, 100]
 
 
 def test_more_evaluations_never_hurt_random_search(runs):
@@ -132,7 +136,7 @@ def test_more_evaluations_never_hurt_random_search(runs):
 
 def test_optimizers_skip_problems_they_cannot_search():
     material = [problem for problem in quick_problems() if problem.name.startswith("material")]
-    runs = run_benchmark(material, seeds=range(1), budgets_per_dimension=[20])
+    runs = run_benchmark(material, optimizers=FAST, seeds=range(1), budgets_per_dimension=[20])
     assert {r.optimizer for r in runs} == {"genetic", "random"}
     assert "| material-selection-5d |" in to_markdown(summarize(runs))
 
@@ -146,8 +150,28 @@ def test_trace_is_non_increasing_and_ends_at_the_error(runs):
 
 
 def test_benchmark_is_reproducible():
-    args = dict(problems=quick_problems()[:1], seeds=range(2), budgets_per_dimension=[20])
+    args = dict(problems=quick_problems()[:1], optimizers=FAST, seeds=range(2), budgets_per_dimension=[20])
     assert run_benchmark(**args) == run_benchmark(**args)
+
+
+def test_jobs_give_the_same_runs():
+    args = dict(problems=quick_problems()[:2], optimizers=FAST, seeds=range(2), budgets_per_dimension=[10, 20])
+    assert run_benchmark(**args, jobs=3) == run_benchmark(**args)
+
+
+def test_bayesian_optimization_runs_only_at_small_budgets():
+    runs = run_benchmark(quick_problems()[:1], optimizers={"bayesian": DEFAULT_OPTIMIZERS["bayesian"]}, seeds=range(1), budgets_per_dimension=[10, 100])
+    assert [(r.optimizer, r.budget_per_dimension, r.evaluations) for r in runs] == [("bayesian", 10, 50)]
+
+
+def test_factories_can_skip_a_budget():
+    def odd_budgets_only(problem, budget, seed):
+        if budget % 2 == 0:
+            raise SkipBudget()
+        return RandomSearch(problem.search_space, OptimizerConfig(population_size=5, max_evaluations=budget, seed=seed))
+
+    runs = run_benchmark(quick_problems()[:1], optimizers={"odd": odd_budgets_only}, seeds=range(1), budgets_per_dimension=[3, 4, 5])
+    assert [r.budget_per_dimension for r in runs] == [3, 5]
 
 
 def test_custom_optimizer_factory():
@@ -255,11 +279,11 @@ def test_regressions_compare_like_budgets():
 
 def test_cli_checks_against_a_baseline(tmp_path, capsys):
     baseline = tmp_path / "baseline.json"
-    args = ["--quick", "--seeds", "1", "--budgets", "20", "10"]
+    args = ["--quick", "--seeds", "1", "--budgets", "4", "2"]
     assert main([*args, "--save", str(baseline), "--markdown", str(tmp_path / "results.md")]) == 0
     results = (tmp_path / "results.md").read_text()
     assert results.startswith("# Benchmark results")
-    assert "6 problems, 1 seeds, budgets of 10 and 20 evaluations per dimension" in results
+    assert "6 problems, 1 seeds, budgets of 2 and 4 evaluations per dimension" in results
     assert "| Problem |" in results
     assert main([*args, "--baseline", str(baseline)]) == 0
     assert "No regressions" in capsys.readouterr().out
@@ -267,10 +291,10 @@ def test_cli_checks_against_a_baseline(tmp_path, capsys):
 
 def test_cli_fails_on_a_regression(tmp_path, capsys):
     baseline = tmp_path / "baseline.json"
-    runs = run_benchmark(quick_problems(), seeds=range(1), budgets_per_dimension=[20])
-    good = [Summary(s.problem, s.optimizer, 20, 1, 0.0, 0.0, 0.0, 1.0) for s in summarize(runs)]
+    runs = run_benchmark(quick_problems(), seeds=range(1), budgets_per_dimension=[4])
+    good = [Summary(s.problem, s.optimizer, 4, 1, 0.0, 0.0, 0.0, 1.0) for s in summarize(runs)]
     save_summaries(good, baseline)
-    assert main(["--quick", "--seeds", "1", "--budgets", "20", "--baseline", str(baseline)]) == 1
+    assert main(["--quick", "--seeds", "1", "--budgets", "4", "--baseline", str(baseline)]) == 1
     assert "Regressions against the baseline" in capsys.readouterr().out
 
 

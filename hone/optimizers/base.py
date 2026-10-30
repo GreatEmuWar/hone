@@ -198,8 +198,8 @@ class Optimizer(ABC):
         number. To record an evaluation as failed instead, raise EvaluationFailed or return NaN
         or infinity; any other exception stops the run. With a seed, every call with the same
         number of workers returns the same result. The genetic optimizer and random search
-        return it however many workers are used; CMA-ES does not, because its default
-        population grows with the number of workers.
+        return it however many workers are used; CMA-ES and Bayesian optimization do not,
+        because their default population grows with the number of workers.
 
         Args:
             objective_function: The function to optimize.

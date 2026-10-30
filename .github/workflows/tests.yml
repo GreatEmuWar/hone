@@ -39,4 +39,4 @@ jobs:
         python -m pip install --upgrade pip poetry
         poetry install --no-interaction
     - name: Check for benchmark regressions
-      run: poetry run python -m hone.benchmarks --quick --baseline benchmarks/quick-baseline.json
+      run: poetry run python -m hone.benchmarks --quick --jobs 4 --baseline benchmarks/quick-baseline.json

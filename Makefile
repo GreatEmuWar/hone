@@ -14,7 +14,7 @@ lint: install
 
 .PHONY: benchmark
 benchmark: install
-	@poetry run python -m hone.benchmarks --markdown benchmarks/results.md --save benchmarks/full-summaries.json
+	@poetry run python -m hone.benchmarks --jobs 4 --markdown benchmarks/results.md --save benchmarks/full-summaries.json
 
 .PHONY: docker-build
 docker-build:
