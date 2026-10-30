@@ -4,6 +4,12 @@ The continuous functions follow the conventions of the BBOB benchmark: every var
 in [-5, 5], and each function is shifted so its optimum sits at a fixed, problem-specific
 point away from the centre of the box. Optimizers that drift toward the centre would
 otherwise look better than they are.
+
+Each continuous function except sphere also comes in a rotated version, which turns the
+coordinate axes by a fixed random rotation. The plain versions are separable: every
+variable affects the value independently, so an optimizer can improve one variable at a
+time, and crossover that swaps whole variables between parents does unusually well. In
+the rotated versions the variables interact, as they usually do in engineering problems.
 """
 import math
 import zlib
@@ -38,21 +44,36 @@ def _shift(name: str, dimensions: int, integer: bool = False) -> np.ndarray:
     return np.round(shift) if integer else shift
 
 
+def _rotation(name: str, dimensions: int) -> np.ndarray:
+    """A fixed random rotation for the named problem: an orthogonal matrix with determinant 1."""
+    rng = np.random.default_rng(zlib.crc32(f"{name}/rotation".encode()))
+    q, r = np.linalg.qr(rng.standard_normal((dimensions, dimensions)))
+    q = q * np.sign(np.diag(r))  # makes the rotation uniformly random
+    if np.linalg.det(q) < 0:
+        q[:, 0] = -q[:, 0]
+    return q
+
+
 def _vector_problem(
     name: str,
     base: Callable[[np.ndarray], float],
     dimensions: int,
     parameters: list[Parameter] | None = None,
     integer: bool = False,
+    rotate: bool = False,
     tags: frozenset[str] = frozenset({"continuous"}),
 ) -> Problem:
-    """Wrap a function of a vector z, minimal at z = 0, as a shifted problem over x0..x{n-1}."""
+    """Wrap a function of a vector z, minimal at z = 0, as a shifted problem over x0..x{n-1}.
+
+    With rotate, z is the shifted point turned by a fixed rotation, so the variables interact.
+    """
     names = [f"x{i}" for i in range(dimensions)]
     shift = _shift(name, dimensions, integer)
+    rotation = _rotation(name, dimensions) if rotate else np.eye(dimensions)
 
     def function(**params: Any) -> float:
         x = np.array([params[n] for n in names], dtype=float)
-        return float(base(x - shift))
+        return float(base(rotation @ (x - shift)))
 
     function.__name__ = name.replace("-", "_")
     if parameters is None:
@@ -102,6 +123,15 @@ CONTINUOUS = {
     "rastrigin": rastrigin,
     "ackley": ackley,
 }
+
+# Sphere is the same under any rotation, so it has no rotated version.
+ROTATED = {name: base for name, base in CONTINUOUS.items() if name != "sphere"}
+
+
+def rotated(name: str, dimensions: int) -> Problem:
+    return _vector_problem(
+        f"rotated-{name}-{dimensions}d", ROTATED[name], dimensions, rotate=True, tags=frozenset({"continuous", "rotated"})
+    )
 
 
 # --- mixed problems --------------------------------------------------------
@@ -164,10 +194,11 @@ def material_selection(dimensions: int) -> Problem:
 
 
 def standard_problems(dimensions: tuple[int, ...] = (2, 5, 10)) -> list[Problem]:
-    """The full suite: every continuous function and every mixed problem, in each dimension."""
+    """The full suite: every continuous function, plain and rotated, and every mixed problem, in each dimension."""
     problems = [
         _vector_problem(f"{name}-{d}d", base, d) for d in dimensions for name, base in CONTINUOUS.items()
     ]
+    problems += [rotated(name, d) for d in dimensions for name in ROTATED]
     for d in dimensions:
         problems += [integer_sphere(d), mixed_rastrigin(d), material_selection(d)]
     return problems
@@ -179,6 +210,7 @@ def quick_problems() -> list[Problem]:
         _vector_problem("sphere-5d", sphere, 5),
         _vector_problem("ellipsoid-5d", ellipsoid, 5),
         _vector_problem("rastrigin-5d", rastrigin, 5),
+        rotated("rastrigin", 5),
         integer_sphere(5),
         material_selection(5),
     ]

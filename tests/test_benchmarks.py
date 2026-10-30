@@ -24,8 +24,10 @@ ALL = standard_problems()
 
 def test_suite_covers_every_function_and_dimension():
     names = {problem.name for problem in ALL}
-    assert len(ALL) == len(names) == 24
+    assert len(ALL) == len(names) == 36
     assert {"sphere-2d", "ellipsoid-10d", "rastrigin-5d", "integer-sphere-10d", "material-selection-2d"} <= names
+    assert {f"rotated-{f}-{d}d" for f in ("ellipsoid", "rosenbrock", "rastrigin", "ackley") for d in (2, 5, 10)} <= names
+    assert "rotated-sphere-2d" not in names
 
 
 def test_quick_problems_match_the_standard_ones():
@@ -191,7 +193,7 @@ def test_cli_checks_against_a_baseline(tmp_path, capsys):
     assert main([*args, "--save", str(baseline), "--markdown", str(tmp_path / "results.md")]) == 0
     results = (tmp_path / "results.md").read_text()
     assert results.startswith("# Benchmark results")
-    assert "5 problems, 1 seeds, 20 evaluations per dimension" in results
+    assert "6 problems, 1 seeds, 20 evaluations per dimension" in results
     assert "| Problem |" in results
     assert main([*args, "--baseline", str(baseline)]) == 0
     assert "No regressions" in capsys.readouterr().out
@@ -203,3 +205,38 @@ def test_cli_fails_on_a_regression(tmp_path, capsys):
     save_summaries(good, baseline)
     assert main(["--quick", "--seeds", "1", "--budget-per-dimension", "20", "--baseline", str(baseline)]) == 1
     assert "Regressions against the baseline" in capsys.readouterr().out
+
+
+# --- rotated problems -----------------------------------------------------
+
+
+@pytest.mark.parametrize("dimensions", [2, 5, 10])
+def test_rotations_are_proper_and_fixed(dimensions):
+    rotation = p._rotation(f"rotated-rastrigin-{dimensions}d", dimensions)
+    assert np.allclose(rotation @ rotation.T, np.eye(dimensions))
+    assert np.linalg.det(rotation) == pytest.approx(1)
+    assert np.array_equal(rotation, p._rotation(f"rotated-rastrigin-{dimensions}d", dimensions))
+    assert not np.allclose(rotation, p._rotation(f"rotated-ackley-{dimensions}d", dimensions))
+
+
+def test_rotated_problems_are_not_separable():
+    """Changing one variable changes how much another variable matters, unlike the plain version."""
+    by_name = {problem.name: problem for problem in ALL}
+
+    def interaction(problem):
+        base = optimum_of(problem)
+        def f(**changes):
+            return problem.function(**{**base, **changes})
+        x0, x1 = base["x0"], base["x1"]
+        return f(x0=x0 + 1, x1=x1 + 1) - f(x0=x0 + 1) - f(x1=x1 + 1) + f()
+
+    assert interaction(by_name["ellipsoid-5d"]) == pytest.approx(0, abs=1e-6)
+    assert abs(interaction(by_name["rotated-ellipsoid-5d"])) > 1
+
+
+def test_rotation_keeps_the_function_value_at_the_same_distance():
+    """Rotating a sphere-like function changes nothing: a check that rotation preserves distances."""
+    plain = p._vector_problem("check-5d", p.sphere, 5)
+    turned = p._vector_problem("check-5d", p.sphere, 5, rotate=True)
+    params = {f"x{i}": 0.1 * i for i in range(5)}
+    assert turned.function(**params) == pytest.approx(plain.function(**params))

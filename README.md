@@ -98,8 +98,8 @@ result = Result.load("run.json")
 
 | Optimizer | Config | Approach |
 | --- | --- | --- |
-| `CMAES` | `CMAESConfig` | Learns the scale of each variable and how variables interact; the strongest choice for continuous and integer problems. Doesn't support choice parameters |
-| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation; handles every kind of parameter, including choices, and does better than CMA-ES on rugged problems with a dense grid of local minima, such as Rastrigin in 5 or more dimensions |
+| `CMAES` | `CMAESConfig` | Learns the scale of each variable and how variables interact. The first choice for continuous and integer problems; doesn't support choice parameters |
+| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation. Handles every kind of parameter, so it's the choice for problems with choice parameters |
 | `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
 
 ```python
@@ -117,11 +117,11 @@ All three take the same arguments and support `optimize()`, `ask()` and `tell()`
 `hone.benchmarks` runs optimizers on test problems with known optima and reports how close each one gets:
 
 ```
-python -m hone.benchmarks            # full suite: 24 problems, 10 seeds each
-python -m hone.benchmarks --quick    # 5 problems, 5 seeds; takes seconds
+python -m hone.benchmarks            # full suite: 36 problems, 10 seeds each; about 10 minutes
+python -m hone.benchmarks --quick    # 6 problems, 5 seeds; takes seconds
 ```
 
-The suite has five standard continuous functions (sphere, ellipsoid, Rosenbrock, Rastrigin and Ackley) in 2, 5 and 10 dimensions, plus integer, mixed and categorical problems. Each function is shifted so its optimum is away from the centre of the search space. Every optimizer gets the same budget of evaluations. Latest results are in [benchmarks/results.md](benchmarks/results.md).
+The suite has five standard continuous functions (sphere, ellipsoid, Rosenbrock, Rastrigin and Ackley) in 2, 5 and 10 dimensions, rotated versions of four of them in which the variables interact, and integer, mixed and categorical problems: 36 in all. Each function is shifted so its optimum is away from the centre of the search space. Every optimizer gets the same budget of evaluations. Latest results are in [benchmarks/results.md](benchmarks/results.md).
 
 To compare your own optimizer, pass a factory that builds it for a problem, a budget and a seed:
 
