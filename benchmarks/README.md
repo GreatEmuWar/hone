@@ -34,7 +34,7 @@ The plain functions are separable: each variable affects the value on its own, s
 | mixed-rastrigin | Half continuous and half integer variables |
 | material-selection | A categorical choice that moves where the best continuous design is. Each material adds a base cost; titanium, at cost 0, gives the optimum |
 
-## What the 0.5.0 results show
+## What the 0.6.0 results show
 
 ### At small budgets
 
