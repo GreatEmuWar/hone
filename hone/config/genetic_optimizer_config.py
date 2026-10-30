@@ -35,6 +35,10 @@ class GeneticOptimizerConfig(OptimizerConfig):
     selection_method: SelectionMethod = SelectionMethod.TOURNAMENT
     tournament_size: int = Field(default=4, ge=2)
     tournament_p: float = Field(default=1.0, ge=0, le=1)  # chance a tournament picks its best rather than its worst
+    # Share of children bred within niches of parents with the same choice parameter values, so
+    # each option keeps tuning its own numbers. Helps problems where the best choice is found
+    # late, on large budgets; costs on small ones. 0 turns niches off.
+    niche_share: float = Field(default=0.0, ge=0, lt=1)
 
     @model_validator(mode="before")
     @classmethod
