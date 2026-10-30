@@ -1,7 +1,7 @@
 from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, OptimizerConfig, SelectionMethod
 from hone.optimizers import CMAES, BayesianOptimizer, EvaluationFailed, GeneticOptimizer, Optimizer, RandomSearch, Trial, UnsupportedSearchSpace
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter, SearchSpace
-from hone.result import GenerationStats, Result
+from hone.result import GenerationStats, Progress, Result, RunInfo, print_progress
 
 __all__ = [
     "BayesianConfig",
@@ -16,11 +16,14 @@ __all__ = [
     "GeneticOptimizerConfig",
     "Optimizer",
     "OptimizerConfig",
+    "Progress",
     "RandomSearch",
     "RangeParameter",
     "Result",
+    "RunInfo",
     "SearchSpace",
     "SelectionMethod",
     "Trial",
     "UnsupportedSearchSpace",
+    "print_progress",
 ]

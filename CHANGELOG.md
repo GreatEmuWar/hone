@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0 (2026-10-30)
+
+### Added
+
+- **A record of each run.** `Result.run` holds how the result was produced: the optimizer, its full config including the seed, the search space, any initial points, the objective's name, `workers` and `timeout`, the versions of hone, Python and numpy, and when the run started and how long it took.
+- **Rebuilding an optimizer from a result.** `result.rebuild_optimizer()` sets up a new optimizer exactly as the result's was, so a saved run can be repeated.
+- **Progress callbacks.** `optimize(callback=...)` is called after each generation with a `Progress`. Return `True` to stop the run. `print_progress` prints a line per generation.
+
+### Changed
+
+- **Ctrl+C returns the best result so far** rather than discarding the run. `optimize()` stops its workers and returns the result with `stopped` set. If no evaluation has succeeded yet, Ctrl+C still raises `KeyboardInterrupt`.
+- **Result equality** compares what was found, not the new `run` record, so two runs with the same seed still compare equal.
+- Worker processes ignore Ctrl+C; the main process stops them.
+
 ## 0.7.0 (2026-10-30)
 
 ### Added

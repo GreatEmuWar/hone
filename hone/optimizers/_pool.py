@@ -5,6 +5,7 @@ hold up the run forever. Here each worker is a process of its own: one that runs
 time limit, or dies, is replaced, and its evaluation counts as failed.
 """
 import multiprocessing
+import signal
 import time
 from multiprocessing.connection import Connection, wait
 from typing import Any, Callable
@@ -43,6 +44,8 @@ class _Worker:
 
 def _serve(connection: Connection, evaluate: Callable[[dict], float | None]) -> None:
     """A worker's loop: evaluate each candidate it is sent, and send back the outcome."""
+    # Ctrl+C reaches every process in the terminal; the main process handles it and stops the workers.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     connection.send(READY)
     while (message := connection.recv()) is not STOP:
         task, params = message

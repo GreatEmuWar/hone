@@ -1,7 +1,11 @@
 import math
 import numbers
+import platform
+import time
 from abc import ABC, abstractmethod
-from functools import partial
+from datetime import UTC, datetime
+from functools import cache, partial
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Callable, ClassVar, List
 
 import numpy as np
@@ -10,7 +14,7 @@ from pydantic import BaseModel, ConfigDict
 from hone.config import OptimizerConfig
 from hone.objective_function import ObjectiveFunction
 from hone.parameters import Parameter, SearchSpace
-from hone.result import GenerationStats, Result
+from hone.result import GenerationStats, Progress, Result, RunInfo
 
 from ._pool import EvaluationPool
 
@@ -121,6 +125,14 @@ class Optimizer(ABC):
         self._points: dict[tuple, dict[str, Any]] = {}
         self._finalists: list[tuple] = []
         self._final_round = False
+        # For the result's run record: set by optimize(), and timed from the first ask().
+        self._objective_name: str | None = None
+        self._run_workers: int | None = None
+        self._run_timeout: float | None = None
+        self._started_at: datetime | None = None
+        self._start_clock: float | None = None
+        self._end_clock: float | None = None
+        self._stopped = False
 
     @property
     def done(self) -> bool:
@@ -136,6 +148,8 @@ class Optimizer(ABC):
         """
         if n is not None and n < 1:
             raise ValueError(f"n must be at least 1, got {n}")
+        if self._start_clock is None:
+            self._started_at, self._start_clock = datetime.now(UTC), time.monotonic()
         while self._needs_generation and not self._done:
             self._start_generation()
         if self._done:
@@ -197,14 +211,10 @@ class Optimizer(ABC):
 
     def result(self) -> Result:
         """The best result found so far, with a summary of every completed generation."""
-        if self._best is None:
+        best = self._best_point()
+        if best is None:
             raise RuntimeError("no successful evaluations yet")
-        best_fitness, best_params = self._best.fitness, self._best.params
-        if self.config.noise and self._observations:
-            # Once the finalists have been re-evaluated, the one with the best average; before
-            # that, the most promising point by the optimizer's best estimate.
-            key = self._ranked_keys(self._finalists)[0] if self._finalists else self._finalist_order()[0]
-            best_fitness, best_params = self._average(key), self._points[key]
+        best_fitness, best_params = best
         return Result(
             best_fitness=best_fitness,
             best_params=dict(best_params),
@@ -212,11 +222,56 @@ class Optimizer(ABC):
             evaluations=self._evaluations,
             failures=self._failures,
             reached_threshold=self._reached_threshold,
+            stopped=self._stopped,
+            run=self._run_info(),
         )
+
+    def _best_point(self) -> tuple[float, dict[str, Any]] | None:
+        """The best value so far and its parameters, or None before any evaluation has succeeded."""
+        if self._best is None:
+            return None
+        if self.config.noise and self._observations:
+            # Once the finalists have been re-evaluated, the one with the best average; before
+            # that, the most promising point by the optimizer's best estimate.
+            key = self._ranked_keys(self._finalists)[0] if self._finalists else self._finalist_order()[0]
+            return self._average(key), self._points[key]
+        return _fitness(self._best), self._best.params
+
+    def _run_info(self) -> RunInfo:
+        return RunInfo(
+            optimizer=type(self).__name__,
+            config=self.config.model_dump(mode="json"),
+            search_space=self.search_space,
+            initial_points=[dict(point) for point in self.initial_points],
+            objective=self._objective_name,
+            workers=self._run_workers,
+            timeout=self._run_timeout,
+            hone_version=_hone_version(),
+            python_version=platform.python_version(),
+            numpy_version=np.__version__,
+            started_at=self._started_at,
+            elapsed=self._elapsed() if self._start_clock is not None else None,
+        )
+
+    def _elapsed(self) -> float:
+        assert self._start_clock is not None
+        return (self._end_clock if self._end_clock is not None else time.monotonic()) - self._start_clock
+
+    def _finish(self, stopped: bool = False) -> None:
+        self._done = True
+        self._stopped = stopped
+        self._end_clock = time.monotonic()
 
     # --- running the objective for you ----------------------------------------
 
-    def optimize(self, objective_function: Callable, *, workers: int = 1, timeout: float | None = None) -> Result:
+    def optimize(
+        self,
+        objective_function: Callable,
+        *,
+        workers: int = 1,
+        timeout: float | None = None,
+        callback: Callable[[Progress], bool | None] | None = None,
+    ) -> Result:
         """Run the optimizer from the start, calling objective_function for every candidate.
 
         The function is called with one keyword argument per parameter and must return a
@@ -231,6 +286,11 @@ class Optimizer(ABC):
             workers: Evaluate candidates in this many background processes at once.
             timeout: The longest, in seconds, one evaluation may take. An evaluation that runs
                 longer is stopped and counts as failed, as does one whose process crashes.
+            callback: Called with a Progress after each generation. Return True from it to stop
+                the run; optimize() then returns the best result so far.
+
+        Pressing Ctrl+C also stops the run and returns the best result so far, marked as
+        stopped, once at least one evaluation has succeeded.
 
         With workers > 1 or a timeout, each evaluation runs in a separate process, so the
         function must be defined at the top level of a module.
@@ -246,19 +306,46 @@ class Optimizer(ABC):
         self._workers = workers
         try:
             self.reset()
-            if workers == 1 and timeout is None:
-                while not self._done:
-                    for trial in self.ask():
-                        self._tell_outcome(trial, evaluate(trial.params))
-            else:
-                with EvaluationPool(evaluate, workers, timeout) as pool:
+            self._objective_name, self._run_workers, self._run_timeout = objective.name, workers, timeout
+            reported = 0
+            try:
+                if workers == 1 and timeout is None:
                     while not self._done:
-                        trials = self.ask()
-                        for trial, outcome in zip(trials, pool.map([trial.params for trial in trials])):
-                            self._tell_outcome(trial, outcome)
+                        for trial in self.ask():
+                            self._tell_outcome(trial, evaluate(trial.params))
+                        reported = self._report(callback, reported)
+                else:
+                    with EvaluationPool(evaluate, workers, timeout) as pool:
+                        while not self._done:
+                            trials = self.ask()
+                            for trial, outcome in zip(trials, pool.map([trial.params for trial in trials])):
+                                self._tell_outcome(trial, outcome)
+                            reported = self._report(callback, reported)
+            except KeyboardInterrupt:
+                if self._best is None:
+                    raise  # nothing to return
+                self._finish(stopped=True)
         finally:
             self._workers = 1
         return self.result()
+
+    def _report(self, callback: Callable[[Progress], bool | None] | None, reported: int) -> int:
+        """Pass callback each generation finished since the first reported ones, and stop the run if it asks."""
+        if callback is None:
+            return len(self._history)
+        best = self._best_point()
+        for stats in self._history[reported:]:
+            progress = Progress(
+                generation=stats,
+                evaluations=stats.evaluations,
+                best_fitness=best[0] if best is not None else None,
+                best_params=dict(best[1]) if best is not None else None,
+                elapsed=self._elapsed(),
+            )
+            if callback(progress) and not self._done:
+                self._finish(stopped=True)
+                break
+        return len(self._history)
 
     def _tell_outcome(self, trial: Trial, outcome: float | None) -> None:
         if outcome is None:
@@ -290,13 +377,13 @@ class Optimizer(ABC):
         self._history.append(self._summarize(self._generation, self._evaluations, self._population))
         if self._best is not None and self._reached(_fitness(self._best)):
             self._reached_threshold = True
-            self._done = True
+            self._finish()
         elif final or self._generation + 1 >= self.config.generations or self._budget_left() == 0:
             if self.config.reserved_evaluations and not self._final_round and self._observations:
                 self._final_round = True
                 self._needs_generation = True
             else:
-                self._done = True
+                self._finish()
         else:
             # The next generation is bred from this one when ask() is next called.
             self._needs_generation = True
@@ -375,6 +462,14 @@ class Optimizer(ABC):
             median=float(np.median(fitnesses)),
             std=float(np.std(fitnesses)),
         )
+
+
+@cache
+def _hone_version() -> str:
+    try:
+        return version("hone-python")
+    except PackageNotFoundError:  # run from a source checkout that isn't installed
+        return "unknown"
 
 
 def _fitness(individual: Individual) -> float:

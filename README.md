@@ -56,6 +56,27 @@ result = optimizer.result()
 
 `ask()` hands out the candidates of the current generation; `ask(4)` hands out at most four. It returns an empty list while the generation still waits for results, because the next generation is bred from them. `result()` can be called at any point for the best result so far.
 
+### Following a run
+
+`callback` is called after each generation with a `Progress`: the generation's statistics, the evaluations so far, the best value and parameters so far, and the seconds elapsed. `print_progress` prints one line per generation:
+
+```python
+from hone import print_progress
+
+result = optimizer.optimize(run_simulation, workers=8, callback=print_progress)
+# generation 0: 50 evaluations, best 12.4, 61.3 s
+```
+
+Return `True` from a callback to stop the run, for a stopping rule of your own:
+
+```python
+def good_enough_or_overnight(progress):
+    good_enough = progress.best_fitness is not None and progress.best_fitness < 0.5
+    return good_enough or progress.elapsed > 8 * 3600
+```
+
+Pressing Ctrl+C stops the run too. Either way, `optimize()` stops the workers and returns the best result so far, with `stopped` set.
+
 ### Failed evaluations
 
 Simulations crash, time out or fail to converge. Report such a run as failed rather than inventing a penalty value:
@@ -138,6 +159,8 @@ Each value of a new individual mutates with probability `mutation_rate` (default
 | `generations` | One `GenerationStats` per generation: the evaluations used so far, its best fitness and parameters, worst fitness, mean, median and standard deviation |
 | `evaluations`, `failures` | How many evaluations were made, and how many of them failed |
 | `reached_threshold` | Whether the run stopped early because it reached `threshold` |
+| `stopped` | Whether the run was stopped before it finished, by its callback or Ctrl+C |
+| `run` | How the result was produced: the optimizer, its full config including the seed, the search space, any initial points, the objective's name, `workers` and `timeout`, the versions of hone, Python and numpy, and when the run started and how long it took |
 
 A result can be saved to JSON and loaded back:
 
@@ -145,6 +168,14 @@ A result can be saved to JSON and loaded back:
 result.save("run.json")
 result = Result.load("run.json")
 ```
+
+`rebuild_optimizer()` sets up a new optimizer exactly as the result's was, so a saved run can be repeated. Run it on the same objective and it returns the same result; for CMA-ES and Bayesian optimization, also use the same number of workers, `result.run.workers`. An optimizer class of your own is rebuilt with `rebuild_optimizer(MyOptimizer)`.
+
+```python
+optimizer = Result.load("run.json").rebuild_optimizer()
+```
+
+Two results are equal when they found the same things: the same best point, generations and evaluations. Their `run` records aren't compared, since a repeated run starts at a different time.
 
 ### Optimizers
 
