@@ -27,8 +27,12 @@ The optimizer minimizes by default; set `maximize=True` in the config to maximiz
 When each evaluation takes a while, run them in parallel. `workers` evaluates that many candidates at a time in background processes; the objective function must be defined at the top level of a module, and on macOS and Windows the calling script needs an `if __name__ == "__main__":` guard.
 
 ```python
-result = optimizer.optimize(run_simulation, workers=8)
+result = optimizer.optimize(run_simulation, workers=8, timeout=600)
 ```
+
+`timeout` limits each evaluation, in seconds. An evaluation that runs longer is stopped and counts as failed, as does one whose process crashes, so one hung simulation can't stall the run. A timeout also runs evaluations in a background process when `workers` is 1.
+
+Each generation waits for its slowest evaluation before the next one starts, so workers beyond the population size sit idle. Keep `population_size` at least two or three times `workers`.
 
 When evaluations run somewhere `optimize()` can't reach, such as jobs on a compute cluster or tests on a physical rig, ask the optimizer for candidates and tell it the results yourself, in any order:
 
