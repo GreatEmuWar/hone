@@ -14,15 +14,16 @@ X, y = load_iris(return_X_y=True)
 folds = StratifiedKFold(5, shuffle=True, random_state=0)
 
 
-def accuracy(log10_C, log10_gamma, kernel):
-    """Mean cross-validated accuracy; C and gamma are searched on a log scale."""
-    model = make_pipeline(StandardScaler(), SVC(C=10**log10_C, gamma=10**log10_gamma, kernel=kernel))
+def accuracy(C, gamma, kernel):
+    """Mean cross-validated accuracy."""
+    model = make_pipeline(StandardScaler(), SVC(C=C, gamma=gamma, kernel=kernel))
     return cross_val_score(model, X, y, cv=folds).mean()
 
 
 search_space = [
-    RangeParameter("log10_C", -3, 3),
-    RangeParameter("log10_gamma", -4, 1),
+    # C and gamma span orders of magnitude, so search them on a log scale.
+    RangeParameter("C", 1e-3, 1e3, log=True),
+    RangeParameter("gamma", 1e-4, 10, log=True),
     ChoiceParameter("kernel", ["rbf", "sigmoid"]),
 ]
 

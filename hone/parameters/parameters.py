@@ -16,11 +16,18 @@ class _Parameter(BaseModel):
 
 
 class RangeParameter(_Parameter):
-    """A number drawn uniformly from [minimum, maximum], optionally restricted to integers."""
+    """A number between minimum and maximum, optionally restricted to integers.
+
+    With log=True the range is searched on a logarithmic scale: values are drawn evenly in
+    their logarithm, so 0.001 to 0.01 gets as much attention as 100 to 1000. Use it for
+    settings that span orders of magnitude, such as learning rates and regularization
+    strengths. A log range needs a positive minimum.
+    """
     kind: Literal["range"] = "range"
     minimum: float
     maximum: float
     integer: bool = False
+    log: bool = False
 
     def __init__(self, name: str, minimum: float, maximum: float, **data: Any) -> None:
         super().__init__(name=name, minimum=minimum, maximum=maximum, **data)
@@ -31,9 +38,43 @@ class RangeParameter(_Parameter):
             raise ValueError(f"{self.name}: minimum {self.minimum} is greater than maximum {self.maximum}")
         if self.integer and math.ceil(self.minimum) > math.floor(self.maximum):
             raise ValueError(f"{self.name}: no integer lies between {self.minimum} and {self.maximum}")
+        if self.log and self.minimum <= 0:
+            raise ValueError(f"{self.name}: a log range needs a positive minimum, got {self.minimum}")
         return self
 
+    def _scale(self, value):
+        return np.log(value) if self.log else value
+
+    def to_unit(self, value: Any) -> Any:
+        """Where value lies in the range, from 0 at the minimum to 1 at the maximum, on the range's scale.
+
+        Accepts a number or an array of them.
+        """
+        low, high = self._scale(self.minimum), self._scale(self.maximum)
+        if high == low:
+            return np.zeros_like(np.asarray(value, dtype=float)) if np.ndim(value) else 0.0
+        return (self._scale(np.asarray(value, dtype=float)) - low) / (high - low)
+
+    def from_unit(self, unit: Any) -> Any:
+        """The value at position unit in the range, clipped to it, and rounded for an integer range.
+
+        The inverse of to_unit. Accepts a number, returning an int or float, or an array.
+        """
+        low, high = self._scale(self.minimum), self._scale(self.maximum)
+        value = low + np.clip(unit, 0, 1) * (high - low)
+        if self.log:
+            value = np.exp(value)
+        if self.integer:
+            value = np.clip(np.round(value), math.ceil(self.minimum), math.floor(self.maximum))
+        else:
+            value = np.clip(value, self.minimum, self.maximum)
+        if np.ndim(value):
+            return value
+        return int(value) if self.integer else float(value)
+
     def sample(self, rng: np.random.Generator) -> float | int:
+        if self.log:
+            return self.from_unit(rng.uniform())
         if self.integer:
             return int(rng.integers(math.ceil(self.minimum), math.floor(self.maximum), endpoint=True))
         return float(rng.uniform(self.minimum, self.maximum))
@@ -54,8 +95,15 @@ class RangeParameter(_Parameter):
         """Nudge value by Gaussian noise with a standard deviation of scale times the range width.
 
         The result is clipped to the bounds. Integer ranges use a step of at least 1, so a
-        mutation can always move the value.
+        mutation can always move the value. A log range is nudged in its logarithm, so the
+        step is a proportion of the value rather than a fixed amount.
         """
+        if self.log:
+            mutated = self.from_unit(self.to_unit(value) + rng.normal(0, scale))
+            if self.integer and mutated == value:
+                neighbour = min(max(value + rng.choice([-1, 1]), math.ceil(self.minimum)), math.floor(self.maximum))
+                mutated = int(neighbour)
+            return mutated
         sigma = scale * (self.maximum - self.minimum)
         if self.integer:
             step = round(rng.normal(0, max(sigma, 1)))

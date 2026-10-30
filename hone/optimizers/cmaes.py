@@ -3,7 +3,8 @@
 The update follows N. Hansen, "The CMA Evolution Strategy: A Tutorial" (arXiv:1604.00772),
 with positive recombination weights. Three additions adapt it to hone's search spaces:
 
-- Range parameters are scaled to [0, 1], and a sample that falls outside is mirrored back in.
+- Range parameters are scaled to [0, 1], on a log scale where they have one, and a sample
+  that falls outside is mirrored back in.
   The mirrored point is the one evaluated and used in the update.
 - Integer parameters keep a minimum spread of a quarter of one integer step, so the search
   can always move to a neighbouring value. This is a simpler form of the margin used by
@@ -69,14 +70,11 @@ class CMAES(Optimizer):
             raise UnsupportedSearchSpace("CMA-ES needs at least one range parameter with minimum below maximum")
         self._searched = searched
         self._constant = {
-            p.name: (p.value if isinstance(p, FixedParameter) else self._decode_one(p, 0.0))
+            p.name: (p.value if isinstance(p, FixedParameter) else p.from_unit(0.0))
             for p in search_space.parameters
             if p not in searched
         }
-        self._lower = np.array([p.minimum for p in searched], dtype=float)
-        self._width = np.array([p.maximum - p.minimum for p in searched], dtype=float)
         self._integer = np.array([p.integer for p in searched])
-        self._min_spread = np.where(self._integer, INTEGER_SPREAD / self._width, 0.0)
         super().__init__(search_space, config, initial_points=initial_points)
 
     # --- state ----------------------------------------------------------------
@@ -131,6 +129,7 @@ class CMAES(Optimizer):
                 self._mean = self._encode(succeeded[0].params)
         elif previous is not None:
             self._update(previous)
+        self._min_spread = self._minimum_spread()
         return [self._sample(generation) for _ in range(self.population_size)]
 
     def _sample(self, generation: int) -> Individual:
@@ -194,23 +193,33 @@ class CMAES(Optimizer):
         recent = self._recent_bests[-window:]
         return len(recent) == window and max(recent) - min(recent) <= FLAT * max(1.0, abs(min(recent)))
 
+    def _minimum_spread(self) -> np.ndarray:
+        """The smallest standard deviation each variable keeps, in [0, 1] units: INTEGER_SPREAD integer steps near the mean.
+
+        On a log scale an integer step is wider at the bottom of the range than at the top,
+        so it is measured where the search currently is.
+        """
+        spread = np.zeros(len(self._searched))
+        for i, p in enumerate(self._searched):
+            if not p.integer:
+                continue
+            if p.log:
+                value = float(np.exp(np.log(p.minimum) + self._mean[i] * (np.log(p.maximum) - np.log(p.minimum))))
+                spread[i] = INTEGER_SPREAD * (p.to_unit(value + 1) - p.to_unit(value))
+            else:
+                spread[i] = INTEGER_SPREAD / (p.maximum - p.minimum)
+        return spread
+
     # --- between [0, 1]^n and parameter values --------------------------------
 
     def _encode(self, params: dict) -> np.ndarray:
-        return (np.array([params[p.name] for p in self._searched], dtype=float) - self._lower) / self._width
+        return np.array([p.to_unit(params[p.name]) for p in self._searched], dtype=float)
 
     def _decode(self, x: np.ndarray) -> dict:
         values = dict(self._constant)
         for parameter, u in zip(self._searched, x):
-            values[parameter.name] = self._decode_one(parameter, u)
+            values[parameter.name] = parameter.from_unit(float(u))
         return {name: values[name] for name in self.search_space.names}
-
-    @staticmethod
-    def _decode_one(parameter: RangeParameter, u: float):
-        value = parameter.minimum + u * (parameter.maximum - parameter.minimum)
-        if parameter.integer:
-            return int(min(max(round(value), math.ceil(parameter.minimum)), math.floor(parameter.maximum)))
-        return float(min(max(value, parameter.minimum), parameter.maximum))
 
 
 def _mirror(x: np.ndarray) -> np.ndarray:
