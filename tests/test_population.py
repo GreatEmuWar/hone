@@ -1,5 +1,3 @@
-import pytest
-
 from hone.optimizers import Individual, Population
 
 
@@ -24,6 +22,5 @@ def test_population_size_from_constructor():
     assert len(Population(individuals=[Individual(), Individual()])) == 2
 
 
-@pytest.mark.xfail(reason="bug 12: default population_id is evaluated once at class definition")
 def test_population_ids_are_unique():
     assert Population().population_id != Population().population_id
