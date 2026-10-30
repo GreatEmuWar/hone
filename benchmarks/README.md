@@ -83,7 +83,7 @@ Each design choice was compared with and without it on these problems, over 10 s
 
 | Change | 10 / dim | 40 / dim | 200 / dim |
 | --- | ---: | ---: | ---: |
-| Genetic optimizer: averaging, with parents ranked by their latest average | ×1.00 | ×0.85 | ×0.80 |
+| Genetic optimizer: averaging, with parents ranked by their latest average | ×1.01 | ×0.92 | ×0.74 |
 | Bayesian optimization: improvement measured against the model's best prediction | ×0.95 | ×0.90 | not run |
 | CMA-ES: 10% of the budget kept back for a final round | ×1.12 | ×1.14 | ×0.89 |
 | Random search: the same | ×1.02 | ×1.02 | ×0.98 |

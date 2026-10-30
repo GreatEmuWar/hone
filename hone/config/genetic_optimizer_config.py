@@ -34,7 +34,7 @@ class GeneticOptimizerConfig(OptimizerConfig):
     elitism_rate: float = Field(default=0.1, ge=0, lt=1)  # share of each generation carried over unchanged
     selection_method: SelectionMethod = SelectionMethod.TOURNAMENT
     tournament_size: int = Field(default=4, ge=2)
-    tournament_p: float = Field(default=0.75, ge=0, le=1)  # chance a tournament picks its best rather than its worst
+    tournament_p: float = Field(default=1.0, ge=0, le=1)  # chance a tournament picks its best rather than its worst
 
     @model_validator(mode="before")
     @classmethod
