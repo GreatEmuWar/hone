@@ -18,8 +18,8 @@ class GeneticOptimizerConfig(BaseModel):
 
     population_size: int = Field(default=100, ge=2)
     generations: int = Field(default=25, ge=1)
-    mutation_rate: float = Field(default=0.05, ge=0, le=1)  # chance a child is mutated at all
-    mutation_threshold: float = Field(default=0.1, ge=0, le=1)  # chance each gene of a mutated child is resampled
+    mutation_rate: float = Field(default=0.1, ge=0, le=1)  # chance each gene of a child is mutated
+    mutation_scale: float = Field(default=0.1, gt=0)  # size of a range mutation, as a fraction of the range width
     crossover_rate: float = Field(default=0.8, ge=0, le=1)
     elitism: bool = True
     elitism_rate: float = Field(default=0.1, ge=0, lt=1)

@@ -121,3 +121,53 @@ def test_search_space_from_dict():
 def test_search_space_from_dict_rejects_unknown_kind():
     with pytest.raises(ValidationError):
         SearchSpace.model_validate({"parameters": [{"kind": "normal", "name": "x"}]})
+
+
+# --- mutation ---------------------------------------------------------------
+
+
+def test_range_mutation_is_a_small_step(rng):
+    x = RangeParameter("x", -50, 50)
+    steps = [x.mutate(0.0, rng, scale=0.01) for _ in range(500)]
+    assert all(-5 < s < 5 for s in steps)
+    assert 0.5 < float(np.std(steps)) < 1.5
+
+
+def test_range_mutation_stays_within_bounds(rng):
+    x = RangeParameter("x", 0, 1)
+    assert all(0 <= x.mutate(0.99, rng, scale=0.5) <= 1 for _ in range(200))
+
+
+def test_integer_range_mutation_moves_by_whole_steps(rng):
+    n = RangeParameter("n", 0, 3, integer=True)
+    results = [n.mutate(1, rng, scale=0.01) for _ in range(200)]
+    assert all(type(r) is int and 0 <= r <= 3 for r in results)
+    assert any(r != 1 for r in results), "a tiny scale should still be able to move an integer"
+
+
+def test_choice_mutation_switches_to_another_choice(rng):
+    color = ChoiceParameter("color", ["red", "green", "blue"])
+    results = {color.mutate("red", rng, scale=0.1) for _ in range(100)}
+    assert results == {"green", "blue"}
+
+
+def test_single_choice_mutation_keeps_it(rng):
+    assert ChoiceParameter("c", ["only"]).mutate("only", rng, scale=0.1) == "only"
+
+
+def test_choose_n_mutation_redraws_distinct_list(rng):
+    tags = ChoiceParameter("tags", ["a", "b", "c"], choose_n=2)
+    picks = tags.mutate(["a", "b"], rng, scale=0.1)
+    assert len(picks) == len(set(picks)) == 2
+
+
+def test_fixed_mutation_keeps_value(rng):
+    assert FixedParameter("mode", "fast").mutate("fast", rng, scale=0.1) == "fast"
+
+
+def test_search_space_lookup_by_name():
+    x = RangeParameter("x", 0, 1)
+    space = SearchSpace([x, FixedParameter("f", 3)])
+    assert space["x"] is x
+    with pytest.raises(KeyError):
+        space["missing"]

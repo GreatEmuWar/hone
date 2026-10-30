@@ -45,3 +45,5 @@ config = GeneticOptimizerConfig.from_file("config.yaml")
 ```
 
 Set `seed` to make a run repeatable.
+
+Each value of a new individual mutates with probability `mutation_rate` (default 0.1). A range value moves by a random step whose typical size is `mutation_scale` (default 0.1) times the width of its range. A choice switches to another option, and a fixed value never changes.

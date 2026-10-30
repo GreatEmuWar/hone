@@ -37,6 +37,18 @@ class RangeParameter(_Parameter):
             return int(rng.integers(math.ceil(self.minimum), math.floor(self.maximum), endpoint=True))
         return float(rng.uniform(self.minimum, self.maximum))
 
+    def mutate(self, value: float | int, rng: np.random.Generator, scale: float) -> float | int:
+        """Nudge value by Gaussian noise with a standard deviation of scale times the range width.
+
+        The result is clipped to the bounds. Integer ranges use a step of at least 1, so a
+        mutation can always move the value.
+        """
+        sigma = scale * (self.maximum - self.minimum)
+        if self.integer:
+            step = round(rng.normal(0, max(sigma, 1)))
+            return int(np.clip(value + step, math.ceil(self.minimum), math.floor(self.maximum)))
+        return float(np.clip(value + rng.normal(0, sigma), self.minimum, self.maximum))
+
 
 class FixedParameter(_Parameter):
     """A parameter held at a single value."""
@@ -47,6 +59,9 @@ class FixedParameter(_Parameter):
         super().__init__(name=name, value=value, **data)
 
     def sample(self, rng: np.random.Generator) -> Value:
+        return self.value
+
+    def mutate(self, value: Value, rng: np.random.Generator, scale: float) -> Value:
         return self.value
 
 
@@ -70,6 +85,16 @@ class ChoiceParameter(_Parameter):
             return self.choices[rng.integers(len(self.choices))]
         indices = rng.choice(len(self.choices), size=self.choose_n, replace=False)
         return [self.choices[i] for i in indices]
+
+    def mutate(self, value: Value | list[Value], rng: np.random.Generator, scale: float) -> Value | list[Value]:
+        """Draw a new value. A single choice switches to a different one when there is one to switch to.
+
+        Choices have no order, so scale does not apply.
+        """
+        if self.choose_n is not None or len(self.choices) == 1:
+            return self.sample(rng)
+        others = [choice for choice in self.choices if choice != value]
+        return others[rng.integers(len(others))] if others else self.sample(rng)
 
 
 type Parameter = Annotated[RangeParameter | FixedParameter | ChoiceParameter, Field(discriminator="kind")]
@@ -99,3 +124,9 @@ class SearchSpace(BaseModel):
     def sample(self, rng: np.random.Generator) -> dict[str, Any]:
         """Draw one value for every parameter."""
         return {parameter.name: parameter.sample(rng) for parameter in self.parameters}
+
+    def __getitem__(self, name: str) -> Parameter:
+        for parameter in self.parameters:
+            if parameter.name == name:
+                return parameter
+        raise KeyError(name)

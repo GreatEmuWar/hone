@@ -11,7 +11,7 @@ class ObjectiveFunction:
     name: str
     function: Callable
     search_space: SearchSpace
-    optimum: float = 0.0
+    optimum: float | None = None
     optimum_params: Dict = field(default_factory=dict)
 
     def __post_init__(self):
