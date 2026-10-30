@@ -82,7 +82,7 @@ class Result(BaseModel):
     failures: int = 0  # evaluations that failed
     reached_threshold: bool  # whether the run stopped early because it reached config.threshold
     stopped: bool = False  # whether the run was stopped before it finished, by its callback or Ctrl+C
-    run: RunInfo | None = None  # how the result was produced; None in results saved before hone 0.8.0
+    run: RunInfo | None = None  # how the result was produced; None in results saved before hone 0.7.1
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Result):
@@ -99,7 +99,7 @@ class Result(BaseModel):
         from hone import optimizers
 
         if self.run is None:
-            raise ValueError("this result has no record of its run: it was saved by a version of hone before 0.8.0")
+            raise ValueError("this result has no record of its run: it was saved by a version of hone before 0.7.1")
         if optimizer_class is None:
             builtin = {cls.__name__: cls for cls in (
                 optimizers.GeneticOptimizer, optimizers.CMAES, optimizers.BayesianOptimizer, optimizers.RandomSearch
