@@ -64,5 +64,8 @@ class GeneticOptimizer(Optimizer):
             # Every evaluation of the previous generation failed: start afresh.
             return [self._random_individual(generation) for _ in range(size)]
 
+        if self.config.noise:
+            # A point bred again since it was evaluated has more evaluations now; rank by their average.
+            self._refresh_averages(parents)
         elites = self._ranked(parents)[: round(size * self.config.elitism_rate)] if self.config.elitism else []
         return elites + [self._child(parents, generation) for _ in range(size - len(elites))]
