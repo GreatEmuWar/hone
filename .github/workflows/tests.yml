@@ -42,3 +42,48 @@ jobs:
         poetry install --no-interaction
     - name: Check for benchmark regressions
       run: poetry run python -m hone.benchmarks --quick --jobs 4 --baseline benchmarks/quick-baseline.json
+
+  # On main, once the checks pass: tag and release the version in pyproject.toml if it
+  # hasn't been released yet, with its section of CHANGELOG.md as the notes.
+  release:
+    needs: [ test, benchmark ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+    - name: Find the version
+      id: version
+      run: |
+        version=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        if git rev-parse -q --verify "refs/tags/$version" > /dev/null; then
+          echo "$version is already released"
+          echo "new=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "new=true" >> "$GITHUB_OUTPUT"
+        fi
+    - uses: actions/setup-python@v6
+      if: steps.version.outputs.new == 'true'
+      with:
+        python-version: "3.14"
+    - name: Build and release
+      if: steps.version.outputs.new == 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ steps.version.outputs.version }}
+      run: |
+        python -m pip install --upgrade pip poetry
+        poetry build
+        awk -v version="$VERSION" '
+          /^## / { inside = ($2 == version); next }
+          inside
+        ' CHANGELOG.md > notes.md
+        if [ ! -s notes.md ]; then
+          echo "CHANGELOG.md has no section for $VERSION"
+          exit 1
+        fi
+        gh release create "$VERSION" dist/* --title "$VERSION" --notes-file notes.md --target "$GITHUB_SHA"
