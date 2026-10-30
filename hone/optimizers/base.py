@@ -1,8 +1,8 @@
 import math
 import numbers
 from abc import ABC, abstractmethod
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, Callable, ClassVar, List
 
 import numpy as np
@@ -11,6 +11,8 @@ from hone.config import OptimizerConfig
 from hone.objective_function import ObjectiveFunction
 from hone.parameters import Parameter, SearchSpace
 from hone.result import GenerationStats, Result
+
+from ._pool import EvaluationPool
 
 
 class UnsupportedSearchSpace(ValueError):
@@ -78,6 +80,7 @@ class Optimizer(ABC):
         if isinstance(initial_points, dict):
             initial_points = [initial_points]
         self.initial_points = [search_space.check(point) for point in initial_points or []]
+        self._workers = 1  # how many evaluations run at once; optimizers may size their population from it
         self.reset()
 
     @abstractmethod
@@ -188,32 +191,48 @@ class Optimizer(ABC):
 
     # --- running the objective for you ----------------------------------------
 
-    def optimize(self, objective_function: Callable, *, workers: int = 1) -> Result:
+    def optimize(self, objective_function: Callable, *, workers: int = 1, timeout: float | None = None) -> Result:
         """Run the optimizer from the start, calling objective_function for every candidate.
 
         The function is called with one keyword argument per parameter and must return a
         number. To record an evaluation as failed instead, raise EvaluationFailed or return NaN
-        or infinity; any other exception stops the run. With workers > 1, candidates are
-        evaluated in that many background processes, so the function must be defined at the
-        top level of a module. With a seed, every call returns the same result, however many workers are used.
+        or infinity; any other exception stops the run. With a seed, every call with the same
+        number of workers returns the same result. The genetic optimizer and random search
+        return it however many workers are used; CMA-ES and Bayesian optimization do not,
+        because their default population grows with the number of workers.
+
+        Args:
+            objective_function: The function to optimize.
+            workers: Evaluate candidates in this many background processes at once.
+            timeout: The longest, in seconds, one evaluation may take. An evaluation that runs
+                longer is stopped and counts as failed, as does one whose process crashes.
+
+        With workers > 1 or a timeout, each evaluation runs in a separate process, so the
+        function must be defined at the top level of a module.
         """
         if workers < 1:
             raise ValueError(f"workers must be at least 1, got {workers}")
+        if timeout is not None and timeout <= 0:
+            raise ValueError(f"timeout must be positive, got {timeout}")
         objective = ObjectiveFunction(
             name=getattr(objective_function, "__name__", "objective"), function=objective_function, search_space=self.search_space
         )
-        self.reset()
-        if workers == 1:
-            while not self._done:
-                for trial in self.ask():
-                    self._tell_outcome(trial, _evaluate(objective, trial.params))
-        else:
-            with ProcessPoolExecutor(max_workers=workers) as pool:
+        evaluate = partial(_evaluate, objective)
+        self._workers = workers
+        try:
+            self.reset()
+            if workers == 1 and timeout is None:
                 while not self._done:
-                    trials = self.ask()
-                    futures = [pool.submit(_evaluate, objective, trial.params) for trial in trials]
-                    for trial, future in zip(trials, futures):
-                        self._tell_outcome(trial, future.result())
+                    for trial in self.ask():
+                        self._tell_outcome(trial, evaluate(trial.params))
+            else:
+                with EvaluationPool(evaluate, workers, timeout) as pool:
+                    while not self._done:
+                        trials = self.ask()
+                        for trial, outcome in zip(trials, pool.map([trial.params for trial in trials])):
+                            self._tell_outcome(trial, outcome)
+        finally:
+            self._workers = 1
         return self.result()
 
     def _tell_outcome(self, trial: Trial, outcome: float | None) -> None:

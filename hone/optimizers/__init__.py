@@ -1,3 +1,4 @@
+from .bayesian import BayesianOptimizer
 from .base import EvaluationFailed, Individual, Optimizer, Trial, UnsupportedSearchSpace
 from .cmaes import CMAES
 from .genetic import GeneticOptimizer

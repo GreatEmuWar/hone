@@ -1,9 +1,11 @@
-from hone.config import CMAESConfig, GeneticOptimizerConfig, OptimizerConfig, SelectionMethod
-from hone.optimizers import CMAES, EvaluationFailed, GeneticOptimizer, Optimizer, RandomSearch, Trial, UnsupportedSearchSpace
+from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, OptimizerConfig, SelectionMethod
+from hone.optimizers import CMAES, BayesianOptimizer, EvaluationFailed, GeneticOptimizer, Optimizer, RandomSearch, Trial, UnsupportedSearchSpace
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter, SearchSpace
 from hone.result import GenerationStats, Result
 
 __all__ = [
+    "BayesianConfig",
+    "BayesianOptimizer",
     "CMAES",
     "CMAESConfig",
     "ChoiceParameter",

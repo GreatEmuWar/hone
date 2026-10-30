@@ -27,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
         nargs="+",
         help=f"evaluations per dimension, one run per budget (default {' '.join(map(str, BUDGETS))}, or {' '.join(map(str, QUICK_BUDGETS))} with --quick)",
     )
+    parser.add_argument("--jobs", type=int, default=1, help="share the runs among this many processes (Linux only)")
     parser.add_argument("--tolerance", type=float, default=1e-4, help="error at or below which a run counts as solved")
     parser.add_argument("--markdown", help="write the results table to this file")
     parser.add_argument("--save", help="write the summaries as JSON to this file, for use as a baseline")
@@ -38,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     budgets = sorted(set(args.budgets or (QUICK_BUDGETS if args.quick else BUDGETS)))
 
     start = time.perf_counter()
-    summaries = summarize(run_benchmark(problems, seeds=range(seeds), budgets_per_dimension=budgets), args.tolerance)
+    summaries = summarize(run_benchmark(problems, seeds=range(seeds), budgets_per_dimension=budgets, jobs=args.jobs), args.tolerance)
     elapsed = time.perf_counter() - start
 
     table = to_markdown(summaries, args.tolerance)

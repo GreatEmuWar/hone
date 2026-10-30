@@ -61,6 +61,16 @@
   },
   {
     "problem": "sphere-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 5,
+    "median_error": 0.0008862193397979601,
+    "lower_quartile": 0.0005214233283727378,
+    "upper_quartile": 0.002106317681719038,
+    "solved": 0.0
+  },
+  {
+    "problem": "sphere-5d",
     "optimizer": "random",
     "budget_per_dimension": 10,
     "runs": 5,
@@ -147,6 +157,16 @@
     "median_error": 6.8138915965767275,
     "lower_quartile": 1.1021455334412313,
     "upper_quartile": 9.66992095091351,
+    "solved": 0.0
+  },
+  {
+    "problem": "ellipsoid-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 5,
+    "median_error": 159.20650710331344,
+    "lower_quartile": 72.15460482358222,
+    "upper_quartile": 240.712699406811,
     "solved": 0.0
   },
   {
@@ -241,6 +261,16 @@
   },
   {
     "problem": "rastrigin-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 5,
+    "median_error": 14.832420191701296,
+    "lower_quartile": 11.61268109723585,
+    "upper_quartile": 24.07172452834844,
+    "solved": 0.0
+  },
+  {
+    "problem": "rastrigin-5d",
     "optimizer": "random",
     "budget_per_dimension": 10,
     "runs": 5,
@@ -327,6 +357,16 @@
     "median_error": 5.969753400780718,
     "lower_quartile": 2.984909012846792,
     "upper_quartile": 9.949580757407276,
+    "solved": 0.0
+  },
+  {
+    "problem": "rotated-rastrigin-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 5,
+    "median_error": 29.038222872823635,
+    "lower_quartile": 16.14911021768114,
+    "upper_quartile": 31.85015596087495,
     "solved": 0.0
   },
   {
@@ -421,6 +461,16 @@
   },
   {
     "problem": "integer-sphere-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 5,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "integer-sphere-5d",
     "optimizer": "random",
     "budget_per_dimension": 10,
     "runs": 5,
@@ -477,6 +527,16 @@
     "median_error": 0.02307433368957771,
     "lower_quartile": 0.014598098796670655,
     "upper_quartile": 0.049835850938789276,
+    "solved": 0.0
+  },
+  {
+    "problem": "material-selection-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 5,
+    "median_error": 1.0660529713560336,
+    "lower_quartile": 0.062284919457021436,
+    "upper_quartile": 1.1451355144879352,
     "solved": 0.0
   },
   {

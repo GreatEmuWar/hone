@@ -84,7 +84,9 @@ class CMAES(Optimizer):
     def reset(self) -> None:
         super().reset()
         n = len(self._searched)
-        self.population_size = self.config.population_size or 4 + int(3 * math.log(n))
+        # Each generation waits for its slowest evaluation, so with many workers a population of
+        # at least twice their number keeps them busy.
+        self.population_size = self.config.population_size or max(4 + int(3 * math.log(n)), 2 * self._workers)
         self._start(mean=np.full(n, 0.5))
         self._evaluating_initial_points = False
 

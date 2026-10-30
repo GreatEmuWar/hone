@@ -4,6 +4,7 @@ from .runner import (
     BUDGETS,
     DEFAULT_OPTIMIZERS,
     Run,
+    SkipBudget,
     Summary,
     load_summaries,
     regressions,

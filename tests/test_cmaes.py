@@ -8,6 +8,7 @@ from hone.optimizers import cmaes
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from conftest import bounded_parameters, sphere
+import objectives
 
 PROBLEMS = {problem.name: problem for problem in standard_problems()}
 
@@ -51,6 +52,21 @@ def test_default_population_size_grows_with_dimensions():
     assert make([RangeParameter(f"x{i}", 0, 1) for i in range(2)]).population_size == 6
     assert make([RangeParameter(f"x{i}", 0, 1) for i in range(10)]).population_size == 10
     assert make(population_size=20).population_size == 20
+
+
+def test_many_workers_get_a_larger_population():
+    optimizer = make(max_evaluations=60)
+    result = optimizer.optimize(objectives.sphere, workers=8)
+    assert result.generations[0].evaluations == 16, "twice the workers, rather than the default 6"
+    assert optimizer.optimize(objectives.sphere).generations[0].evaluations == 6, "the next run uses the default again"
+
+
+def test_few_workers_keep_the_default_population():
+    assert make(max_evaluations=60).optimize(objectives.sphere, workers=2).generations[0].evaluations == 6
+
+
+def test_a_population_size_that_is_set_ignores_the_workers():
+    assert make(max_evaluations=60, population_size=7).optimize(objectives.sphere, workers=8).generations[0].evaluations == 7
 
 
 # --- sampling -------------------------------------------------------------

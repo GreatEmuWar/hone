@@ -27,8 +27,12 @@ The optimizer minimizes by default; set `maximize=True` in the config to maximiz
 When each evaluation takes a while, run them in parallel. `workers` evaluates that many candidates at a time in background processes; the objective function must be defined at the top level of a module, and on macOS and Windows the calling script needs an `if __name__ == "__main__":` guard.
 
 ```python
-result = optimizer.optimize(run_simulation, workers=8)
+result = optimizer.optimize(run_simulation, workers=8, timeout=600)
 ```
+
+`timeout` limits each evaluation, in seconds. An evaluation that runs longer is stopped and counts as failed, as does one whose process crashes, so one hung simulation can't stall the run. A timeout also runs evaluations in a background process when `workers` is 1.
+
+Each generation waits for its slowest evaluation before the next one starts, so workers beyond the population size sit idle. CMA-ES allows for this: unless you set `population_size`, it uses at least twice as many candidates per generation as there are workers. Bayesian optimization proposes one candidate per worker at a time. Their results, unlike the other optimizers', therefore depend on the number of workers as well as the seed. For the genetic optimizer and random search, keep `population_size` at least two or three times `workers`.
 
 When evaluations run somewhere `optimize()` can't reach, such as jobs on a compute cluster or tests on a physical rig, ask the optimizer for candidates and tell it the results yourself, in any order:
 
@@ -111,7 +115,8 @@ result = Result.load("run.json")
 
 | Optimizer | Config | Approach |
 | --- | --- | --- |
-| `CMAES` | `CMAESConfig` | Learns the scale of each variable and how variables interact. The first choice for continuous and integer problems; doesn't support choice parameters |
+| `BayesianOptimizer` | `BayesianConfig` | Models the objective with a Gaussian process and evaluates where the model expects the most improvement. The first choice when evaluations are expensive and the budget is a few hundred evaluations or fewer. Supports range and choice parameters |
+| `CMAES` | `CMAESConfig` | Learns the scale of each variable and how variables interact. The first choice for continuous and integer problems with larger budgets; doesn't support choice parameters |
 | `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation. Handles every kind of parameter, so it's the choice for problems with choice parameters |
 | `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
 
@@ -121,9 +126,11 @@ from hone import CMAES, CMAESConfig
 result = CMAES(search_space, CMAESConfig(max_evaluations=5000, seed=0)).optimize(run_simulation)
 ```
 
-CMA-ES chooses its own population size from the number of variables, and by default restarts with a larger population when a run converges or stalls. Giving it a budget with `max_evaluations` is usually the only setting it needs. [benchmarks/results.md](benchmarks/results.md) compares the three optimizers.
+CMA-ES chooses its own population size from the number of variables and workers, and by default restarts with a larger population when a run converges or stalls. Giving it a budget with `max_evaluations` is usually the only setting it needs.
 
-All three take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
+Bayesian optimization spends a fraction of a second choosing each candidate, rising to a second or so after a few hundred evaluations. That is time well spent when an evaluation is a simulation or a training run that takes minutes, and wasted on a function that takes microseconds. Its first `2 × (variables + 1)` candidates are spread over the search space; after that it proposes one candidate at a time, or one per worker with `optimize(workers=n)`, and `population_size` sets that batch size directly. [benchmarks/results.md](benchmarks/results.md) compares the optimizers.
+
+All four take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 
 ### Benchmarks
 

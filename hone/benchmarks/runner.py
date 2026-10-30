@@ -1,18 +1,30 @@
 """Run optimizers on benchmark problems and summarize how close they get to each optimum."""
 import json
+import multiprocessing
 import statistics
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 
-from hone.config import CMAESConfig, GeneticOptimizerConfig, OptimizerConfig
-from hone.optimizers import CMAES, GeneticOptimizer, Optimizer, RandomSearch, UnsupportedSearchSpace
+from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, OptimizerConfig
+from hone.optimizers import CMAES, BayesianOptimizer, GeneticOptimizer, Optimizer, RandomSearch, UnsupportedSearchSpace
 
 from .problems import Problem
 
 # Builds an optimizer for a problem, an evaluation budget and a seed. It may raise
-# UnsupportedSearchSpace for a problem it cannot search; that problem is then skipped.
+# UnsupportedSearchSpace for a problem it cannot search, which is then skipped, or
+# SkipBudget for a budget it isn't meant for.
 OptimizerFactory = Callable[[Problem, int, int], Optimizer]
+
+
+class SkipBudget(Exception):
+    """Raised by an optimizer factory to leave out a budget it isn't meant for."""
+
+
+# Bayesian optimization takes a fraction of a second per evaluation, which suits expensive
+# objectives but makes long benchmark runs slow, so it runs only up to this many evaluations.
+BAYESIAN_MAX_EVALUATIONS = 200
 
 POPULATION_SIZE = 50  # random search's batch size, which doesn't change its results
 
@@ -31,12 +43,23 @@ def cma_es(problem: Problem, budget: int, seed: int) -> Optimizer:
     return CMAES(problem.search_space, CMAESConfig(generations=budget, max_evaluations=budget, seed=seed))
 
 
+def bayesian(problem: Problem, budget: int, seed: int) -> Optimizer:
+    if budget > BAYESIAN_MAX_EVALUATIONS:
+        raise SkipBudget(f"{budget} evaluations is more than Bayesian optimization is run with")
+    return BayesianOptimizer(problem.search_space, BayesianConfig(max_evaluations=budget, seed=seed))
+
+
 def random_search(problem: Problem, budget: int, seed: int) -> Optimizer:
     config = OptimizerConfig(population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed)
     return RandomSearch(problem.search_space, config)
 
 
-DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {"genetic": genetic, "cma-es": cma_es, "random": random_search}
+DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {
+    "genetic": genetic,
+    "cma-es": cma_es,
+    "bayesian": bayesian,
+    "random": random_search,
+}
 
 
 @dataclass(frozen=True)
@@ -84,26 +107,50 @@ def run_benchmark(
     optimizers: dict[str, OptimizerFactory] | None = None,
     seeds: Iterable[int] = range(10),
     budgets_per_dimension: Iterable[int] = BUDGETS,
+    jobs: int = 1,
 ) -> list[Run]:
     """Run every optimizer on every problem with every seed and every budget.
 
     A budget of b evaluations per dimension gives a run b × dimensions evaluations. Each
     budget is a separate run, so an optimizer can choose its settings from the budget.
-    An optimizer that cannot search a problem's parameters is skipped for that problem.
+    An optimizer that cannot search a problem's parameters is skipped for that problem, and
+    one whose factory raises SkipBudget is skipped at that budget. With jobs > 1, runs are
+    shared among that many processes where the platform can fork them; the results are the same.
     """
+    problems = list(problems)
     optimizers = optimizers if optimizers is not None else DEFAULT_OPTIMIZERS
     seeds, budgets = list(seeds), list(budgets_per_dimension)
-    runs = []
-    for problem in problems:
+    tasks = []
+    for index, problem in enumerate(problems):
         for name, factory in optimizers.items():
-            try:
-                for per_dimension in budgets:
-                    for seed in seeds:
-                        optimizer = factory(problem, per_dimension * problem.dimensions, seed)
-                        runs.append(_run(problem, name, per_dimension, seed, optimizer))
-            except UnsupportedSearchSpace:
-                continue
-    return runs
+            for per_dimension in budgets:
+                try:
+                    if seeds:
+                        factory(problem, per_dimension * problem.dimensions, seeds[0])
+                except UnsupportedSearchSpace:
+                    break
+                except SkipBudget:
+                    continue
+                tasks += [(index, name, per_dimension, seed) for seed in seeds]
+
+    global _shared
+    _shared = (problems, optimizers)
+    if jobs == 1 or "fork" not in multiprocessing.get_all_start_methods():
+        return [_task(task) for task in tasks]
+    # Forked processes inherit the problems and factories, which needn't be picklable.
+    with ProcessPoolExecutor(jobs, mp_context=multiprocessing.get_context("fork")) as pool:
+        return list(pool.map(_task, tasks))
+
+
+_shared: tuple[list[Problem], dict[str, OptimizerFactory]] = ([], {})  # what run_benchmark's tasks refer to
+
+
+def _task(task: tuple[int, str, int, int]) -> Run:
+    index, name, per_dimension, seed = task
+    problems, optimizers = _shared
+    problem = problems[index]
+    optimizer = optimizers[name](problem, per_dimension * problem.dimensions, seed)
+    return _run(problem, name, per_dimension, seed, optimizer)
 
 
 def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: Optimizer) -> Run:
@@ -187,7 +234,7 @@ def to_markdown(summaries: list[Summary], tolerance: float = 1e-4) -> str:
     lines += [
         "",
         f"Median error over the runs (best value found minus the optimum); solved means error ≤ {tolerance:g}. "
-        "n/a: the optimizer does not support the problem's parameters.",
+        "n/a: the optimizer does not support the problem's parameters, or isn't run at this budget.",
     ]
     return "\n".join(lines) + "\n"
 
