@@ -11,13 +11,17 @@ def bounded_parameters(low=-5, high=5):
     return [RangeParameter("x", low, high), RangeParameter("y", low, high)]
 
 
-def make_optimizer(search_space=None, objective_function=sphere, **config):
+def make_optimizer(search_space=None, **config):
     config.setdefault("seed", 0)
     return GeneticOptimizer(
-        objective_function=objective_function,
         search_space=search_space if search_space is not None else bounded_parameters(),
         config=GeneticOptimizerConfig(**config),
     )
+
+
+def run(objective_function=sphere, search_space=None, **config):
+    """Build a genetic optimizer and run it on objective_function."""
+    return make_optimizer(search_space, **config).optimize(objective_function)
 
 
 def individual(fitness, generation=0, **params):

@@ -3,7 +3,7 @@ import pytest
 
 from hone.parameters import FixedParameter, RangeParameter
 
-from conftest import individual, make_optimizer
+from conftest import individual, make_optimizer, run
 
 
 def evaluated_population(size):
@@ -51,7 +51,7 @@ def test_elites_are_not_evaluated_again():
         calls.append(1)
         return x**2 + y**2
 
-    result = make_optimizer(objective_function=counted, generations=2, population_size=10, elitism_rate=0.3).optimize()
+    result = run(objective_function=counted, generations=2, population_size=10, elitism_rate=0.3)
     assert len(calls) == result.evaluations == 10 + 7
 
 
@@ -65,15 +65,15 @@ def test_children_keep_fixed_parameters():
 
 @pytest.mark.parametrize("selection_method", ["tournament", "roulette"])
 def test_both_selection_methods_run(selection_method):
-    assert make_optimizer(selection_method=selection_method, generations=3, population_size=10).optimize()
+    assert run(selection_method=selection_method, generations=3, population_size=10)
 
 
 def test_readme_example_finds_minimum():
     """Mirrors the README: default config, minimizing x**2 + y**2 within [-5, 5]."""
-    assert make_optimizer().optimize().best_fitness < 0.1
+    assert run().best_fitness < 0.1
 
 
 @pytest.mark.parametrize("seed", range(5))
 def test_converges_on_sphere_across_seeds(seed):
     """Guards against the algorithm stalling near its best initial individual."""
-    assert make_optimizer(seed=seed).optimize().best_fitness < 0.01
+    assert run(seed=seed).best_fitness < 0.01

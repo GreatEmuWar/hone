@@ -20,12 +20,12 @@ def genetic(problem: Problem, budget: int, seed: int) -> Optimizer:
     config = GeneticOptimizerConfig(
         population_size=POPULATION_SIZE, generations=max(budget // POPULATION_SIZE, 1), seed=seed
     )
-    return GeneticOptimizer(problem.function, problem.search_space, config)
+    return GeneticOptimizer(problem.search_space, config)
 
 
 def random_search(problem: Problem, budget: int, seed: int) -> Optimizer:
     config = OptimizerConfig(population_size=POPULATION_SIZE, generations=max(budget // POPULATION_SIZE, 1), seed=seed)
-    return RandomSearch(problem.function, problem.search_space, config)
+    return RandomSearch(problem.search_space, config)
 
 
 DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {"genetic": genetic, "random": random_search}
@@ -82,10 +82,11 @@ def run_benchmark(
         budget = budget_per_dimension * problem.dimensions
         for name, factory in optimizers.items():
             for seed in seeds:
-                result = factory(problem, budget, seed).optimize()
+                result = factory(problem, budget, seed).optimize(problem.function)
                 trace, best = [], float("inf")
                 for generation in result.generations:
-                    best = min(best, generation.best_fitness - problem.optimum)
+                    if generation.best_fitness is not None:
+                        best = min(best, generation.best_fitness - problem.optimum)
                     trace.append((generation.evaluations, max(best, 0.0)))
                 runs.append(
                     Run(

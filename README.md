@@ -15,17 +15,44 @@ def objective_function(x, y):
 x = RangeParameter("x", -5, 5)
 y = RangeParameter("y", -5, 5)
 
-optimizer = GeneticOptimizer(
-    objective_function=objective_function,
-    search_space=[x, y],
-    config=GeneticOptimizerConfig(threshold=0.01, seed=0),
-)
-
-result = optimizer.optimize()
+optimizer = GeneticOptimizer(search_space=[x, y], config=GeneticOptimizerConfig(threshold=0.01, seed=0))
+result = optimizer.optimize(objective_function)
 print(result.best_fitness, result.best_params)
 ```
 
 The optimizer minimizes by default; set `maximize=True` in the config to maximize instead.
+
+### Slow evaluations
+
+When each evaluation takes a while, run them in parallel. `workers` evaluates that many candidates at a time in background processes; the objective function must be defined at the top level of a module, and on macOS and Windows the calling script needs an `if __name__ == "__main__":` guard.
+
+```python
+result = optimizer.optimize(run_simulation, workers=8)
+```
+
+When evaluations run somewhere `optimize()` can't reach, such as jobs on a compute cluster or tests on a physical rig, ask the optimizer for candidates and tell it the results yourself, in any order:
+
+```python
+while not optimizer.done:
+    for trial in optimizer.ask():
+        submit_job(trial.id, trial.params)
+    for job in wait_for_finished_jobs():
+        optimizer.tell(job.trial_id, job.value)
+
+result = optimizer.result()
+```
+
+`ask()` hands out the candidates of the current generation; `ask(4)` hands out at most four. It returns an empty list while the generation still waits for results, because the next generation is bred from them. `result()` can be called at any point for the best result so far.
+
+### Failed evaluations
+
+Simulations crash, time out or fail to converge. Report such a run as failed rather than inventing a penalty value:
+
+```python
+optimizer.tell(trial, failed=True)
+```
+
+Inside `optimize()`, an objective function reports a failure by raising `hone.EvaluationFailed` or returning NaN; any other exception stops the run, so bugs in the function aren't hidden. Failed evaluations count toward `evaluations` and `failures` in the result, rank below every successful one, and are never used to breed new candidates.
 
 ### Parameters
 
@@ -51,13 +78,13 @@ Each value of a new individual mutates with probability `mutation_rate` (default
 
 ### Results
 
-`optimize()` returns a `Result`:
+`optimize()` and `result()` return a `Result`:
 
 | Field | Meaning |
 | --- | --- |
 | `best_fitness`, `best_params` | The best individual found in the whole run |
 | `generations` | One `GenerationStats` per generation: the evaluations used so far, its best fitness and parameters, worst fitness, mean, median and standard deviation |
-| `evaluations` | How many times the objective function was called |
+| `evaluations`, `failures` | How many evaluations were made, and how many of them failed |
 | `reached_threshold` | Whether the run stopped early because it reached `threshold` |
 
 A result can be saved to JSON and loaded back:
@@ -74,7 +101,7 @@ result = Result.load("run.json")
 | `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation, keeping the best of each generation |
 | `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
 
-Both take the same arguments and return the same `Result`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles evaluation, tracking the best result, stopping and the `Result`.
+Both take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 
 ### Benchmarks
 

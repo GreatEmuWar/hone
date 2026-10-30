@@ -14,11 +14,10 @@ class GeneticOptimizer(Optimizer):
     to evolve a population of individuals towards a solution to the objective function.
 
     Each generation keeps the previous one's elites unchanged, then fills the rest of the
-    population with children: two parents are selected, crossed over, and mutated.
+    population with children: two parents are selected, crossed over, and mutated. Failed
+    evaluations are never elites or parents.
 
     Args:
-        objective_function: The objective function to be optimized. It is called with one
-            keyword argument per parameter in the search space and must return a number.
         search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
         config: A GeneticOptimizerConfig. Defaults are used if omitted.
 
@@ -32,13 +31,8 @@ class GeneticOptimizer(Optimizer):
         >>> x = RangeParameter("x", -5, 5)
         >>> y = RangeParameter("y", -5, 5)
         >>>
-        >>> optimizer = GeneticOptimizer(
-        >>>     objective_function=objective_function,
-        >>>     search_space=[x, y],
-        >>>     config=GeneticOptimizerConfig(threshold=0.01),
-        >>> )
-        >>>
-        >>> result = optimizer.optimize()
+        >>> optimizer = GeneticOptimizer(search_space=[x, y], config=GeneticOptimizerConfig(threshold=0.01))
+        >>> result = optimizer.optimize(objective_function)
     """
     config_class = GeneticOptimizerConfig
     config: GeneticOptimizerConfig
@@ -61,8 +55,10 @@ class GeneticOptimizer(Optimizer):
 
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         size = self.config.population_size
-        if previous is None:
+        parents = [individual for individual in previous or [] if not individual.failed]
+        if not parents:
+            # The first generation, or one in which every evaluation failed.
             return [self._random_individual(generation) for _ in range(size)]
 
-        elites = self._ranked(previous)[: round(size * self.config.elitism_rate)] if self.config.elitism else []
-        return elites + [self._child(previous, generation) for _ in range(size - len(elites))]
+        elites = self._ranked(parents)[: round(size * self.config.elitism_rate)] if self.config.elitism else []
+        return elites + [self._child(parents, generation) for _ in range(size - len(elites))]
