@@ -22,6 +22,7 @@ optimizer = GeneticOptimizer(
 )
 
 result = optimizer.optimize()
+print(result.best_fitness, result.best_params)
 ```
 
 The optimizer minimizes by default; set `maximize=True` in the config to maximize instead.
@@ -47,3 +48,44 @@ config = GeneticOptimizerConfig.from_file("config.yaml")
 Set `seed` to make a run repeatable.
 
 Each value of a new individual mutates with probability `mutation_rate` (default 0.1). A range value moves by a random step whose typical size is `mutation_scale` (default 0.1) times the width of its range. A choice switches to another option, and a fixed value never changes.
+
+### Results
+
+`optimize()` returns a `Result`:
+
+| Field | Meaning |
+| --- | --- |
+| `best_fitness`, `best_params` | The best individual found in the whole run |
+| `generations` | One `GenerationStats` per generation: its best fitness and parameters, worst fitness, mean, median and standard deviation |
+| `evaluations` | How many times the objective function was called |
+| `reached_threshold` | Whether the run stopped early because it reached `threshold` |
+
+A result can be saved to JSON and loaded back:
+
+```python
+result.save("run.json")
+result = Result.load("run.json")
+```
+
+### Optimizers
+
+| Optimizer | Config | Approach |
+| --- | --- | --- |
+| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation, keeping the best of each generation |
+| `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
+
+Both take the same arguments and return the same `Result`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles evaluation, tracking the best result, stopping and the `Result`.
+
+## Development
+
+Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
+
+| Command | Does |
+| --- | --- |
+| `make test` | Install the dependencies and run the tests with coverage |
+| `make lint` | Run ruff |
+| `make docker-test` | Build the Docker image and run the tests inside it |
+
+## License
+
+BSD 3-Clause. See [LICENSE](LICENSE).

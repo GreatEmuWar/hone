@@ -20,7 +20,5 @@ def make_optimizer(search_space=None, objective_function=sphere, **config):
     )
 
 
-def individual(fitness, **params):
-    ind = Individual(**params)
-    ind.fitness = fitness
-    return ind
+def individual(fitness, generation=0, **params):
+    return Individual(params=params or {"x": fitness}, generation=generation, fitness=fitness)

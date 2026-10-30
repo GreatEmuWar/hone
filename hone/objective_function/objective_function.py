@@ -1,21 +1,27 @@
 import inspect
-from dataclasses import dataclass, field
-from typing import Callable, Dict
+import numbers
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from hone.parameters import SearchSpace
 
 
-@dataclass
+@dataclass(frozen=True)
 class ObjectiveFunction:
-    """Objective function to be optimized."""
+    """Objective function to be optimized, paired with the search space it is called over."""
     name: str
     function: Callable
     search_space: SearchSpace
-    optimum: float | None = None
-    optimum_params: Dict = field(default_factory=dict)
 
     def __post_init__(self):
         self._check_signature()
+
+    def __call__(self, params: dict[str, Any]) -> float:
+        """Evaluate the function at params, which must return a real number."""
+        value = self.function(**params)
+        if not isinstance(value, numbers.Real):
+            raise TypeError(f"{self.name}() must return a number, but returned {value!r}")
+        return float(value)
 
     def _check_signature(self):
         """Fail before optimizing if the function cannot be called with the search space's parameters."""

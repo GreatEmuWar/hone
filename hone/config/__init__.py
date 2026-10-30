@@ -1,1 +1,2 @@
 from .genetic_optimizer_config import GeneticOptimizerConfig, SelectionMethod
+from .optimizer_config import OptimizerConfig

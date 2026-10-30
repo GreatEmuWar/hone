@@ -4,7 +4,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from hone.config import GeneticOptimizerConfig, SelectionMethod
+from hone.config import GeneticOptimizerConfig, OptimizerConfig, SelectionMethod
 
 
 def test_defaults():
@@ -79,3 +79,19 @@ def test_invalid_values_rejected(fields):
 def test_config_is_immutable():
     with pytest.raises(ValidationError):
         GeneticOptimizerConfig().generations = 3
+
+
+def test_base_config_loads_from_file(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text(yaml.safe_dump({"generations": 7, "maximize": True}))
+    config = OptimizerConfig.from_file(path)
+    assert config == OptimizerConfig(generations=7, maximize=True)
+
+
+def test_base_config_rejects_genetic_settings():
+    with pytest.raises(ValidationError):
+        OptimizerConfig(mutation_rate=0.2)
+
+
+def test_genetic_config_extends_base_config():
+    assert isinstance(GeneticOptimizerConfig(), OptimizerConfig)

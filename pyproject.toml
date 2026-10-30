@@ -1,20 +1,20 @@
-[tool.poetry]
+[project]
 name = "hone"
-version = "0.2.0"
+version = "0.3.0"
 description = "A python-based optimization engine/library."
-authors = ["David Beare <rnbeare@gmail.com>"]
-license = "GPL 3.0"
+authors = [{ name = "David Beare", email = "rnbeare@gmail.com" }]
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = ">=3.12"
-numpy = ">=1.26.2"
-pyyaml = "^6.0.1"
-pydantic = "^2.7"
-
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy (>=1.26.2)",
+    "pyyaml (>=6.0.1,<7.0.0)",
+    "pydantic (>=2.7,<3.0.0)",
+]
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [dependency-groups]

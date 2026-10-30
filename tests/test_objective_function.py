@@ -56,3 +56,29 @@ def test_fixed_parameters_count_toward_signature():
         function=f,
         search_space=SearchSpace([RangeParameter("x", 0, 1), FixedParameter("mode", "fast")]),
     )
+
+
+def test_call_returns_a_float():
+    def f(x, y):
+        return x + y
+
+    assert objective(f)({"x": 1, "y": 2}) == 3.0
+    assert type(objective(f)({"x": 1, "y": 2})) is float
+
+
+def test_call_accepts_numpy_numbers():
+    import numpy as np
+
+    def f(x, y):
+        return np.float32(x) + np.int64(y)
+
+    assert objective(f)({"x": 1, "y": 2}) == 3.0
+
+
+@pytest.mark.parametrize("value", ["3", None, [1.0]])
+def test_call_rejects_non_numbers(value):
+    def f(x, y):
+        return value
+
+    with pytest.raises(TypeError, match="must return a number"):
+        objective(f)({"x": 1, "y": 2})
