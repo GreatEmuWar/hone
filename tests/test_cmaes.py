@@ -174,3 +174,14 @@ def test_stalled_runs_restart():
     optimizer = make()
     optimizer._recent_bests = [1.0] * 30
     assert optimizer._should_restart()
+
+
+def test_integer_widening_does_not_slow_the_continuous_variables():
+    """Widening the integer variable's samples used to read as fast progress and inflate the step size."""
+    space = [RangeParameter(f"x{i}", -5, 5) for i in range(9)] + [RangeParameter("n", -5, 5, integer=True)]
+
+    def f(n, **x):
+        return sum((value - 1.3) ** 2 for value in x.values()) + (n - 2) ** 2
+
+    errors = [make(space, max_evaluations=1000, seed=seed).optimize(f).best_fitness for seed in range(5)]
+    assert np.median(errors) < 5e-5

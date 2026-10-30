@@ -4,9 +4,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 8.247481887637106,
-    "lower_quartile": 6.742810615709368,
-    "upper_quartile": 9.000762714315805,
+    "median_error": 4.648158093344625,
+    "lower_quartile": 4.075547736488436,
+    "upper_quartile": 7.354676866353801,
     "solved": 0.0
   },
   {
@@ -14,9 +14,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 0.2493250901308283,
-    "lower_quartile": 0.13956655378739977,
-    "upper_quartile": 0.30331406502532987,
+    "median_error": 0.23406974110794607,
+    "lower_quartile": 0.11381659000261948,
+    "upper_quartile": 0.41316385895748026,
     "solved": 0.0
   },
   {
@@ -24,9 +24,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 0.04422362529455093,
-    "lower_quartile": 0.03724636643680473,
-    "upper_quartile": 0.05584835596017784,
+    "median_error": 0.030330847495779474,
+    "lower_quartile": 0.009944319730062566,
+    "upper_quartile": 0.034827511792959544,
     "solved": 0.0
   },
   {
@@ -104,9 +104,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 250219.45289187058,
+    "median_error": 250000.38238714248,
     "lower_quartile": 230409.43574810965,
-    "upper_quartile": 424587.63832274213,
+    "upper_quartile": 273095.6567809294,
     "solved": 0.0
   },
   {
@@ -114,9 +114,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 12491.003305785787,
-    "lower_quartile": 9755.464857319106,
-    "upper_quartile": 21028.99151312693,
+    "median_error": 11559.000145421815,
+    "lower_quartile": 6952.014577144748,
+    "upper_quartile": 13200.824051441334,
     "solved": 0.0
   },
   {
@@ -124,9 +124,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 430.85162990413284,
-    "lower_quartile": 251.68449400914724,
-    "upper_quartile": 599.919812644812,
+    "median_error": 360.07126035515375,
+    "lower_quartile": 123.49807911001042,
+    "upper_quartile": 906.1280206833852,
     "solved": 0.0
   },
   {
@@ -204,9 +204,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 47.18110013318535,
-    "lower_quartile": 46.467106958036894,
-    "upper_quartile": 52.25400747695223,
+    "median_error": 40.87357729641486,
+    "lower_quartile": 34.36148695187417,
+    "upper_quartile": 42.55839608592609,
     "solved": 0.0
   },
   {
@@ -214,9 +214,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 12.021645448192572,
-    "lower_quartile": 10.2623677677364,
-    "upper_quartile": 13.608873397200107,
+    "median_error": 8.307006163272938,
+    "lower_quartile": 5.107904554044737,
+    "upper_quartile": 8.865528272961754,
     "solved": 0.0
   },
   {
@@ -224,9 +224,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 2.546435133972878,
-    "lower_quartile": 2.350167657248363,
-    "upper_quartile": 2.5540439091140854,
+    "median_error": 3.2840250925085854,
+    "lower_quartile": 2.5552563656160174,
+    "upper_quartile": 3.322842078067964,
     "solved": 0.0
   },
   {
@@ -304,9 +304,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 40.93241612026037,
-    "lower_quartile": 38.066206908979716,
-    "upper_quartile": 43.311250283351455,
+    "median_error": 33.272630366444034,
+    "lower_quartile": 30.029253654609718,
+    "upper_quartile": 43.03328524546145,
     "solved": 0.0
   },
   {
@@ -314,9 +314,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 19.602453862213412,
-    "lower_quartile": 18.926446582077055,
-    "upper_quartile": 27.974156699242442,
+    "median_error": 10.616323185730018,
+    "lower_quartile": 8.545585784005226,
+    "upper_quartile": 16.642392587539412,
     "solved": 0.0
   },
   {
@@ -324,9 +324,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 6.956364491983521,
-    "lower_quartile": 4.648181531334714,
-    "upper_quartile": 8.088480605354889,
+    "median_error": 9.062578987133527,
+    "lower_quartile": 8.092322138502873,
+    "upper_quartile": 14.260745136867037,
     "solved": 0.0
   },
   {
@@ -404,8 +404,8 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 9.0,
-    "lower_quartile": 7.0,
+    "median_error": 10.0,
+    "lower_quartile": 9.0,
     "upper_quartile": 11.0,
     "solved": 0.0
   },
@@ -416,8 +416,8 @@
     "runs": 5,
     "median_error": 0.0,
     "lower_quartile": 0.0,
-    "upper_quartile": 1.0,
-    "solved": 0.6
+    "upper_quartile": 0.0,
+    "solved": 0.8
   },
   {
     "problem": "integer-sphere-5d",
@@ -504,9 +504,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 6.328642622579176,
-    "lower_quartile": 4.684811688368962,
-    "upper_quartile": 6.998259696423908,
+    "median_error": 6.5064466543609,
+    "lower_quartile": 6.3514368954787255,
+    "upper_quartile": 11.986974440838692,
     "solved": 0.0
   },
   {
@@ -514,9 +514,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 0.4145053192371369,
-    "lower_quartile": 0.12866832142060866,
-    "upper_quartile": 1.1565277212447413,
+    "median_error": 0.23425264279661318,
+    "lower_quartile": 0.10900883800120009,
+    "upper_quartile": 1.2118563774509126,
     "solved": 0.0
   },
   {
@@ -524,9 +524,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 0.02307433368957771,
-    "lower_quartile": 0.014598098796670655,
-    "upper_quartile": 0.049835850938789276,
+    "median_error": 0.018194170265640748,
+    "lower_quartile": 0.01555886734996771,
+    "upper_quartile": 1.0115088889605042,
     "solved": 0.0
   },
   {

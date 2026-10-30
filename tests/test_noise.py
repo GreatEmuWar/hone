@@ -150,7 +150,7 @@ def test_noise_handling_finds_better_points_on_a_noisy_function():
     for noise in errors:
         for seed in range(20):
             rng = np.random.default_rng(seed)
-            config = GeneticOptimizerConfig(max_evaluations=400, noise=noise, seed=seed)
+            config = GeneticOptimizerConfig(max_evaluations=800, noise=noise, seed=seed)
             result = GeneticOptimizer(space, config).optimize(lambda a, b: true(a, b) + 3 * rng.normal())
             errors[noise].append(true(**result.best_params))
     assert np.mean(errors[True]) < 0.5 * np.mean(errors[False])

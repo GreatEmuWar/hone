@@ -4,9 +4,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 10,
-    "median_error": 0.005263157894736636,
+    "median_error": 0.007894736842105121,
     "lower_quartile": 0.003947368421052672,
-    "upper_quartile": 0.006578947368420879,
+    "upper_quartile": 0.010541841328986057,
     "solved": 0.0
   },
   {
@@ -15,8 +15,8 @@
     "budget_per_dimension": 20,
     "runs": 10,
     "median_error": 0.005263157894736636,
-    "lower_quartile": 0.003508771929824517,
-    "upper_quartile": 0.006578947368420851,
+    "lower_quartile": 0.0035087719298246833,
+    "upper_quartile": 0.007017543859648923,
     "solved": 0.0
   },
   {
@@ -24,9 +24,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 10,
-    "median_error": 0.0052476323552242965,
-    "lower_quartile": 0.003508771929824517,
-    "upper_quartile": 0.005263157894736636,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.0034971277751902063,
+    "upper_quartile": 0.003520416084458855,
     "solved": 0.0
   },
   {
@@ -124,9 +124,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 10,
-    "median_error": 0.004707555456497203,
-    "lower_quartile": 0.0021531483119536232,
-    "upper_quartile": 0.0056667489972224705,
+    "median_error": 0.003965397280563665,
+    "lower_quartile": 0.0019149709762374956,
+    "upper_quartile": 0.00549465869959484,
     "solved": 0.0
   },
   {
@@ -134,9 +134,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 20,
     "runs": 10,
-    "median_error": 0.0030261091871568446,
-    "lower_quartile": 0.0013638458775335205,
-    "upper_quartile": 0.004181503189662289,
+    "median_error": 0.0014564317946503813,
+    "lower_quartile": 0.0007481318735043097,
+    "upper_quartile": 0.002603680257074803,
     "solved": 0.0
   },
   {
@@ -144,10 +144,10 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 10,
-    "median_error": 0.00056333192924507,
-    "lower_quartile": 0.0002918249903612058,
-    "upper_quartile": 0.0017544334028592456,
-    "solved": 0.2
+    "median_error": 0.0006444930119105519,
+    "lower_quartile": 0.00010835021263419509,
+    "upper_quartile": 0.0009767778050528697,
+    "solved": 0.3
   },
   {
     "problem": "kernel-ridge-diabetes",
@@ -216,8 +216,8 @@
     "runs": 10,
     "median_error": 0.005714285714285672,
     "lower_quartile": 0.005714285714285672,
-    "upper_quartile": 0.01003968253968246,
-    "solved": 0.0
+    "upper_quartile": 0.005833333333333274,
+    "solved": 0.1
   },
   {
     "problem": "random-forest-wine",
@@ -226,8 +226,8 @@
     "runs": 10,
     "median_error": 0.005714285714285672,
     "lower_quartile": 0.005714285714285672,
-    "upper_quartile": 0.005833333333333274,
-    "solved": 0.0
+    "upper_quartile": 0.005714285714285672,
+    "solved": 0.1
   },
   {
     "problem": "random-forest-wine",
@@ -237,7 +237,7 @@
     "median_error": 0.005714285714285672,
     "lower_quartile": 0.005714285714285672,
     "upper_quartile": 0.005714285714285672,
-    "solved": 0.0
+    "solved": 0.2
   },
   {
     "problem": "random-forest-wine",

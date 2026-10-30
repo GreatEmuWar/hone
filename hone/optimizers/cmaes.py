@@ -4,11 +4,12 @@ The update follows N. Hansen, "The CMA Evolution Strategy: A Tutorial" (arXiv:16
 with positive recombination weights. Three additions adapt it to hone's search spaces:
 
 - Range parameters are scaled to [0, 1], on a log scale where they have one, and a sample
-  that falls outside is mirrored back in.
-  The mirrored point is the one evaluated and used in the update.
+  that falls outside is mirrored back in. The mirrored point is the one evaluated and used
+  in the update.
 - Integer parameters keep a minimum spread of a quarter of one integer step, so the search
-  can always move to a neighbouring value. This is a simpler form of the margin used by
-  Hamano et al., "CMA-ES with Margin" (GECCO 2022).
+  can always move to a neighbouring value. Samples are widened to that spread, but the
+  distribution learns from the steps as drawn before widening, as in Hamano et al.,
+  "CMA-ES with Margin" (GECCO 2022), so the widening doesn't inflate the step size.
 - With restarts on, a run that converges or stalls starts again from a random point with
   twice the population (Auger and Hansen, "A Restart CMA Evolution Strategy With Increasing
   Population Size", CEC 2005).
@@ -129,16 +130,15 @@ class CMAES(Optimizer):
                 self._mean = self._encode(succeeded[0].params)
         elif previous is not None:
             self._update(previous)
-        self._min_spread = self._minimum_spread()
+        spread = self._sigma * np.sqrt(np.diag(self._C))
+        minimum = self._minimum_spread()
+        # Integer variables are sampled wider when their spread falls below the minimum.
+        self._widen = np.where(spread < minimum, minimum / np.maximum(spread, 1e-300), 1.0)
         return [self._sample(generation) for _ in range(self.population_size)]
 
     def _sample(self, generation: int) -> Individual:
         z = self.rng.standard_normal(len(self._mean))
-        x = self._mean + self._sigma * (self._B @ (self._D * z))
-        spread = self._sigma * np.sqrt(np.diag(self._C))
-        widen = np.where(spread < self._min_spread, self._min_spread / np.maximum(spread, 1e-300), 1.0)
-        x = self._mean + (x - self._mean) * widen
-        x = _mirror(x)
+        x = _mirror(self._mean + self._sigma * self._widen * (self._B @ (self._D * z)))
         individual = Individual(params=self._decode(x), generation=generation)
         self._vectors[id(individual)] = x
         return individual
@@ -157,9 +157,12 @@ class CMAES(Optimizer):
         """Move and reshape the distribution toward best, the top points ordered best first."""
         n = len(self._mean)
         weights = self._weights[: len(best)] / self._weights[: len(best)].sum()
-        steps = (best - self._mean) / self._sigma
+        # The paths, step size and covariance learn from the steps as sampled before integer
+        # widening, as in CMA-ES with margin; otherwise the widening would read as the search
+        # moving faster than it is, and inflate the step size.
+        steps = (best - self._mean) / (self._sigma * self._widen)
         step = weights @ steps
-        self._mean = self._mean + self._sigma * step
+        self._mean = self._mean + self._sigma * self._widen * step
 
         inv_sqrt_C = self._B @ np.diag(1 / self._D) @ self._B.T
         self._p_sigma = (1 - self._c_sigma) * self._p_sigma + math.sqrt(

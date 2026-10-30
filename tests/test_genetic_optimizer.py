@@ -1,7 +1,7 @@
 """How the genetic optimizer builds each generation."""
 import pytest
 
-from hone.parameters import FixedParameter, RangeParameter
+from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from conftest import individual, make_optimizer, run
 
@@ -77,3 +77,60 @@ def test_readme_example_finds_minimum():
 def test_converges_on_sphere_across_seeds(seed):
     """Guards against the algorithm stalling near its best initial individual."""
     assert run(seed=seed).best_fitness < 0.01
+
+
+# --- niches ---------------------------------------------------------------
+
+NICHE_SPACE = [RangeParameter("x", -5, 5), ChoiceParameter("material", ["steel", "aluminium", "titanium"])]
+
+
+def niche_population():
+    """Steel is fittest by far; aluminium and titanium are each held by one weak individual."""
+    steel = [individual(float(i), x=float(i) / 10, material="steel") for i in range(8)]
+    return steel + [individual(50.0, x=1.0, material="aluminium"), individual(60.0, x=2.0, material="titanium")]
+
+
+def test_niches_keep_every_option_breeding():
+    optimizer = make_optimizer(search_space=NICHE_SPACE, population_size=20, niche_share=0.5, elitism=False)
+    children = optimizer._next_population(niche_population(), 1)
+    niched = children[:10]
+    assert {c.params["material"] for c in niched} == {"steel", "aluminium", "titanium"}
+    assert sum(c.params["material"] == "titanium" for c in niched) == 3, "an equal share per niche"
+
+
+def test_niche_children_take_their_niches_options_even_when_mutated():
+    optimizer = make_optimizer(search_space=NICHE_SPACE, population_size=20, mutation_rate=1.0)
+    niched = optimizer._niche_children(niche_population(), 6, 1)
+    assert [c.params["material"] for c in niched] == ["steel"] * 2 + ["aluminium"] * 2 + ["titanium"] * 2, "fittest niche first"
+
+
+def test_without_niches_the_weak_options_are_rarely_bred():
+    optimizer = make_optimizer(search_space=NICHE_SPACE, population_size=20, mutation_rate=0.0, elitism=False, seed=1)
+    children = optimizer._next_population(niche_population(), 1)
+    assert sum(c.params["material"] == "titanium" for c in children) <= 2
+
+
+def test_niches_need_a_choice_parameter():
+    optimizer = make_optimizer(niche_share=0.5, population_size=10)
+    assert optimizer._niche_children([individual(1.0, x=0.0, y=0.0)], 5, 1) == []
+
+
+def test_more_niches_than_children_breed_the_fittest():
+    optimizer = make_optimizer(search_space=NICHE_SPACE, population_size=20, niche_share=0.5)
+    niched = optimizer._niche_children(niche_population(), 2, 1)
+    assert [c.params["material"] for c in niched] == ["steel", "aluminium"]
+
+
+def test_niches_solve_the_categorical_problem_the_default_misses():
+    """On material-selection-10d the default often settles on the wrong material; niches don't."""
+    from hone import GeneticOptimizer, GeneticOptimizerConfig
+    from hone.benchmarks import standard_problems
+
+    problem = {p.name: p for p in standard_problems()}["material-selection-10d"]
+
+    def materials(**settings):
+        config = lambda seed: GeneticOptimizerConfig(max_evaluations=10000, seed=seed, **settings)  # noqa: E731
+        return [GeneticOptimizer(problem.search_space, config(seed)).optimize(problem.function).best_params["material"] for seed in range(6)]
+
+    assert materials(niche_share=0.5) == ["titanium"] * 6
+    assert materials().count("titanium") < 6
