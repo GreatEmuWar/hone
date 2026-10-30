@@ -1,4 +1,5 @@
 import math
+import numbers
 from typing import Annotated, Any, Literal
 
 import numpy as np
@@ -37,6 +38,18 @@ class RangeParameter(_Parameter):
             return int(rng.integers(math.ceil(self.minimum), math.floor(self.maximum), endpoint=True))
         return float(rng.uniform(self.minimum, self.maximum))
 
+    def check(self, value: Any) -> float | int:
+        """value as this parameter holds it, or ValueError if it isn't one of its values."""
+        if isinstance(value, bool) or not isinstance(value, numbers.Real):
+            raise ValueError(f"{self.name}: {value!r} is not a number")
+        if not self.minimum <= value <= self.maximum:
+            raise ValueError(f"{self.name}: {value} is outside [{self.minimum}, {self.maximum}]")
+        if self.integer:
+            if not float(value).is_integer():
+                raise ValueError(f"{self.name}: {value} is not an integer")
+            return int(value)
+        return float(value)
+
     def mutate(self, value: float | int, rng: np.random.Generator, scale: float) -> float | int:
         """Nudge value by Gaussian noise with a standard deviation of scale times the range width.
 
@@ -59,6 +72,12 @@ class FixedParameter(_Parameter):
         super().__init__(name=name, value=value, **data)
 
     def sample(self, rng: np.random.Generator) -> Value:
+        return self.value
+
+    def check(self, value: Any) -> Value:
+        """value as this parameter holds it, or ValueError if it isn't one of its values."""
+        if value != self.value:
+            raise ValueError(f"{self.name}: {value!r} is not its fixed value {self.value!r}")
         return self.value
 
     def mutate(self, value: Value, rng: np.random.Generator, scale: float) -> Value:
@@ -85,6 +104,18 @@ class ChoiceParameter(_Parameter):
             return self.choices[rng.integers(len(self.choices))]
         indices = rng.choice(len(self.choices), size=self.choose_n, replace=False)
         return [self.choices[i] for i in indices]
+
+    def check(self, value: Any) -> Value | list[Value]:
+        """value as this parameter holds it, or ValueError if it isn't one of its values."""
+        if self.choose_n is None:
+            if value not in self.choices:
+                raise ValueError(f"{self.name}: {value!r} is not one of {self.choices}")
+            return value
+        if not isinstance(value, (list, tuple)) or len(value) != self.choose_n:
+            raise ValueError(f"{self.name}: expected a list of {self.choose_n} choices, got {value!r}")
+        if any(v not in self.choices for v in value) or len(set(map(repr, value))) != len(value):
+            raise ValueError(f"{self.name}: {value!r} must be {self.choose_n} different values from {self.choices}")
+        return list(value)
 
     def mutate(self, value: Value | list[Value], rng: np.random.Generator, scale: float) -> Value | list[Value]:
         """Draw a new value. A single choice switches to a different one when there is one to switch to.
@@ -124,6 +155,19 @@ class SearchSpace(BaseModel):
     def sample(self, rng: np.random.Generator) -> dict[str, Any]:
         """Draw one value for every parameter."""
         return {parameter.name: parameter.sample(rng) for parameter in self.parameters}
+
+    def check(self, params: dict[str, Any]) -> dict[str, Any]:
+        """params as a complete point of this space, in parameter order, or ValueError if they aren't one.
+
+        Fixed parameters may be left out; every other parameter needs a value.
+        """
+        unknown = sorted(set(params) - set(self.names))
+        if unknown:
+            raise ValueError(f"unknown parameters: {', '.join(unknown)}")
+        missing = [p.name for p in self.parameters if p.name not in params and not isinstance(p, FixedParameter)]
+        if missing:
+            raise ValueError(f"missing values for: {', '.join(missing)}")
+        return {p.name: p.check(params[p.name]) if p.name in params else p.value for p in self.parameters}
 
     def __getitem__(self, name: str) -> Parameter:
         for parameter in self.parameters:

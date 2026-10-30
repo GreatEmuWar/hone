@@ -52,7 +52,20 @@ Simulations crash, time out or fail to converge. Report such a run as failed rat
 optimizer.tell(trial, failed=True)
 ```
 
-Inside `optimize()`, an objective function reports a failure by raising `hone.EvaluationFailed` or returning NaN; any other exception stops the run, so bugs in the function aren't hidden. Failed evaluations count toward `evaluations` and `failures` in the result, rank below every successful one, and are never used to breed new candidates.
+Inside `optimize()`, an objective function reports a failure by raising `hone.EvaluationFailed` or returning NaN or infinity; any other exception stops the run, so bugs in the function aren't hidden. Failed evaluations count toward `evaluations` and `failures` in the result, rank below every successful one, and are never used to breed new candidates.
+
+### Starting points
+
+If you already have a good design, or the best parameters from an earlier run, pass it as a starting point so the search doesn't begin from scratch:
+
+```python
+optimizer = CMAES(search_space, CMAESConfig(max_evaluations=500), initial_points={"thickness": 2.5, "width": 40})
+
+# or continue from an earlier result
+optimizer = GeneticOptimizer(search_space, config, initial_points=[earlier.best_params])
+```
+
+`initial_points` takes one dict of parameter values or a list of them; fixed parameters may be left out, and every value is checked against the search space. The points are evaluated first and count toward the budget. The genetic optimizer and random search put them in their first generation, filling the rest with random candidates. CMA-ES evaluates them, then centres its search on the best one; lower `initial_step` to keep the search close to it.
 
 ### Parameters
 

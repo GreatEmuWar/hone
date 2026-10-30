@@ -13,9 +13,10 @@ class GeneticOptimizer(Optimizer):
     It is a population-based algorithm that uses the concepts of selection, crossover, and mutation
     to evolve a population of individuals towards a solution to the objective function.
 
-    Each generation keeps the previous one's elites unchanged, then fills the rest of the
-    population with children: two parents are selected, crossed over, and mutated. Failed
-    evaluations are never elites or parents.
+    The first generation is any initial points, then random candidates. Each later generation
+    keeps the previous one's elites unchanged, then fills the rest of the population with
+    children: two parents are selected, crossed over, and mutated. Failed evaluations are
+    never elites or parents.
 
     Args:
         search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
@@ -55,9 +56,12 @@ class GeneticOptimizer(Optimizer):
 
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         size = self.config.population_size
-        parents = [individual for individual in previous or [] if not individual.failed]
+        if previous is None:
+            initial = self._initial_individuals(generation)
+            return initial + [self._random_individual(generation) for _ in range(size - len(initial))]
+        parents = [individual for individual in previous if not individual.failed]
         if not parents:
-            # The first generation, or one in which every evaluation failed.
+            # Every evaluation of the previous generation failed: start afresh.
             return [self._random_individual(generation) for _ in range(size)]
 
         elites = self._ranked(parents)[: round(size * self.config.elitism_rate)] if self.config.elitism else []
