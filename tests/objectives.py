@@ -85,3 +85,9 @@ class CannotStart:
 
     def __setstate__(self, state):
         raise ImportError("a missing simulation package")
+
+
+def slow_sphere(x, y):
+    """Sphere, taking a tenth of a second per evaluation."""
+    time.sleep(0.1)
+    return x**2 + y**2
