@@ -1,14 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List
 from uuid import uuid4
-from enum import Enum
 
 import numpy as np
-import numpy.random as random
 
-from hone.constraint import Constraint
+from hone.config import GeneticOptimizerConfig, SelectionMethod
 from hone.objective_function import ObjectiveFunction
-from hone.config import GeneticOptimizerConfig
+from hone.parameters import Parameter, SearchSpace
 
 class Individual(object):
     def __init__(self, **params):
@@ -52,15 +50,6 @@ class Population:
         self.individuals.extend(individuals)
         self.size += len(individuals)
 
-class SelectionMethod(Enum):
-    """Selection methods for the genetic algorithm."""
-    TOURNAMENT = 'tournament'
-    ROULETTE = 'roulette'
-
-class CrossoverMethod(Enum):
-    """Crossover methods for the genetic algorithm."""
-    SINGLE_POINT = 'single_point'
-
 @dataclass
 class Generation:
     """Generation of the genetic algorithm."""
@@ -90,94 +79,53 @@ class GeneticOptimizer(object):
     generations, the population will converge to the global optimum of the objective function.
 
     Args:
-        objective_function: The objective function to be optimized.
-        seed_parameters: A dictionary of parameters to be used as the seed for the genetic algorithm.
-        constraints: A list of constraints to be applied to the objective function.
-        config: A configuration object for the genetic optimizer.
+        objective_function: The objective function to be optimized. It is called with one
+            keyword argument per parameter in the search space.
+        search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
+        config: A configuration object for the genetic optimizer. Defaults are used if omitted.
 
     Returns:
         A Result object containing the results of the genetic algorithm optimization.
     
     Example:
 
-        >>> from hone import GeneticOptimizer, GeneticOptimizerConfig, Constraint
-        >>> from hone.objective_function import ObjectiveFunction
-        >>> 
+        >>> from hone import GeneticOptimizer, GeneticOptimizerConfig, RangeParameter
+        >>>
         >>> def objective_function(x, y):
         >>>     return x**2 + y**2
         >>>
-        >>> seed_parameters = { 'x': 1, 'y': 1 }
-        >>> constraints = [
-        >>>     Constraint(param='x', minimum=-5, maximum=5),
-        >>>     Constraint(param='y', minimum=-5, maximum=5)
-        >>> ]
-        >>> # Default configuration for this example
-        >>> config = GeneticOptimizerConfig()
+        >>> x = RangeParameter("x", -5, 5)
+        >>> y = RangeParameter("y", -5, 5)
         >>>
         >>> optimizer = GeneticOptimizer(
         >>>     objective_function=objective_function,
-        >>>     seed_parameters=seed_parameters,
-        >>>     constraints=constraints,
-        >>>     config=config
+        >>>     search_space=[x, y],
+        >>>     config=GeneticOptimizerConfig(threshold=0.01),
         >>> )
         >>>
-        >>> result = optimizer.optimize()   
+        >>> result = optimizer.optimize()
     """
     def __init__(
         self,
         objective_function: Callable,
-        seed_parameters: Dict[str, float | str],
-        constraints: List[Constraint],
-        config: GeneticOptimizerConfig,
+        search_space: SearchSpace | List[Parameter],
+        config: GeneticOptimizerConfig | None = None,
     ) -> None:
         """Initialize the genetic optimizer."""
+        if not isinstance(search_space, SearchSpace):
+            search_space = SearchSpace(search_space)
         self.objective_function = ObjectiveFunction(
             name=objective_function.__name__,
-            params=seed_parameters,
             function=objective_function,
-            constraints=constraints,
+            search_space=search_space,
         )
-        self.config = config
+        self.config = config if config is not None else GeneticOptimizerConfig()
+        self.rng = np.random.default_rng(self.config.seed)
         self.geaneology: List[Generation] = []
 
-    def _random_parameters(self) -> Dict[str, float]:
-        """Generate random parameters within the constraints.
-        Returns:
-            A dictionary of randomly generated parameters.
-        
-        Behavior:
-            Parameters are generated using provided constraints and provided seed parameters.
-            If no constraints are provided, parameters are generated using the seed parameters.
-        """
-        params = {}
-        for param, value in self.objective_function.params.items():
-            constraints = [constraint for constraint in self.objective_function.constraints if constraint.param == param]
-            if len(constraints) > 0 and constraints[0].literal is None and constraints[0].choices == []:
-                minimum = constraints[0].minimum
-                maximum = constraints[0].maximum
-                params[param] = random.uniform(minimum, maximum)
-
-            elif len(constraints) > 0 and constraints[0].literal is not None and constraints[0].choices == []:
-                params[param] = constraints[0].literal
-
-            elif len(constraints) > 0 and constraints[0].literal is None and constraints[0].choices != []:
-                if constraints[0].choose_n is None:
-                    params[param] = random.choice(constraints[0].choices)
-
-                else:
-                    params[param] = random.choice(constraints[0].choices, constraints[0].choose_n)
-
-            else:
-                match str(type(value)):
-                    case "float":
-                        params[param] = value + random.uniform(-1, 1)
-                    case "int":
-                        params[param] = round(value + random.uniform(-1, 1))
-                    case "str":
-                        params[param] = value
-                    case _:
-                        raise ValueError(f'Parameter {param} has an invalid type {type(value)}.')
-        return params
+    def _random_parameters(self) -> Dict[str, float | int | str]:
+        """Draw a random value for every parameter in the search space."""
+        return self.objective_function.search_space.sample(self.rng)
 
     def _new_generation(self, iteration: int) -> Generation:
         """Spawns a new generation with the id of the iteration provided."""
@@ -188,13 +136,13 @@ class GeneticOptimizer(object):
         fitnesses = [individual.fitness for individual in generation.population]
         total_fitness = sum(fitnesses)
         probabilities = [fitness / total_fitness for fitness in fitnesses]
-        return random.choice(generation.population, p=probabilities)
+        return generation.population[self.rng.choice(len(fitnesses), p=probabilities)]
 
     def _single_point_crossover(self, parent1: Individual, parent2: Individual) -> Individual:
         """Perform single point crossover."""
         child = Individual()
         for param in parent1.params.keys():
-            if random.uniform(0, 1) < self.config.crossover_rate:
+            if self.rng.uniform(0, 1) < self.config.crossover_rate:
                 child.params[param] = parent1.params[param]
             else:
                 child.params[param] = parent2.params[param]
@@ -205,16 +153,16 @@ class GeneticOptimizer(object):
         """Function which simulates mutation of an individual."""
         random_params = self._random_parameters()
         for param in individual.params.keys():
-            if random.uniform(0, 1) < self.config.mutation_threshold:
+            if self.rng.uniform(0, 1) < self.config.mutation_threshold:
                 individual.params[param] = random_params[param]
 
         return individual
 
     def _tournament_selection(self, generation: Generation) -> Individual:
         """Select an individual using tournament selection."""
-        tournament: List[Individual] = random.choice(generation.population, size=self.config.tournament_size)
-        tournament = sorted(tournament, key=lambda x: x.fitness, reverse=self.config.maximize)
-        return tournament[0] if random.uniform(0, 1) < self.config.tournament_p else tournament[-1]
+        indices = self.rng.choice(len(generation.population), size=self.config.tournament_size)
+        tournament = sorted((generation.population[i] for i in indices), key=lambda x: x.fitness, reverse=self.config.maximize)
+        return tournament[0] if self.rng.uniform(0, 1) < self.config.tournament_p else tournament[-1]
     
     def _select_individual(self, generation: Generation) -> Individual:
         """Select an individual using the selection method specified in the config.
@@ -224,12 +172,11 @@ class GeneticOptimizer(object):
         Returns:
             An individual selected from the generation.
         """
-        if self.config.selection_method == 'tournament':
-            return self._tournament_selection(generation)
-        elif self.config.selection_method == 'roulette':
-            return self._roulette_selection(generation)
-        else:
-            raise ValueError(f'Selection method {self.config.selection_method} is not valid.')
+        match self.config.selection_method:
+            case SelectionMethod.TOURNAMENT:
+                return self._tournament_selection(generation)
+            case SelectionMethod.ROULETTE:
+                return self._roulette_selection(generation)
     
     def _new_population(self) -> Population:
         """Spawns a new empty population."""
@@ -292,14 +239,15 @@ class GeneticOptimizer(object):
 
                 else:
                     elites = []
-                    population.add_individuals(random.choice(self.geaneology[i - 1].population, round(self.config.population_size * self.config.elitism_rate), replace=False))
+                    previous = self.geaneology[i - 1].population
+                    survivors = self.rng.choice(len(previous), round(self.config.population_size * self.config.elitism_rate), replace=False)
+                    population.add_individuals([previous[j] for j in survivors])
 
                 while population.size <= self.config.population_size:
                     parent1 = self._select_individual(self.geaneology[i - 1])
                     parent2 = self._select_individual(self.geaneology[i - 1])
                     child = self._single_point_crossover(parent1, parent2)
-                    mutate = random.choice([True, False], p=[self.config.mutation_rate, 1 - self.config.mutation_rate])
-                    if mutate:
+                    if self.rng.uniform(0, 1) < self.config.mutation_rate:
                         child = self._mutate_individual(child)
                         
                     population.add_individual(child)

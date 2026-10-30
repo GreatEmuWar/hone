@@ -1,24 +1,38 @@
-from typing import Callable, Dict, List
+import inspect
 from dataclasses import dataclass, field
-from hone.constraint import Constraint
+from typing import Callable, Dict
+
+from hone.parameters import SearchSpace
+
 
 @dataclass
 class ObjectiveFunction:
     """Objective function to be optimized."""
     name: str
     function: Callable
-    params: Dict = field(default_factory=dict)
+    search_space: SearchSpace
     optimum: float = 0.0
     optimum_params: Dict = field(default_factory=dict)
-    constraints: List[Constraint] = field(default_factory=list)
-    dimensions: int = 0
-    maximize: bool = False
 
     def __post_init__(self):
-        self.dimensions = len(self.constraints)
+        self._check_signature()
 
-    def add_constraint(self, constraint: Constraint):
-        self.constraints.append(constraint)
+    def _check_signature(self):
+        """Fail before optimizing if the function cannot be called with the search space's parameters."""
+        signature = inspect.signature(self.function)
+        accepted = signature.parameters
+        takes_any_keyword = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in accepted.values())
 
-    def add_constraints(self, constraints: List[Constraint]):
-        self.constraints.extend(constraints)
+        names = set(self.search_space.names)
+        unknown = sorted(name for name in names if name not in accepted and not takes_any_keyword)
+        missing = sorted(
+            name
+            for name, p in accepted.items()
+            if name not in names
+            and p.default is inspect.Parameter.empty
+            and p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+        )
+        if unknown:
+            raise ValueError(f"{self.name}() does not accept parameters: {', '.join(unknown)}")
+        if missing:
+            raise ValueError(f"{self.name}() requires parameters missing from the search space: {', '.join(missing)}")
