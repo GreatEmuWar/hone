@@ -165,11 +165,15 @@ class GeneticOptimizer(object):
         return child
 
     def _mutate_individual(self, individual: Individual) -> Individual:
-        """Function which simulates mutation of an individual."""
-        random_params = self._random_parameters()
-        for param in individual.params.keys():
-            if self.rng.uniform(0, 1) < self.config.mutation_threshold:
-                individual.params[param] = random_params[param]
+        """Mutate each gene of the individual with probability mutation_rate.
+
+        How a gene changes depends on its parameter: ranges are nudged by mutation_scale,
+        choices switch to another value, and fixed parameters never change.
+        """
+        search_space = self.objective_function.search_space
+        for param, value in individual.params.items():
+            if self.rng.uniform(0, 1) < self.config.mutation_rate:
+                individual.params[param] = search_space[param].mutate(value, self.rng, self.config.mutation_scale)
 
         return individual
 
@@ -216,9 +220,7 @@ class GeneticOptimizer(object):
         while population.size < self.config.population_size:
             parent1 = self._select_individual(previous)
             parent2 = self._select_individual(previous)
-            child = self._uniform_crossover(parent1, parent2)
-            if self.rng.uniform(0, 1) < self.config.mutation_rate:
-                child = self._mutate_individual(child)
+            child = self._mutate_individual(self._uniform_crossover(parent1, parent2))
             child.generation = generation_id
             population.add_individual(child)
 

@@ -70,11 +70,27 @@ def test_crossover_takes_each_gene_from_a_parent():
         assert child.individual_id not in (p1.individual_id, p2.individual_id)
 
 
-def test_mutation_replaces_genes_with_random_values(monkeypatch):
-    optimizer = make_optimizer(mutation_threshold=1.0)
-    monkeypatch.setattr(optimizer, "_random_parameters", lambda: {"x": 99, "y": 99})
-    child = optimizer._mutate_individual(Individual(x=1, y=2))
-    assert child.params == {"x": 99, "y": 99}
+def test_mutation_rate_one_changes_every_gene():
+    optimizer = make_optimizer(
+        search_space=[RangeParameter("x", -5, 5), ChoiceParameter("y", ["a", "b"])],
+        objective_function=lambda x, y: 0,
+        mutation_rate=1.0,
+    )
+    child = optimizer._mutate_individual(Individual(x=1.0, y="a"))
+    assert child.params["x"] != 1.0
+    assert child.params["y"] == "b"
+
+
+def test_mutation_rate_zero_changes_nothing():
+    optimizer = make_optimizer(mutation_rate=0.0)
+    assert optimizer._mutate_individual(Individual(x=1.0, y=2.0)).params == {"x": 1.0, "y": 2.0}
+
+
+def test_mutation_leaves_fixed_parameters_alone():
+    optimizer = make_optimizer(
+        search_space=[RangeParameter("x", -5, 5), FixedParameter("y", 3)], mutation_rate=1.0
+    )
+    assert optimizer._mutate_individual(Individual(x=1.0, y=3)).params["y"] == 3
 
 
 # --- selection ------------------------------------------------------------
@@ -166,7 +182,6 @@ def test_result_best_is_an_individual():
     assert isinstance(result.best, Individual)
 
 
-@pytest.mark.xfail(reason="mutation only resamples uniformly, so runs stall near the best initial individual")
 def test_readme_example_finds_minimum():
     """Mirrors the README: default config, minimizing x**2 + y**2 within [-5, 5]."""
     result = make_optimizer().optimize()
@@ -236,3 +251,9 @@ def test_roulette_with_equal_fitness_picks_anyone():
     picked = {id(optimizer._select_individual(generation)) for _ in range(50)}
     assert len(picked) == 3
 
+
+
+@pytest.mark.parametrize("seed", range(5))
+def test_converges_on_sphere_across_seeds(seed):
+    """Guards against the algorithm stalling near its best initial individual."""
+    assert make_optimizer(seed=seed).optimize().best_fitness < 0.01

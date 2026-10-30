@@ -63,6 +63,8 @@ def test_invalid_file_contents_raise(tmp_path):
         {"selection_method": "foo"},
         {"mutation_rate": 1.5},
         {"crossover_rate": -0.1},
+        {"mutation_scale": 0},
+        {"mutation_threshold": 0.1},
         {"elitism_rate": 1.0},
         {"population_size": 1},
         {"tournament_size": 1},
