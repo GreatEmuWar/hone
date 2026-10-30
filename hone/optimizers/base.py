@@ -56,16 +56,28 @@ class Optimizer(ABC):
     Args:
         search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
         config: The optimizer's configuration. Defaults are used if omitted.
+        initial_points: Points to evaluate first, such as a known good design or the best
+            parameters of an earlier run: one dict of parameter values, or a list of them.
+            Fixed parameters may be left out.
     """
     config_class: ClassVar[type[OptimizerConfig]] = OptimizerConfig
 
-    def __init__(self, search_space: SearchSpace | List[Parameter], config: OptimizerConfig | None = None) -> None:
+    def __init__(
+        self,
+        search_space: SearchSpace | List[Parameter],
+        config: OptimizerConfig | None = None,
+        *,
+        initial_points: dict[str, Any] | list[dict[str, Any]] | None = None,
+    ) -> None:
         if not isinstance(search_space, SearchSpace):
             search_space = SearchSpace(search_space)
         self.search_space = search_space
         self.config = config if config is not None else self.config_class()
         if not isinstance(self.config, self.config_class):
             raise TypeError(f"{type(self).__name__} needs a {self.config_class.__name__}, got {type(self.config).__name__}")
+        if isinstance(initial_points, dict):
+            initial_points = [initial_points]
+        self.initial_points = [search_space.check(point) for point in initial_points or []]
         self.reset()
 
     @abstractmethod
@@ -124,8 +136,9 @@ class Optimizer(ABC):
         """Report the outcome of a trial from ask(), by the trial or its id.
 
         Pass the objective's value, or failed=True when the evaluation could not produce one
-        (a crashed simulation, say). A value of NaN also counts as failed. Failed trials count
-        as evaluations, rank below every successful one, and are never used as parents.
+        (a crashed simulation, say). A value of NaN or infinity also counts as failed. Failed
+        trials count as evaluations, rank below every successful one, and are never used as
+        parents.
         """
         trial_id = trial.id if isinstance(trial, Trial) else trial
         individual = self._waiting.get(trial_id)
@@ -134,9 +147,9 @@ class Optimizer(ABC):
         if not failed:
             if value is None:
                 raise ValueError("pass the trial's value, or failed=True")
-            if not isinstance(value, numbers.Real):
+            if isinstance(value, bool) or not isinstance(value, numbers.Real):
                 raise TypeError(f"the value must be a number, got {value!r}")
-            failed = math.isnan(value)
+            failed = not math.isfinite(value)
 
         del self._waiting[trial_id]
         self._evaluations += 1
@@ -179,10 +192,10 @@ class Optimizer(ABC):
         """Run the optimizer from the start, calling objective_function for every candidate.
 
         The function is called with one keyword argument per parameter and must return a
-        number. To record an evaluation as failed instead, raise EvaluationFailed or return NaN;
-        any other exception stops the run. With workers > 1, candidates are evaluated in that
-        many background processes, so the function must be defined at the top level of a
-        module. With a seed, every call returns the same result, however many workers are used.
+        number. To record an evaluation as failed instead, raise EvaluationFailed or return NaN
+        or infinity; any other exception stops the run. With workers > 1, candidates are
+        evaluated in that many background processes, so the function must be defined at the
+        top level of a module. With a seed, every call returns the same result, however many workers are used.
         """
         if workers < 1:
             raise ValueError(f"workers must be at least 1, got {workers}")
@@ -235,6 +248,9 @@ class Optimizer(ABC):
         else:
             # The next generation is bred from this one when ask() is next called.
             self._needs_generation = True
+
+    def _initial_individuals(self, generation: int) -> list[Individual]:
+        return [Individual(params=dict(point), generation=generation) for point in self.initial_points]
 
     def _random_individual(self, generation: int) -> Individual:
         return Individual(params=self.search_space.sample(self.rng), generation=generation)

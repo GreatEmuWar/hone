@@ -13,7 +13,7 @@ with positive recombination weights. Three additions adapt it to hone's search s
   Population Size", CEC 2005).
 """
 import math
-from typing import List
+from typing import Any, List
 
 import numpy as np
 
@@ -38,14 +38,25 @@ class CMAES(Optimizer):
     Range parameters, continuous or integer, are searched; fixed parameters are passed
     through. Choice parameters are not supported: use GeneticOptimizer for those.
 
+    The search starts at the centre of every range. With initial points, it evaluates them
+    first and starts at the best one instead; a smaller initial_step then keeps the search
+    close to it.
+
     Args:
         search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
         config: A CMAESConfig. Defaults are used if omitted.
+        initial_points: Points to evaluate first: one dict of parameter values, or a list of them.
     """
     config_class = CMAESConfig
     config: CMAESConfig
 
-    def __init__(self, search_space: SearchSpace | List[Parameter], config: CMAESConfig | None = None) -> None:
+    def __init__(
+        self,
+        search_space: SearchSpace | List[Parameter],
+        config: CMAESConfig | None = None,
+        *,
+        initial_points: dict[str, Any] | list[dict[str, Any]] | None = None,
+    ) -> None:
         if not isinstance(search_space, SearchSpace):
             search_space = SearchSpace(search_space)
         choices = [p.name for p in search_space.parameters if isinstance(p, ChoiceParameter)]
@@ -66,7 +77,7 @@ class CMAES(Optimizer):
         self._width = np.array([p.maximum - p.minimum for p in searched], dtype=float)
         self._integer = np.array([p.integer for p in searched])
         self._min_spread = np.where(self._integer, INTEGER_SPREAD / self._width, 0.0)
-        super().__init__(search_space, config)
+        super().__init__(search_space, config, initial_points=initial_points)
 
     # --- state ----------------------------------------------------------------
 
@@ -75,6 +86,7 @@ class CMAES(Optimizer):
         n = len(self._searched)
         self.population_size = self.config.population_size or 4 + int(3 * math.log(n))
         self._start(mean=np.full(n, 0.5))
+        self._evaluating_initial_points = False
 
     def _start(self, mean: np.ndarray) -> None:
         """Set up a fresh search distribution around mean for the current population size."""
@@ -107,7 +119,15 @@ class CMAES(Optimizer):
     # --- the generation -------------------------------------------------------
 
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
-        if previous is not None:
+        if previous is None and self.initial_points:
+            self._evaluating_initial_points = True
+            return self._initial_individuals(generation)
+        if self._evaluating_initial_points:
+            self._evaluating_initial_points = False
+            succeeded = self._ranked([ind for ind in previous if not ind.failed])
+            if succeeded:
+                self._mean = self._encode(succeeded[0].params)
+        elif previous is not None:
             self._update(previous)
         return [self._sample(generation) for _ in range(self.population_size)]
 
@@ -173,6 +193,9 @@ class CMAES(Optimizer):
         return len(recent) == window and max(recent) - min(recent) <= FLAT * max(1.0, abs(min(recent)))
 
     # --- between [0, 1]^n and parameter values --------------------------------
+
+    def _encode(self, params: dict) -> np.ndarray:
+        return (np.array([params[p.name] for p in self._searched], dtype=float) - self._lower) / self._width
 
     def _decode(self, x: np.ndarray) -> dict:
         values = dict(self._constant)
