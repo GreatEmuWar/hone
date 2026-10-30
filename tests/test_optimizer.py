@@ -82,6 +82,8 @@ def test_generation_stats(make):
         assert g.best_fitness <= g.mean <= g.worst_fitness
         assert g.std >= 0
         assert sphere(**g.best_params) == g.best_fitness
+    assert [g.evaluations for g in result.generations] == sorted(g.evaluations for g in result.generations)
+    assert result.generations[-1].evaluations == result.evaluations
 
 
 def test_same_seed_gives_same_result(make):

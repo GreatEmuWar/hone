@@ -81,7 +81,7 @@ class Optimizer(ABC):
                     evaluations += 1
 
             ranked = self._ranked(population)
-            history.append(self._summarize(generation, ranked))
+            history.append(self._summarize(generation, evaluations, ranked))
             if best is None or self._is_better(ranked[0].fitness, best.fitness):
                 best = ranked[0]
 
@@ -115,10 +115,11 @@ class Optimizer(ABC):
         return fitness >= self.config.threshold if self.config.maximize else fitness <= self.config.threshold
 
     @staticmethod
-    def _summarize(generation: int, ranked: list[Individual]) -> GenerationStats:
+    def _summarize(generation: int, evaluations: int, ranked: list[Individual]) -> GenerationStats:
         fitnesses = [individual.fitness for individual in ranked]
         return GenerationStats(
             generation=generation,
+            evaluations=evaluations,
             best_fitness=ranked[0].fitness,
             best_params=dict(ranked[0].params),
             worst_fitness=ranked[-1].fitness,

@@ -56,7 +56,7 @@ Each value of a new individual mutates with probability `mutation_rate` (default
 | Field | Meaning |
 | --- | --- |
 | `best_fitness`, `best_params` | The best individual found in the whole run |
-| `generations` | One `GenerationStats` per generation: its best fitness and parameters, worst fitness, mean, median and standard deviation |
+| `generations` | One `GenerationStats` per generation: the evaluations used so far, its best fitness and parameters, worst fitness, mean, median and standard deviation |
 | `evaluations` | How many times the objective function was called |
 | `reached_threshold` | Whether the run stopped early because it reached `threshold` |
 
@@ -76,6 +76,26 @@ result = Result.load("run.json")
 
 Both take the same arguments and return the same `Result`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles evaluation, tracking the best result, stopping and the `Result`.
 
+### Benchmarks
+
+`hone.benchmarks` runs optimizers on test problems with known optima and reports how close each one gets:
+
+```
+python -m hone.benchmarks            # full suite: 24 problems, 10 seeds each
+python -m hone.benchmarks --quick    # 5 problems, 5 seeds; takes seconds
+```
+
+The suite has five standard continuous functions (sphere, ellipsoid, Rosenbrock, Rastrigin and Ackley) in 2, 5 and 10 dimensions, plus integer, mixed and categorical problems. Each function is shifted so its optimum is away from the centre of the search space. Every optimizer gets the same budget of evaluations. Latest results are in [benchmarks/results.md](benchmarks/results.md).
+
+To compare your own optimizer, pass a factory that builds it for a problem, a budget and a seed:
+
+```python
+from hone.benchmarks import run_benchmark, standard_problems, summarize, to_markdown
+
+runs = run_benchmark(standard_problems(), optimizers={"mine": make_my_optimizer})
+print(to_markdown(summarize(runs)))
+```
+
 ## Development
 
 Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
@@ -85,6 +105,9 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make test` | Install the dependencies and run the tests with coverage |
 | `make lint` | Run ruff |
 | `make docker-test` | Build the Docker image and run the tests inside it |
+| `make benchmark` | Run the full benchmark suite and update `benchmarks/results.md` |
+
+CI also runs the quick benchmark and fails if any optimizer's median error grows more than tenfold against `benchmarks/quick-baseline.json`. After an intended change in results, update the baseline with `python -m hone.benchmarks --quick --save benchmarks/quick-baseline.json`.
 
 ## License
 

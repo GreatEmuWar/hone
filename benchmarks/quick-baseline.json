@@ -1,0 +1,92 @@
+[
+  {
+    "problem": "sphere-5d",
+    "optimizer": "genetic",
+    "runs": 5,
+    "median_error": 0.0554272376664952,
+    "lower_quartile": 0.03895207785126442,
+    "upper_quartile": 0.06271414363327636,
+    "solved": 0.0
+  },
+  {
+    "problem": "sphere-5d",
+    "optimizer": "random",
+    "runs": 5,
+    "median_error": 3.1286551371137583,
+    "lower_quartile": 2.993379850101374,
+    "upper_quartile": 3.296470495125337,
+    "solved": 0.0
+  },
+  {
+    "problem": "ellipsoid-5d",
+    "optimizer": "genetic",
+    "runs": 5,
+    "median_error": 510.27427217309975,
+    "lower_quartile": 256.7618583348343,
+    "upper_quartile": 1112.3203972169838,
+    "solved": 0.0
+  },
+  {
+    "problem": "ellipsoid-5d",
+    "optimizer": "random",
+    "runs": 5,
+    "median_error": 15679.0119835908,
+    "lower_quartile": 11871.910114015029,
+    "upper_quartile": 19774.39620916522,
+    "solved": 0.0
+  },
+  {
+    "problem": "rastrigin-5d",
+    "optimizer": "genetic",
+    "runs": 5,
+    "median_error": 2.8055777995158877,
+    "lower_quartile": 2.7442630015053737,
+    "upper_quartile": 3.3069940959134385,
+    "solved": 0.0
+  },
+  {
+    "problem": "rastrigin-5d",
+    "optimizer": "random",
+    "runs": 5,
+    "median_error": 30.593888697154384,
+    "lower_quartile": 28.504466983634998,
+    "upper_quartile": 31.103465294015052,
+    "solved": 0.0
+  },
+  {
+    "problem": "integer-sphere-5d",
+    "optimizer": "genetic",
+    "runs": 5,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "integer-sphere-5d",
+    "optimizer": "random",
+    "runs": 5,
+    "median_error": 4.0,
+    "lower_quartile": 4.0,
+    "upper_quartile": 5.0,
+    "solved": 0.0
+  },
+  {
+    "problem": "material-selection-5d",
+    "optimizer": "genetic",
+    "runs": 5,
+    "median_error": 0.08351500378685024,
+    "lower_quartile": 0.03952859166363054,
+    "upper_quartile": 0.08691350308966564,
+    "solved": 0.0
+  },
+  {
+    "problem": "material-selection-5d",
+    "optimizer": "random",
+    "runs": 5,
+    "median_error": 2.7248207615241,
+    "lower_quartile": 2.4405215345752675,
+    "upper_quartile": 3.4963273250563094,
+    "solved": 0.0
+  }
+]
