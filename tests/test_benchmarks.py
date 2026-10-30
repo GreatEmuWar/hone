@@ -110,7 +110,7 @@ def test_benchmark_is_reproducible():
 
 def test_custom_optimizer_factory():
     def tiny(problem, budget, seed):
-        return RandomSearch(problem.function, problem.search_space, OptimizerConfig(population_size=5, generations=1, seed=seed))
+        return RandomSearch(problem.search_space, OptimizerConfig(population_size=5, generations=1, seed=seed))
 
     runs = run_benchmark(quick_problems()[:1], optimizers={"tiny": tiny}, seeds=range(2))
     assert {r.optimizer for r in runs} == {"tiny"}
