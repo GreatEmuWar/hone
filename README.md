@@ -85,3 +85,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make test` | Install the dependencies and run the tests with coverage |
 | `make lint` | Run ruff |
 | `make docker-test` | Build the Docker image and run the tests inside it |
+
+## License
+
+BSD 3-Clause. See [LICENSE](LICENSE).

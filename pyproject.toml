@@ -4,6 +4,7 @@ version = "0.3.0"
 description = "A python-based optimization engine/library."
 authors = [{ name = "David Beare", email = "rnbeare@gmail.com" }]
 readme = "README.md"
+license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
