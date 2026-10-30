@@ -6,6 +6,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | --- | --- |
 | [results.md](results.md) | The full suite's results table, from `make benchmark` |
 | `full-summaries.json` | The same results as data |
+| [noisy-results.md](noisy-results.md) | The noisy problems' results, from `make benchmark-noisy` |
+| `noisy-summaries.json` | The same results as data |
 | [ml-results.md](ml-results.md) | The machine learning tuning results, from `make benchmark-ml` |
 | `ml-summaries.json` | The same results as data |
 | `quick-baseline.json` | The quick suite's results, which CI compares every change against |
@@ -67,3 +69,28 @@ What the results show:
 - **The differences are smaller than on the test functions.** Most settings of a well-chosen model score within a percentage point or two of the best, so random search is a fair tuner, as the hyperparameter tuning literature also finds. The extra value of a better optimizer shows in the last fraction of a point, and in how few evaluations it takes to get there.
 - **Scores move in steps.** Accuracy changes in multiples of one sample, so several optimizers often stop at exactly the same score: the random forest's median error is 0.0057 for every optimizer at 10 evaluations per dimension.
 - **The genetic optimizer is no better than random search here.** It ties or loses on the SVM problem at every budget, and on kernel ridge it wins only at 50 evaluations per dimension. With budgets of 20 to 200 evaluations it runs only a few generations.
+
+## Noisy problems
+
+`python -m hone.benchmarks --noisy` adds Gaussian noise with a standard deviation of 1 to every evaluation of six 5-dimensional problems: sphere, Rosenbrock, Rastrigin, rotated Ackley, mixed Rastrigin and material selection. Near their optima these problems' values differ by less than that, so the noise hides the differences an optimizer has to find. Every optimizer runs with `noise=True`, and each run is scored by the true, noise-free value of the point it returns, so a lucky result doesn't count. The noise is repeatable for each seed.
+
+- **Bayesian optimization is best at small budgets:** it has the lowest median error on all six problems at 10 evaluations per dimension, and on noisy-sphere-5d its median error is 0.44 against 3.3 for CMA-ES.
+- **At 200 evaluations per dimension, CMA-ES and the genetic optimizer share the wins**, three problems each.
+
+### What `noise=True` does, measured
+
+Each design choice was compared with and without it on these problems, over 10 seeds, as the ratio of geometric-mean errors:
+
+| Change | 10 / dim | 40 / dim | 200 / dim |
+| --- | ---: | ---: | ---: |
+| Genetic optimizer: averaging, with parents ranked by their latest average | ×1.00 | ×0.85 | ×0.80 |
+| Bayesian optimization: improvement measured against the model's best prediction | ×0.95 | ×0.90 | not run |
+| CMA-ES: 10% of the budget kept back for a final round | ×1.12 | ×1.14 | ×0.89 |
+| Random search: the same | ×1.02 | ×1.02 | ×0.98 |
+
+Some ideas that sound right made things worse, and were left out:
+
+- **Re-evaluating the genetic optimizer's elites every generation** cost evaluations and gave up most of the gain from averaging (×1.08, ×0.99 and ×1.04).
+- **Telling Bayesian optimization's model to expect noise**, through a prior on the noise level, made it worse than no noise handling at all (×1.13 and ×1.40); the model learns the noise from the data well enough.
+- **Choosing Bayesian optimization's result by the model's prediction** rather than by the averages was also worse than no noise handling (×1.13 at both budgets).
+- **The final round** costs more search than it gains until errors approach the noise level, which is why it is off by default.

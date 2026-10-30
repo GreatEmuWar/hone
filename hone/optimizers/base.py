@@ -109,6 +109,11 @@ class Optimizer(ABC):
         self._history: list[GenerationStats] = []
         self._reached_threshold = False
         self._done = False
+        # With noise: every successful value seen at each point, and the final re-evaluation's state.
+        self._observations: dict[tuple, list[float]] = {}
+        self._points: dict[tuple, dict[str, Any]] = {}
+        self._finalists: list[tuple] = []
+        self._final_round = False
 
     @property
     def done(self) -> bool:
@@ -162,6 +167,12 @@ class Optimizer(ABC):
             individual.fitness = -math.inf if self.config.maximize else math.inf
         else:
             individual.fitness = float(value)
+            if self.config.noise:
+                # Average every evaluation of the same point, so a lucky value regresses toward its mean.
+                key = _key(individual.params)
+                self._observations.setdefault(key, []).append(float(value))
+                self._points.setdefault(key, dict(individual.params))
+                individual.fitness = float(np.mean(self._observations[key]))
             if self._best is None or self._is_better(individual.fitness, self._best.fitness):
                 self._best = individual
 
@@ -174,15 +185,22 @@ class Optimizer(ABC):
     def _budget_left(self) -> int | None:
         if self.config.max_evaluations is None:
             return None
-        return max(self.config.max_evaluations - self._handed_out_total, 0)
+        kept_back = 0 if self._final_round else self.config.reserved_evaluations
+        return max(self.config.max_evaluations - kept_back - self._handed_out_total, 0)
 
     def result(self) -> Result:
         """The best result found so far, with a summary of every completed generation."""
         if self._best is None:
             raise RuntimeError("no successful evaluations yet")
+        best_fitness, best_params = self._best.fitness, self._best.params
+        if self.config.noise and self._observations:
+            # Once the finalists have been re-evaluated, the one with the best average; before
+            # that, the most promising point by the optimizer's best estimate.
+            key = self._ranked_keys(self._finalists)[0] if self._finalists else self._finalist_order()[0]
+            best_fitness, best_params = self._average(key), self._points[key]
         return Result(
-            best_fitness=self._best.fitness,
-            best_params=dict(self._best.params),
+            best_fitness=best_fitness,
+            best_params=dict(best_params),
             generations=self._history,
             evaluations=self._evaluations,
             failures=self._failures,
@@ -246,7 +264,10 @@ class Optimizer(ABC):
     def _start_generation(self) -> None:
         self._needs_generation = False
         self._generation += 1
-        self._population = self._next_population(self._population, self._generation)
+        if self._final_round:
+            self._population = self._final_population(self._generation)
+        else:
+            self._population = self._next_population(self._population, self._generation)
         self._waiting = {}
         self._handed_out = set()
         for individual in self._population:
@@ -263,10 +284,50 @@ class Optimizer(ABC):
             self._reached_threshold = True
             self._done = True
         elif final or self._generation + 1 >= self.config.generations or self._budget_left() == 0:
-            self._done = True
+            if self.config.reserved_evaluations and not self._final_round and self._observations:
+                self._final_round = True
+                self._needs_generation = True
+            else:
+                self._done = True
         else:
             # The next generation is bred from this one when ask() is next called.
             self._needs_generation = True
+
+    # --- noise -----------------------------------------------------------------
+
+    def _average(self, key: tuple) -> float:
+        return float(np.mean(self._observations[key]))
+
+    def _ranked_keys(self, keys: list[tuple]) -> list[tuple]:
+        """Evaluated points, by key, best average first."""
+        return sorted(keys, key=self._average, reverse=self.config.maximize)
+
+    def _finalist_order(self) -> list[tuple]:
+        """Every successfully evaluated point, by key, most promising first. Optimizers with a
+        better estimate of each point's true value than its average, such as a model, override this."""
+        return self._ranked_keys(list(self._observations))
+
+    def _refresh_averages(self, individuals: list[Individual]) -> None:
+        """Set each successful individual's fitness to the current average of every evaluation of its point."""
+        for individual in individuals:
+            if not individual.failed and individual.fitness is not None:
+                individual.fitness = self._average(_key(individual.params))
+
+    def _final_population(self, generation: int) -> list[Individual]:
+        """The final round with noise: the most promising points, each evaluated again.
+
+        Up to 5 finalists share the final_evaluations, each getting at least two when there are
+        enough, and the result is the finalist with the best average.
+        """
+        reserve = self.config.reserved_evaluations
+        if self.config.max_evaluations is not None:
+            reserve = min(reserve, self.config.max_evaluations - self._handed_out_total)
+        order = self._finalist_order()
+        self._finalists = order[: max(1, min(5, reserve // 2, len(order)))]
+        return [
+            Individual(params=dict(self._points[self._finalists[i % len(self._finalists)]]), generation=generation)
+            for i in range(reserve)
+        ]
 
     def _initial_individuals(self, generation: int) -> list[Individual]:
         return [Individual(params=dict(point), generation=generation) for point in self.initial_points]
@@ -306,6 +367,11 @@ class Optimizer(ABC):
             median=float(np.median(fitnesses)),
             std=float(np.std(fitnesses)),
         )
+
+
+def _key(params: dict[str, Any]) -> tuple:
+    """A hashable form of params, so evaluations of the same point can be grouped."""
+    return tuple((name, tuple(value) if isinstance(value, list) else value) for name, value in params.items())
 
 
 def _evaluate(objective: ObjectiveFunction, params: dict[str, Any]) -> float | None:

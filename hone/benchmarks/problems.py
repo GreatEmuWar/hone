@@ -13,6 +13,7 @@ the rotated versions the variables interact, as they usually do in engineering p
 """
 import math
 import zlib
+import dataclasses
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -31,6 +32,7 @@ class Problem:
     search_space: SearchSpace
     optimum: float
     tags: frozenset[str]
+    noise: float = 0.0  # standard deviation of Gaussian noise the benchmark adds to each evaluation
 
     @property
     def dimensions(self) -> int:
@@ -214,3 +216,21 @@ def quick_problems() -> list[Problem]:
         integer_sphere(5),
         material_selection(5),
     ]
+
+
+# Noise the noisy suite adds to each evaluation, as a standard deviation. The problems' values
+# near their optima are a few units, so this hides the differences an optimizer has to find.
+NOISE = 1.0
+
+
+def noisy_problems() -> list[Problem]:
+    """Problems with Gaussian noise added to every evaluation, scored by the true value of the result."""
+    plain = [
+        _vector_problem("sphere-5d", sphere, 5),
+        _vector_problem("rosenbrock-5d", rosenbrock, 5),
+        _vector_problem("rastrigin-5d", rastrigin, 5),
+        rotated("ackley", 5),
+        mixed_rastrigin(5),
+        material_selection(5),
+    ]
+    return [dataclasses.replace(p, name=f"noisy-{p.name}", noise=NOISE, tags=p.tags | {"noisy"}) for p in plain]

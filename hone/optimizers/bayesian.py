@@ -106,7 +106,9 @@ class BayesianOptimizer(Optimizer):
             model.fit(restarts=2 if self._theta is None else 0, rng=self.rng)
             self._theta, self._fitted_at = model.theta, len(X)
 
-        best = float(model.z.min())
+        # The best value so far. With noise, the best observation is likely a lucky one, so use the
+        # lowest the model predicts at any evaluated point instead.
+        best = float(model.predict(X)[0].min()) if self.config.noise else float(model.z.min())
         chosen = []
         for _ in range(count):
             x = self._maximize_improvement(model, best)

@@ -58,6 +58,22 @@ optimizer.tell(trial, failed=True)
 
 Inside `optimize()`, an objective function reports a failure by raising `hone.EvaluationFailed` or returning NaN or infinity; any other exception stops the run, so bugs in the function aren't hidden. Failed evaluations count toward `evaluations` and `failures` in the result, rank below every successful one, and are never used to breed new candidates.
 
+### Noisy objectives
+
+When the same parameters can give different values, as with a stochastic simulation, a measurement on a physical rig or a model trained with random initialization, set `noise=True`:
+
+```python
+config = GeneticOptimizerConfig(max_evaluations=2000, noise=True, final_evaluations=100)
+```
+
+Otherwise the optimizer believes every value it sees, and its best result is likely to be a point that got lucky. With `noise=True`:
+
+- Every evaluation of the same point is averaged, and a point's fitness is that average. The genetic optimizer often breeds a point again, which re-evaluates it for free, and ranks its parents by their latest averages.
+- Bayesian optimization measures improvement against the best value its model predicts at any evaluated point, rather than against the luckiest single value.
+- `final_evaluations` keeps that many evaluations back for the end, to evaluate the most promising points again (up to 5 of them, each at least twice) and return the one with the best average. Its `best_fitness` is then an average too, and so a fairer estimate of what the result will achieve. It's off by default, because on small budgets the evaluations are worth more to the search.
+
+`python -m hone.benchmarks --noisy` measures this: it adds noise to every evaluation and scores each run by the true, noise-free value of the point it returns.
+
 ### Starting points
 
 If you already have a good design, or the best parameters from an earlier run, pass it as a starting point so the search doesn't begin from scratch:
@@ -197,6 +213,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make lint` | Run ruff |
 | `make docker-test` | Build the Docker image and run the tests inside it |
 | `make benchmark` | Run the full benchmark suite and update `benchmarks/results.md` |
+| `make benchmark-noisy` | Run the noisy problems and update `benchmarks/noisy-results.md` |
 | `make benchmark-ml` | Run the machine learning tuning problems and update `benchmarks/ml-results.md` |
 
 CI also runs the quick benchmark and fails if any optimizer's median error, at any budget, grows more than tenfold against `benchmarks/quick-baseline.json`. After an intended change in results, update the baseline with `python -m hone.benchmarks --quick --save benchmarks/quick-baseline.json`.

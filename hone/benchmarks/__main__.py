@@ -5,11 +5,12 @@ import time
 from importlib.metadata import version
 
 from . import ml
-from .problems import quick_problems, standard_problems
+from .problems import noisy_problems, quick_problems, standard_problems
 from .runner import BUDGETS, load_summaries, regressions, run_benchmark, save_summaries, summarize, to_markdown
 
 
 QUICK_BUDGETS = (10, 50, 200)
+NOISY_BUDGETS = (10, 40, 200)
 
 
 def _join(numbers: list[int]) -> str:
@@ -23,13 +24,15 @@ def main(argv: list[str] | None = None) -> int:
     suite = parser.add_mutually_exclusive_group()
     suite.add_argument("--quick", action="store_true", help="run the small CI subset with fewer seeds and evaluations")
     suite.add_argument("--ml", action="store_true", help="run the machine learning tuning problems instead (needs scikit-learn)")
+    suite.add_argument("--noisy", action="store_true", help="run the problems with noise added to every evaluation instead")
     parser.add_argument("--seeds", type=int, help="number of seeds per problem (default 10, or 5 with --quick)")
     parser.add_argument(
         "--budgets",
         type=int,
         nargs="+",
         help=f"evaluations per dimension, one run per budget (default {' '.join(map(str, BUDGETS))}, "
-        f"{' '.join(map(str, QUICK_BUDGETS))} with --quick, or {' '.join(map(str, ml.BUDGETS))} with --ml)",
+        f"{' '.join(map(str, QUICK_BUDGETS))} with --quick, {' '.join(map(str, ml.BUDGETS))} with --ml, "
+        f"or {' '.join(map(str, NOISY_BUDGETS))} with --noisy)",
     )
     parser.add_argument("--jobs", type=int, default=1, help="share the runs among this many processes (Linux only)")
     parser.add_argument("--tolerance", type=float, default=1e-4, help="error at or below which a run counts as solved")
@@ -42,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         problems, default_budgets = quick_problems(), QUICK_BUDGETS
     elif args.ml:
         problems, default_budgets = ml.ml_problems(), ml.BUDGETS
+    elif args.noisy:
+        problems, default_budgets = noisy_problems(), NOISY_BUDGETS
     else:
         problems, default_budgets = standard_problems(), BUDGETS
     seeds = args.seeds or (5 if args.quick else 10)

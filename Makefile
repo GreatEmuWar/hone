@@ -20,6 +20,10 @@ benchmark: install
 benchmark-ml: install
 	@poetry run python -m hone.benchmarks --ml --jobs 4 --markdown benchmarks/ml-results.md --save benchmarks/ml-summaries.json
 
+.PHONY: benchmark-noisy
+benchmark-noisy: install
+	@poetry run python -m hone.benchmarks --noisy --jobs 4 --markdown benchmarks/noisy-results.md --save benchmarks/noisy-summaries.json
+
 .PHONY: docker-build
 docker-build:
 	@docker build -t hone .

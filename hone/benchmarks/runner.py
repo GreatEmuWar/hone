@@ -1,11 +1,15 @@
 """Run optimizers on benchmark problems and summarize how close they get to each optimum."""
+import functools
 import json
 import multiprocessing
 import statistics
+import zlib
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable
+
+import numpy as np
 
 from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, OptimizerConfig
 from hone.optimizers import CMAES, BayesianOptimizer, GeneticOptimizer, Optimizer, RandomSearch, UnsupportedSearchSpace
@@ -36,21 +40,26 @@ FLOOR = 1e-8  # errors below this count as equal when comparing results
 
 
 def genetic(problem: Problem, budget: int, seed: int) -> Optimizer:
-    return GeneticOptimizer(problem.search_space, GeneticOptimizerConfig(max_evaluations=budget, seed=seed))
+    config = GeneticOptimizerConfig(max_evaluations=budget, seed=seed, noise=problem.noise > 0)
+    return GeneticOptimizer(problem.search_space, config)
 
 
 def cma_es(problem: Problem, budget: int, seed: int) -> Optimizer:
-    return CMAES(problem.search_space, CMAESConfig(generations=budget, max_evaluations=budget, seed=seed))
+    config = CMAESConfig(generations=budget, max_evaluations=budget, seed=seed, noise=problem.noise > 0)
+    return CMAES(problem.search_space, config)
 
 
 def bayesian(problem: Problem, budget: int, seed: int) -> Optimizer:
     if budget > BAYESIAN_MAX_EVALUATIONS:
         raise SkipBudget(f"{budget} evaluations is more than Bayesian optimization is run with")
-    return BayesianOptimizer(problem.search_space, BayesianConfig(max_evaluations=budget, seed=seed))
+    config = BayesianConfig(max_evaluations=budget, seed=seed, noise=problem.noise > 0)
+    return BayesianOptimizer(problem.search_space, config)
 
 
 def random_search(problem: Problem, budget: int, seed: int) -> Optimizer:
-    config = OptimizerConfig(population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed)
+    config = OptimizerConfig(
+        population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed, noise=problem.noise > 0
+    )
     return RandomSearch(problem.search_space, config)
 
 
@@ -154,21 +163,38 @@ def _task(task: tuple[int, str, int, int]) -> Run:
 
 
 def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: Optimizer) -> Run:
-    result = optimizer.optimize(problem.function)
+    result = optimizer.optimize(_with_noise(problem, seed) if problem.noise else problem.function)
+
+    def true_value(fitness: float, params: dict) -> float:
+        # A noisy run is scored by the noise-free value of the point it chose, not by the
+        # noisy value it saw there, which is likely to be a lucky one.
+        return problem.function(**params) if problem.noise else fitness
+
     trace, best = [], float("inf")
     for generation in result.generations:
         if generation.best_fitness is not None:
-            best = min(best, generation.best_fitness - problem.optimum)
+            best = min(best, true_value(generation.best_fitness, generation.best_params) - problem.optimum)
         trace.append((generation.evaluations, max(best, 0.0)))
     return Run(
         problem=problem.name,
         optimizer=name,
         budget_per_dimension=per_dimension,
         seed=seed,
-        error=max(result.best_fitness - problem.optimum, 0.0),
+        error=max(true_value(result.best_fitness, result.best_params) - problem.optimum, 0.0),
         evaluations=result.evaluations,
         trace=trace,
     )
+
+
+def _with_noise(problem: Problem, seed: int) -> Callable[..., float]:
+    """problem's function plus Gaussian noise of standard deviation problem.noise, repeatable for the seed."""
+    rng = np.random.default_rng([seed, zlib.crc32(problem.name.encode())])
+
+    @functools.wraps(problem.function)
+    def noisy(**params):
+        return problem.function(**params) + problem.noise * rng.standard_normal()
+
+    return noisy
 
 
 def summarize(runs: list[Run], tolerance: float = 1e-4) -> list[Summary]:

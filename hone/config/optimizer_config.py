@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Self
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class OptimizerConfig(BaseModel):
@@ -15,6 +15,23 @@ class OptimizerConfig(BaseModel):
     maximize: bool = False
     threshold: float | None = None  # stop once the best fitness reaches this
     seed: int | None = None  # fixes the random number generator, so runs can be repeated
+    noise: bool = False  # the objective is noisy: evaluating the same point twice can give different values
+    # With noise, evaluations kept back to re-evaluate the most promising points at the end, so
+    # the result is chosen, and its value reported, from averages rather than single lucky values
+    final_evaluations: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def _check_final_evaluations(self):
+        if self.final_evaluations and self.max_evaluations is not None and self.final_evaluations >= self.max_evaluations:
+            raise ValueError(
+                f"final_evaluations {self.final_evaluations} leaves nothing of max_evaluations {self.max_evaluations} for the search"
+            )
+        return self
+
+    @property
+    def reserved_evaluations(self) -> int:
+        """Evaluations kept back for the final re-evaluation: none without noise."""
+        return self.final_evaluations if self.noise else 0
 
     @classmethod
     def from_file(cls, filepath: str | Path) -> Self:

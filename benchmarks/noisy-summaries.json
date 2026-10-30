@@ -1,0 +1,622 @@
+[
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 7.7285592102731675,
+    "lower_quartile": 6.49847369706829,
+    "upper_quartile": 8.81244250764613,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 1.5098036879308092,
+    "lower_quartile": 1.0591571926302965,
+    "upper_quartile": 2.0927683829656845,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 0.5805071840992928,
+    "lower_quartile": 0.3892989403831852,
+    "upper_quartile": 0.6786478020432031,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 3.325454655278611,
+    "lower_quartile": 2.446270118662548,
+    "upper_quartile": 3.9101543654991695,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 0.4345679774994833,
+    "lower_quartile": 0.26612624945021374,
+    "upper_quartile": 0.7351279038631233,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 0.3226690332006962,
+    "lower_quartile": 0.15213671440614712,
+    "upper_quartile": 0.5248070863613724,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.4355397975027836,
+    "lower_quartile": 0.23658018161504998,
+    "upper_quartile": 0.596558111113422,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 0.19310940003800536,
+    "lower_quartile": 0.1509380369571015,
+    "upper_quartile": 0.30153632411496584,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 8.056557686249043,
+    "lower_quartile": 6.048508306857326,
+    "upper_quartile": 11.05136151058904,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 5.384892409059186,
+    "lower_quartile": 4.441303934175706,
+    "upper_quartile": 7.515801901117549,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 3.300066847295888,
+    "lower_quartile": 3.1314495042984936,
+    "upper_quartile": 4.045514793972934,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1247.188983142959,
+    "lower_quartile": 487.18178771255083,
+    "upper_quartile": 3571.8061797593427,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 196.878794247369,
+    "lower_quartile": 68.47692903532479,
+    "upper_quartile": 415.75561493024156,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 10.176462085776606,
+    "lower_quartile": 6.423598025775409,
+    "upper_quartile": 11.962983761530785,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 471.3880707248579,
+    "lower_quartile": 374.17328590628483,
+    "upper_quartile": 974.769345869053,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 13.350776657840248,
+    "lower_quartile": 8.98534083559342,
+    "upper_quartile": 81.51385041247937,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 4.451933855283856,
+    "lower_quartile": 4.2101526580577415,
+    "upper_quartile": 4.752122599729364,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 365.8232469781175,
+    "lower_quartile": 250.44730535613667,
+    "upper_quartile": 770.2925666627333,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 3.2610378385788916,
+    "lower_quartile": 3.1360093985704953,
+    "upper_quartile": 5.835068322709535,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 2552.718114208553,
+    "lower_quartile": 975.436705409871,
+    "upper_quartile": 4425.709911982338,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 622.9989704282721,
+    "lower_quartile": 570.7910985761414,
+    "upper_quartile": 1031.327195543555,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rosenbrock-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 423.8683877501645,
+    "lower_quartile": 172.19742014927985,
+    "upper_quartile": 578.6211247436753,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 45.29782368322087,
+    "lower_quartile": 38.64200922167268,
+    "upper_quartile": 52.62279116140331,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 14.316557658299988,
+    "lower_quartile": 10.711414156178867,
+    "upper_quartile": 18.98093478583315,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 2.640678537803751,
+    "lower_quartile": 2.0539788151548137,
+    "upper_quartile": 3.679515297150383,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 34.147620924731235,
+    "lower_quartile": 31.345378422321055,
+    "upper_quartile": 37.48150271425919,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 17.321763964083146,
+    "lower_quartile": 15.606677897862792,
+    "upper_quartile": 18.676553362575532,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 3.171941616547471,
+    "lower_quartile": 2.6084302660926273,
+    "upper_quartile": 3.494480922617761,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 26.132010549569237,
+    "lower_quartile": 24.29045033245408,
+    "upper_quartile": 32.07961186526281,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 9.310536478374676,
+    "lower_quartile": 5.895930666376707,
+    "upper_quartile": 15.365759663376712,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 50.83195481332763,
+    "lower_quartile": 43.17438334310039,
+    "upper_quartile": 58.124991420609184,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 36.32468989159999,
+    "lower_quartile": 33.28461888012929,
+    "upper_quartile": 41.030158716345085,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rastrigin-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 28.834831695618256,
+    "lower_quartile": 24.531515301976082,
+    "upper_quartile": 31.081479955618196,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 6.143278077513898,
+    "lower_quartile": 5.063861149029249,
+    "upper_quartile": 6.993020962235432,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 3.7795105921741645,
+    "lower_quartile": 2.960612283671854,
+    "upper_quartile": 5.319612289427154,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 2.951839601136531,
+    "lower_quartile": 2.3608198390108623,
+    "upper_quartile": 3.945309191945128,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 5.589925440088468,
+    "lower_quartile": 4.95823851143688,
+    "upper_quartile": 7.157430581336961,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 3.0563826901069207,
+    "lower_quartile": 1.893862895631044,
+    "upper_quartile": 3.6089725776360555,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 0.838988590082645,
+    "lower_quartile": 0.6108660146018585,
+    "upper_quartile": 1.5544505942515427,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 4.037698330527686,
+    "lower_quartile": 3.6742179939213915,
+    "upper_quartile": 5.639067688788968,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 3.0584028823744505,
+    "lower_quartile": 2.2152140811182295,
+    "upper_quartile": 3.452386543180347,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 6.661232543771547,
+    "lower_quartile": 6.010521912340381,
+    "upper_quartile": 7.2715748196603185,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 5.909347891972265,
+    "lower_quartile": 4.995253360239276,
+    "upper_quartile": 6.700021487672363,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-rotated-ackley-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 4.726431178709099,
+    "lower_quartile": 4.604254346067705,
+    "upper_quartile": 5.160026393704998,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 28.45239324577478,
+    "lower_quartile": 27.099742128176,
+    "upper_quartile": 31.45650503857807,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 8.790824421852864,
+    "lower_quartile": 7.688713035048485,
+    "upper_quartile": 11.526238472808505,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 1.6206225028025152,
+    "lower_quartile": 1.1308091011944104,
+    "upper_quartile": 2.135135104356552,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 16.168617135230043,
+    "lower_quartile": 12.085269637812296,
+    "upper_quartile": 24.2824278140575,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 8.197924909699843,
+    "lower_quartile": 7.416602754159147,
+    "upper_quartile": 12.85594817178493,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 2.9133583647189703,
+    "lower_quartile": 2.2207288855617247,
+    "upper_quartile": 4.760094680977586,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 15.265824332612354,
+    "lower_quartile": 11.265640419501311,
+    "upper_quartile": 16.090987865277327,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 8.374195239090689,
+    "lower_quartile": 5.7410865307259655,
+    "upper_quartile": 12.022757203004035,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 32.57386969618567,
+    "lower_quartile": 20.26612842359558,
+    "upper_quartile": 34.76050117962277,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 16.96418965089771,
+    "lower_quartile": 16.672746981116855,
+    "upper_quartile": 20.39486276805325,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-mixed-rastrigin-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 15.276888431089976,
+    "lower_quartile": 11.816807392919433,
+    "upper_quartile": 16.632453610708424,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-material-selection-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 6.913721886133666,
+    "lower_quartile": 5.101467990146403,
+    "upper_quartile": 8.694748007293052,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-material-selection-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 2.0394836795595106,
+    "lower_quartile": 0.9488665675931455,
+    "upper_quartile": 3.579319346073281,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-material-selection-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 0.40668108144870174,
+    "lower_quartile": 0.29430469149639094,
+    "upper_quartile": 1.1880663371154383,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-material-selection-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.221116885632384,
+    "lower_quartile": 0.8826849940286714,
+    "upper_quartile": 2.360925133610872,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-material-selection-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 9.239343338578152,
+    "lower_quartile": 7.146283186487331,
+    "upper_quartile": 11.68705671345852,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-material-selection-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 40,
+    "runs": 10,
+    "median_error": 5.48865743551692,
+    "lower_quartile": 4.402820165227579,
+    "upper_quartile": 9.18552373639237,
+    "solved": 0.0
+  },
+  {
+    "problem": "noisy-material-selection-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 200,
+    "runs": 10,
+    "median_error": 3.369675051586876,
+    "lower_quartile": 2.1128806812502874,
+    "upper_quartile": 3.908692675953355,
+    "solved": 0.0
+  }
+]
