@@ -9,6 +9,7 @@ class GenerationStats(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     generation: int
+    evaluations: int  # calls made to the objective function up to the end of this generation
     best_fitness: float
     best_params: dict[str, Any]
     worst_fitness: float

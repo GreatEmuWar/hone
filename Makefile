@@ -12,6 +12,10 @@ test: install
 lint: install
 	@poetry run ruff check hone tests
 
+.PHONY: benchmark
+benchmark: install
+	@poetry run python -m hone.benchmarks --markdown benchmarks/results.md --save benchmarks/full-summaries.json
+
 .PHONY: docker-build
 docker-build:
 	@docker build -t hone .
