@@ -1,5 +1,5 @@
 [project]
-name = "hone"
+name = "hone-python"
 version = "0.6.0"
 description = "A python-based optimization engine/library."
 authors = [{ name = "David Beare", email = "rnbeare@gmail.com" }]
@@ -14,6 +14,10 @@ dependencies = [
     "scipy (>=1.13)",
     "threadpoolctl (>=3.5)",
 ]
+
+# The package installs as hone-python and imports as hone.
+[tool.poetry]
+packages = [{ include = "hone" }]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
