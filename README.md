@@ -99,7 +99,7 @@ result = Result.load("run.json")
 | Optimizer | Config | Approach |
 | --- | --- | --- |
 | `CMAES` | `CMAESConfig` | Learns the scale of each variable and how variables interact; the strongest choice for continuous and integer problems. Doesn't support choice parameters |
-| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation; handles every kind of parameter, including choices, and does better than CMA-ES on problems with many local minima |
+| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation; handles every kind of parameter, including choices, and does better than CMA-ES on rugged problems with a dense grid of local minima, such as Rastrigin in 5 or more dimensions |
 | `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
 
 ```python
