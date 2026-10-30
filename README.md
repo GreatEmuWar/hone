@@ -1,6 +1,14 @@
 # hone
 Python-based optimization engine.
 
+## Install
+
+```
+pip install hone-python
+```
+
+It needs Python 3.12 or later. The package is named `hone-python` because `hone` is taken on PyPI; in code it is still `import hone`.
+
 ## Use
 
 ```python

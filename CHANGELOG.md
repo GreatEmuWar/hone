@@ -35,6 +35,10 @@ These change the results of existing code:
 - CMA-ES widened the steps of integer variables before learning from them, which inflated its step size on problems with integers. It now learns from the steps as drawn, as CMA-ES with Margin does.
 - With the spawn and forkserver start methods, the default from Python 3.14, the time limit counted each worker's start-up, so on slow machines every evaluation could time out.
 
+### Packaging
+
+- The package is named `hone-python`, because `hone` is taken on PyPI: `pip install hone-python`. It still imports as `hone`.
+
 ### Dependencies
 
 - `scipy` and `threadpoolctl` are now required. `scikit-learn` is needed only for the machine learning benchmark.
