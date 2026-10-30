@@ -115,7 +115,7 @@ class CMAES(Optimizer):
         self._p_c = np.zeros(n)
         self._iteration = 0
         self._recent_bests: list[float] = []
-        self._vectors: dict[int, np.ndarray] = {}  # id of each individual of the current generation -> its point in [0, 1]^n
+        self._vectors: dict[Individual, np.ndarray] = {}  # each individual of the current generation -> its point in [0, 1]^n
 
     # --- the generation -------------------------------------------------------
 
@@ -141,13 +141,13 @@ class CMAES(Optimizer):
         z = self.rng.standard_normal(len(self._mean))
         x = _mirror(self._mean + self._sigma * self._widen * (self._B @ (self._D * z)))
         individual = Individual(params=self._decode(x), generation=generation)
-        self._vectors[id(individual)] = x
+        self._vectors[individual] = x
         return individual
 
     def _update(self, previous: list[Individual]) -> None:
-        ranked = [ind for ind in self._ranked(previous) if not ind.failed and id(ind) in self._vectors]
+        ranked = [ind for ind in self._ranked(previous) if not ind.failed and ind in self._vectors]
         if ranked:
-            self._adapt(np.array([self._vectors[id(ind)] for ind in ranked[: len(self._weights)]]))
+            self._adapt(np.array([self._vectors[ind] for ind in ranked[: len(self._weights)]]))
             self._recent_bests.append(_fitness(ranked[0]))
         self._vectors = {}
         if self.config.restarts and self._should_restart():
