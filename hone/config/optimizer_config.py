@@ -11,6 +11,7 @@ class OptimizerConfig(BaseModel):
 
     population_size: int = Field(default=100, ge=2)  # individuals evaluated per generation
     generations: int = Field(default=25, ge=1)
+    max_evaluations: int | None = Field(default=None, ge=1)  # stop after this many evaluations, even mid-generation
     maximize: bool = False
     threshold: float | None = None  # stop once the best fitness reaches this
     seed: int | None = None  # fixes the random number generator, so runs can be repeated

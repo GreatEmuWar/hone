@@ -84,15 +84,25 @@ def runs():
     return run_benchmark(quick_problems()[:2], seeds=range(3), budget_per_dimension=40)
 
 
+OPTIMIZERS = ("genetic", "cma-es", "random")
+
+
 def test_runs_every_optimizer_problem_and_seed(runs):
-    assert len(runs) == 2 * 2 * 3
+    assert len(runs) == 2 * 3 * 3
     assert {(r.problem, r.optimizer) for r in runs} == {
-        (problem, optimizer) for problem in ("sphere-5d", "ellipsoid-5d") for optimizer in ("genetic", "random")
+        (problem, optimizer) for problem in ("sphere-5d", "ellipsoid-5d") for optimizer in OPTIMIZERS
     }
 
 
-def test_runs_respect_the_budget(runs):
-    assert all(r.evaluations <= 40 * 5 for r in runs)
+def test_every_optimizer_gets_exactly_the_same_budget(runs):
+    assert {r.evaluations for r in runs} == {40 * 5}
+
+
+def test_optimizers_skip_problems_they_cannot_search():
+    material = [problem for problem in quick_problems() if problem.name.startswith("material")]
+    runs = run_benchmark(material, seeds=range(1), budget_per_dimension=20)
+    assert {r.optimizer for r in runs} == {"genetic", "random"}
+    assert "| material-selection-5d |" in to_markdown(summarize(runs))
 
 
 def test_trace_is_non_increasing_and_ends_at_the_error(runs):
@@ -136,16 +146,22 @@ def test_summary_statistics():
 def test_summarize_groups_by_problem_and_optimizer(runs):
     summaries = summarize(runs)
     assert [(s.problem, s.optimizer, s.runs) for s in summaries] == [
-        ("sphere-5d", "genetic", 3),
-        ("sphere-5d", "random", 3),
-        ("ellipsoid-5d", "genetic", 3),
-        ("ellipsoid-5d", "random", 3),
+        (problem, optimizer, 3) for problem in ("sphere-5d", "ellipsoid-5d") for optimizer in OPTIMIZERS
     ]
+
+
+def test_markdown_table_marks_unsupported_problems():
+    summaries = [Summary.of([run(0.5)], 1e-4), Summary.of([run(0.1, problem="material-2d")], 1e-4),
+                 Summary.of([run(0.2, optimizer="cma-es")], 1e-4)]
+    rows = {line.split(" | ")[0]: line for line in to_markdown(summaries).splitlines() if line.startswith("| ")}
+    assert "n/a" in rows["| material-2d"]
 
 
 def test_markdown_table(runs):
     table = to_markdown(summarize(runs))
-    assert table.splitlines()[0] == "| Problem | genetic median | genetic solved | random median | random solved |"
+    assert table.splitlines()[0] == (
+        "| Problem | genetic median | genetic solved | cma-es median | cma-es solved | random median | random solved |"
+    )
     assert "| sphere-5d |" in table and "| ellipsoid-5d |" in table
 
 

@@ -235,3 +235,39 @@ def test_a_generation_with_nothing_new_to_evaluate_is_skipped():
     assert optimizer.ask() == [] and optimizer.done
     result = optimizer.result()
     assert len(result.generations) == 4 and result.evaluations == 2
+
+
+# --- evaluation budget ----------------------------------------------------
+
+
+def test_budget_stops_partway_through_a_generation():
+    result = run(generations=10, population_size=10, max_evaluations=25)
+    assert result.evaluations == 25
+    assert [g.evaluations for g in result.generations] == [10, 19, 25]
+
+
+def test_ask_never_hands_out_more_than_the_budget():
+    optimizer = make_optimizer(generations=10, population_size=10, max_evaluations=4)
+    assert len(optimizer.ask()) == 4
+    assert optimizer.ask() == []
+
+
+def test_budget_waits_for_outstanding_trials():
+    optimizer = make_optimizer(generations=10, population_size=10, max_evaluations=4)
+    trials = optimizer.ask()
+    for trial in trials[:3]:
+        optimizer.tell(trial, sphere(**trial.params))
+    assert not optimizer.done
+    optimizer.tell(trials[3], sphere(**trials[3].params))
+    assert optimizer.done
+    result = optimizer.result()
+    assert result.evaluations == 4 and result.generations[-1].evaluations == 4
+
+
+def test_budget_counts_failures():
+    result = run(objective_function=objectives.fails_right_of_zero, generations=10, population_size=10, max_evaluations=15)
+    assert result.evaluations == 15
+
+
+def test_generations_still_limit_a_run_with_a_large_budget():
+    assert run(generations=2, population_size=10, max_evaluations=10_000).evaluations == 19

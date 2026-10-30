@@ -5,30 +5,33 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 
-from hone.config import GeneticOptimizerConfig, OptimizerConfig
-from hone.optimizers import GeneticOptimizer, Optimizer, RandomSearch
+from hone.config import CMAESConfig, GeneticOptimizerConfig, OptimizerConfig
+from hone.optimizers import CMAES, GeneticOptimizer, Optimizer, RandomSearch, UnsupportedSearchSpace
 
 from .problems import Problem
 
-# Builds an optimizer for a problem, an evaluation budget and a seed.
+# Builds an optimizer for a problem, an evaluation budget and a seed. It may raise
+# UnsupportedSearchSpace for a problem it cannot search; that problem is then skipped.
 OptimizerFactory = Callable[[Problem, int, int], Optimizer]
 
 POPULATION_SIZE = 50
 
 
 def genetic(problem: Problem, budget: int, seed: int) -> Optimizer:
-    config = GeneticOptimizerConfig(
-        population_size=POPULATION_SIZE, generations=max(budget // POPULATION_SIZE, 1), seed=seed
-    )
+    config = GeneticOptimizerConfig(population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed)
     return GeneticOptimizer(problem.search_space, config)
 
 
+def cma_es(problem: Problem, budget: int, seed: int) -> Optimizer:
+    return CMAES(problem.search_space, CMAESConfig(generations=budget, max_evaluations=budget, seed=seed))
+
+
 def random_search(problem: Problem, budget: int, seed: int) -> Optimizer:
-    config = OptimizerConfig(population_size=POPULATION_SIZE, generations=max(budget // POPULATION_SIZE, 1), seed=seed)
+    config = OptimizerConfig(population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed)
     return RandomSearch(problem.search_space, config)
 
 
-DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {"genetic": genetic, "random": random_search}
+DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {"genetic": genetic, "cma-es": cma_es, "random": random_search}
 
 
 @dataclass(frozen=True)
@@ -74,7 +77,10 @@ def run_benchmark(
     seeds: Iterable[int] = range(10),
     budget_per_dimension: int = 1000,
 ) -> list[Run]:
-    """Run every optimizer on every problem with every seed, at budget_per_dimension × dimensions evaluations."""
+    """Run every optimizer on every problem with every seed, at budget_per_dimension × dimensions evaluations.
+
+    An optimizer that cannot search a problem's parameters is skipped for that problem.
+    """
     optimizers = optimizers if optimizers is not None else DEFAULT_OPTIMIZERS
     seeds = list(seeds)
     runs = []
@@ -82,7 +88,11 @@ def run_benchmark(
         budget = budget_per_dimension * problem.dimensions
         for name, factory in optimizers.items():
             for seed in seeds:
-                result = factory(problem, budget, seed).optimize(problem.function)
+                try:
+                    optimizer = factory(problem, budget, seed)
+                except UnsupportedSearchSpace:
+                    break
+                result = optimizer.optimize(problem.function)
                 trace, best = [], float("inf")
                 for generation in result.generations:
                     if generation.best_fitness is not None:
@@ -120,9 +130,12 @@ def to_markdown(summaries: list[Summary], tolerance: float = 1e-4) -> str:
         cells = []
         for o in optimizers:
             s = by_key.get((problem, o))
-            cells += [f"{s.median_error:.3g}", f"{s.solved:.0%}"] if s else ["", ""]
+            cells += [f"{s.median_error:.3g}", f"{s.solved:.0%}"] if s else ["n/a", "n/a"]
         rows.append(f"| {problem} | " + " | ".join(cells) + " |")
-    note = f"Median error over the runs (best value found minus the optimum); solved means error ≤ {tolerance:g}."
+    note = (
+        f"Median error over the runs (best value found minus the optimum); solved means error ≤ {tolerance:g}. "
+        "n/a: the optimizer does not support the problem's parameters."
+    )
     return "\n".join([header, rule, *rows, "", note]) + "\n"
 
 
