@@ -4,7 +4,8 @@ Each candidate costs a model fit and a search over the model, a fraction of a se
 hundred evaluations, so Bayesian optimization suits objectives that take far longer than that:
 simulations, experiments, training runs. It makes the most of a small budget.
 
-Range parameters are scaled to [0, 1]; integers are searched as numbers and rounded. Each choice
+Range parameters are scaled to [0, 1], on a log scale where they have one; integers are searched
+as numbers and rounded. Each choice
 parameter becomes one column per choice, holding 1 for the chosen one and 0 for the rest.
 """
 import math
@@ -209,7 +210,7 @@ class _Encoding:
         x = np.zeros(self.columns)
         for p, block in self._blocks:
             if isinstance(p, RangeParameter):
-                x[block] = (params[p.name] - p.minimum) / (p.maximum - p.minimum)
+                x[block] = p.to_unit(params[p.name])
             else:
                 x[block.start + p.choices.index(params[p.name])] = 1.0
         return x
@@ -218,10 +219,7 @@ class _Encoding:
         values = dict(self._constant)
         for p, block in self._blocks:
             if isinstance(p, RangeParameter):
-                value = p.minimum + float(np.clip(x[block][0], 0, 1)) * (p.maximum - p.minimum)
-                if p.integer:
-                    value = int(min(max(round(value), math.ceil(p.minimum)), math.floor(p.maximum)))
-                values[p.name] = value
+                values[p.name] = p.from_unit(float(x[block][0]))
             else:
                 values[p.name] = p.choices[int(np.argmax(x[block]))]
         return {name: values[name] for name in self.search_space.names}
@@ -231,9 +229,7 @@ class _Encoding:
         X = np.clip(X, 0, 1)
         for p, block in self._blocks:
             if isinstance(p, RangeParameter) and p.integer:
-                lo, hi = math.ceil(p.minimum), math.floor(p.maximum)
-                value = np.clip(np.round(p.minimum + X[:, block] * (p.maximum - p.minimum)), lo, hi)
-                X[:, block] = (value - p.minimum) / (p.maximum - p.minimum)
+                X[:, block] = p.to_unit(p.from_unit(X[:, block]))
             elif isinstance(p, ChoiceParameter):
                 chosen = np.argmax(X[:, block], axis=1)
                 X[:, block] = 0.0

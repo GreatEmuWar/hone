@@ -75,9 +75,16 @@ optimizer = GeneticOptimizer(search_space, config, initial_points=[earlier.best_
 
 | Class | Values | Example |
 | --- | --- | --- |
-| `RangeParameter` | A number between `minimum` and `maximum`; `integer=True` restricts it to whole numbers | `RangeParameter("rate", 0, 1)` |
+| `RangeParameter` | A number between `minimum` and `maximum`; `integer=True` restricts it to whole numbers, and `log=True` searches it on a log scale | `RangeParameter("rate", 0, 1)` |
 | `ChoiceParameter` | One of a list of `choices`, or a list of `choose_n` distinct choices | `ChoiceParameter("kernel", ["linear", "rbf"])` |
 | `FixedParameter` | A single value that never changes | `FixedParameter("mode", "fast")` |
+
+Use `log=True` for settings that span orders of magnitude, such as learning rates, regularization strengths or tree counts. Values are then spread evenly in their logarithm, so 0.001 to 0.01 is searched as thoroughly as 100 to 1000, and every optimizer searches the range that way. A log range needs a positive minimum, and works with `integer=True`:
+
+```python
+RangeParameter("learning_rate", 1e-5, 1e-1, log=True)
+RangeParameter("n_estimators", 10, 1000, integer=True, log=True)
+```
 
 Every parameter the objective function requires must be in the search space. The optimizer checks this before it starts.
 
@@ -165,14 +172,18 @@ print(to_markdown(summarize(runs)))
 
 The best possible score is unknown, so error is measured from the best score a long reference search found. They run at 10, 20 and 50 evaluations per dimension, the budgets model tuning usually has. Results are in [benchmarks/ml-results.md](benchmarks/ml-results.md).
 
-[examples/tune_iris.py](examples/tune_iris.py) shows the same kind of tuning in a few lines. Settings that span orders of magnitude, such as C, are searched by their base-10 logarithm:
+[examples/tune_iris.py](examples/tune_iris.py) shows the same kind of tuning in a few lines. C and gamma span orders of magnitude, so they are log-scale ranges:
 
 ```python
-def accuracy(log10_C, log10_gamma, kernel):
-    model = make_pipeline(StandardScaler(), SVC(C=10**log10_C, gamma=10**log10_gamma, kernel=kernel))
+def accuracy(C, gamma, kernel):
+    model = make_pipeline(StandardScaler(), SVC(C=C, gamma=gamma, kernel=kernel))
     return cross_val_score(model, X, y, cv=folds).mean()
 
-search_space = [RangeParameter("log10_C", -3, 3), RangeParameter("log10_gamma", -4, 1), ChoiceParameter("kernel", ["rbf", "sigmoid"])]
+search_space = [
+    RangeParameter("C", 1e-3, 1e3, log=True),
+    RangeParameter("gamma", 1e-4, 10, log=True),
+    ChoiceParameter("kernel", ["rbf", "sigmoid"]),
+]
 result = BayesianOptimizer(search_space, BayesianConfig(max_evaluations=30, maximize=True)).optimize(accuracy)
 ```
 

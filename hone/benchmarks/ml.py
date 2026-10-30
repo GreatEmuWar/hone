@@ -7,7 +7,7 @@ classification, 1 − R² for regression.
 
 The true optimum is unknown, so each problem's optimum is the best value a long reference
 search found (see REFERENCE_SEARCH), and error is measured from there. Settings that span
-orders of magnitude are searched by their base-10 logarithm.
+orders of magnitude are log-scale ranges.
 
 These problems need scikit-learn, which hone itself doesn't depend on: `pip install scikit-learn`.
 """
@@ -56,23 +56,23 @@ def _cross_validate(model, dataset: str, classification: bool) -> float:
     return 1.0 - float(score)
 
 
-def svm_breast_cancer(log10_C: float, log10_gamma: float) -> float:
+def svm_breast_cancer(C: float, gamma: float) -> float:
     """A support vector classifier with an RBF kernel, on 569 breast tumour samples with 30 features."""
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn.svm import SVC
 
-    model = make_pipeline(StandardScaler(), SVC(C=10**log10_C, gamma=10**log10_gamma))
+    model = make_pipeline(StandardScaler(), SVC(C=C, gamma=gamma))
     return _cross_validate(model, "breast_cancer", classification=True)
 
 
-def kernel_ridge_diabetes(log10_alpha: float, log10_gamma: float, kernel: str) -> float:
+def kernel_ridge_diabetes(alpha: float, gamma: float, kernel: str) -> float:
     """Kernel ridge regression of disease progression from 10 measurements, on 442 diabetes patients."""
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
 
-    model = make_pipeline(StandardScaler(), KernelRidge(alpha=10**log10_alpha, gamma=10**log10_gamma, kernel=kernel))
+    model = make_pipeline(StandardScaler(), KernelRidge(alpha=alpha, gamma=gamma, kernel=kernel))
     return _cross_validate(model, "diabetes", classification=False)
 
 
@@ -102,11 +102,15 @@ OPTIMA = {
 SPACES: dict[str, tuple[Callable[..., float], list]] = {
     "svm-breast-cancer": (
         svm_breast_cancer,
-        [RangeParameter("log10_C", -3, 3), RangeParameter("log10_gamma", -5, 1)],
+        [RangeParameter("C", 1e-3, 1e3, log=True), RangeParameter("gamma", 1e-5, 10, log=True)],
     ),
     "kernel-ridge-diabetes": (
         kernel_ridge_diabetes,
-        [RangeParameter("log10_alpha", -4, 2), RangeParameter("log10_gamma", -5, 1), ChoiceParameter("kernel", ["rbf", "laplacian"])],
+        [
+            RangeParameter("alpha", 1e-4, 100, log=True),
+            RangeParameter("gamma", 1e-5, 10, log=True),
+            ChoiceParameter("kernel", ["rbf", "laplacian"]),
+        ],
     ),
     "random-forest-wine": (
         random_forest_wine,
