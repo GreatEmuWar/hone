@@ -81,6 +81,33 @@
     "solved": 0.0
   },
   {
+    "problem": "rotated-rastrigin-5d",
+    "optimizer": "genetic",
+    "runs": 5,
+    "median_error": 6.956364491983521,
+    "lower_quartile": 4.648181531334714,
+    "upper_quartile": 8.088480605354889,
+    "solved": 0.0
+  },
+  {
+    "problem": "rotated-rastrigin-5d",
+    "optimizer": "cma-es",
+    "runs": 5,
+    "median_error": 5.969753400780718,
+    "lower_quartile": 2.984909012846792,
+    "upper_quartile": 9.949580757407276,
+    "solved": 0.0
+  },
+  {
+    "problem": "rotated-rastrigin-5d",
+    "optimizer": "random",
+    "runs": 5,
+    "median_error": 29.962048694212,
+    "lower_quartile": 23.670885520767968,
+    "upper_quartile": 31.034672321062274,
+    "solved": 0.0
+  },
+  {
     "problem": "integer-sphere-5d",
     "optimizer": "genetic",
     "runs": 5,
