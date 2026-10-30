@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from hone.benchmarks import (
+    BUDGETS,
     Run,
     Summary,
     load_summaries,
@@ -12,6 +13,7 @@ from hone.benchmarks import (
     standard_problems,
     summarize,
     to_markdown,
+    wins,
 )
 from hone.benchmarks import problems as p
 from hone.benchmarks.__main__ import main
@@ -83,26 +85,54 @@ def test_integer_problems_have_integer_optima():
 
 @pytest.fixture(scope="module")
 def runs():
-    return run_benchmark(quick_problems()[:2], seeds=range(3), budget_per_dimension=40)
+    return run_benchmark(quick_problems()[:2], seeds=range(3), budgets_per_dimension=[10, 40])
 
 
 OPTIMIZERS = ("genetic", "cma-es", "random")
 
 
-def test_runs_every_optimizer_problem_and_seed(runs):
-    assert len(runs) == 2 * 3 * 3
-    assert {(r.problem, r.optimizer) for r in runs} == {
-        (problem, optimizer) for problem in ("sphere-5d", "ellipsoid-5d") for optimizer in OPTIMIZERS
+def test_runs_every_optimizer_problem_budget_and_seed(runs):
+    assert len(runs) == 2 * 3 * 2 * 3
+    assert {(r.problem, r.optimizer, r.budget_per_dimension) for r in runs} == {
+        (problem, optimizer, budget)
+        for problem in ("sphere-5d", "ellipsoid-5d")
+        for optimizer in OPTIMIZERS
+        for budget in (10, 40)
     }
 
 
 def test_every_optimizer_gets_exactly_the_same_budget(runs):
-    assert {r.evaluations for r in runs} == {40 * 5}
+    for r in runs:
+        assert r.evaluations == r.budget_per_dimension * 5
+
+
+def test_default_budgets_include_small_ones():
+    assert BUDGETS[0] == 10 and max(BUDGETS) == 1000 and list(BUDGETS) == sorted(BUDGETS)
+
+
+def test_each_budget_is_a_separate_run():
+    """An optimizer can choose its settings from the budget it's given."""
+    given = []
+
+    def recording(problem, budget, seed):
+        given.append(budget)
+        return RandomSearch(problem.search_space, OptimizerConfig(population_size=5, max_evaluations=budget, seed=seed))
+
+    run_benchmark(quick_problems()[:1], optimizers={"recording": recording}, seeds=range(1), budgets_per_dimension=[10, 20])
+    assert given == [50, 100]
+
+
+def test_more_evaluations_never_hurt_random_search(runs):
+    """Random search with a larger budget sees the same first candidates, then more."""
+    by_key = {(r.problem, r.seed, r.budget_per_dimension): r.error for r in runs if r.optimizer == "random"}
+    for (problem, seed, budget), error in by_key.items():
+        if budget == 40:
+            assert error <= by_key[(problem, seed, 10)]
 
 
 def test_optimizers_skip_problems_they_cannot_search():
     material = [problem for problem in quick_problems() if problem.name.startswith("material")]
-    runs = run_benchmark(material, seeds=range(1), budget_per_dimension=20)
+    runs = run_benchmark(material, seeds=range(1), budgets_per_dimension=[20])
     assert {r.optimizer for r in runs} == {"genetic", "random"}
     assert "| material-selection-5d |" in to_markdown(summarize(runs))
 
@@ -116,7 +146,7 @@ def test_trace_is_non_increasing_and_ends_at_the_error(runs):
 
 
 def test_benchmark_is_reproducible():
-    args = dict(problems=quick_problems()[:1], seeds=range(2), budget_per_dimension=20)
+    args = dict(problems=quick_problems()[:1], seeds=range(2), budgets_per_dimension=[20])
     assert run_benchmark(**args) == run_benchmark(**args)
 
 
@@ -124,7 +154,7 @@ def test_custom_optimizer_factory():
     def tiny(problem, budget, seed):
         return RandomSearch(problem.search_space, OptimizerConfig(population_size=5, generations=1, seed=seed))
 
-    runs = run_benchmark(quick_problems()[:1], optimizers={"tiny": tiny}, seeds=range(2))
+    runs = run_benchmark(quick_problems()[:1], optimizers={"tiny": tiny}, seeds=range(2), budgets_per_dimension=[10])
     assert {r.optimizer for r in runs} == {"tiny"}
     assert all(r.evaluations == 5 for r in runs)
 
@@ -132,8 +162,8 @@ def test_custom_optimizer_factory():
 # --- summaries ------------------------------------------------------------
 
 
-def run(error, seed=0, problem="sphere-2d", optimizer="genetic"):
-    return Run(problem, optimizer, seed, error, 10, [(10, error)])
+def run(error, seed=0, problem="sphere-2d", optimizer="genetic", budget=10):
+    return Run(problem, optimizer, budget, seed, error, 2 * budget, [(2 * budget, error)])
 
 
 def test_summary_statistics():
@@ -145,11 +175,37 @@ def test_summary_statistics():
     assert summary.solved == 0.4
 
 
-def test_summarize_groups_by_problem_and_optimizer(runs):
+def test_summarize_groups_by_problem_optimizer_and_budget(runs):
     summaries = summarize(runs)
-    assert [(s.problem, s.optimizer, s.runs) for s in summaries] == [
-        (problem, optimizer, 3) for problem in ("sphere-5d", "ellipsoid-5d") for optimizer in OPTIMIZERS
+    assert [(s.problem, s.optimizer, s.budget_per_dimension, s.runs) for s in summaries] == [
+        (problem, optimizer, budget, 3)
+        for problem in ("sphere-5d", "ellipsoid-5d")
+        for optimizer in OPTIMIZERS
+        for budget in (10, 40)
     ]
+
+
+def summary(error, **kwargs):
+    return Summary.of([run(error, **kwargs)], 1e-4)
+
+
+def test_wins_count_the_lowest_median_at_each_budget():
+    summaries = [
+        summary(1.0, optimizer="genetic"), summary(2.0, optimizer="random"),
+        summary(5.0, optimizer="genetic", problem="ackley-2d"), summary(3.0, optimizer="random", problem="ackley-2d"),
+        summary(1.0, optimizer="genetic", budget=100), summary(0.5, optimizer="random", budget=100),
+    ]
+    assert wins(summaries) == {10: {"genetic": 1, "random": 1}, 100: {"genetic": 0, "random": 1}}
+
+
+def test_wins_count_ties_for_everyone_in_them():
+    summaries = [summary(1e-12, optimizer="genetic"), summary(1e-10, optimizer="random"), summary(1.0, optimizer="cma-es")]
+    assert wins(summaries) == {10: {"genetic": 1, "random": 1, "cma-es": 0}}
+
+
+def test_wins_skip_problems_only_one_optimizer_ran_on():
+    summaries = [summary(1.0, optimizer="genetic", problem="material-2d"), summary(1.0), summary(2.0, optimizer="random")]
+    assert wins(summaries) == {10: {"genetic": 1, "random": 0}}
 
 
 def test_markdown_table_marks_unsupported_problems():
@@ -159,12 +215,15 @@ def test_markdown_table_marks_unsupported_problems():
     assert "n/a" in rows["| material-2d"]
 
 
-def test_markdown_table(runs):
-    table = to_markdown(summarize(runs))
-    assert table.splitlines()[0] == (
+def test_markdown_has_an_overview_then_a_table_per_budget(runs):
+    lines = to_markdown(summarize(runs)).splitlines()
+    headings = [line for line in lines if line.startswith("## ")]
+    assert headings == ["## Overview", "## 10 evaluations per dimension", "## 40 evaluations per dimension"]
+    assert "| Evaluations per dimension | genetic | cma-es | random |" in lines
+    assert lines.count(
         "| Problem | genetic median | genetic solved | cma-es median | cma-es solved | random median | random solved |"
-    )
-    assert "| sphere-5d |" in table and "| ellipsoid-5d |" in table
+    ) == 2
+    assert sum(line.startswith("| sphere-5d |") for line in lines) == 2
 
 
 def test_summaries_round_trip(tmp_path, runs):
@@ -184,16 +243,23 @@ def test_regressions_ignore_noise_near_zero():
     assert regressions([Summary.of([run(1e-9)], 1e-4)], [Summary.of([run(1e-14)], 1e-4)]) == []
 
 
+def test_regressions_compare_like_budgets():
+    baseline = [summary(1.0), summary(0.001, budget=100)]
+    current = [summary(1.0), summary(0.5, budget=100)]
+    found = regressions(current, baseline)
+    assert found == ["genetic on sphere-2d at 100 evaluations per dimension: median error 0.5, baseline 0.001"]
+
+
 # --- command line ---------------------------------------------------------
 
 
 def test_cli_checks_against_a_baseline(tmp_path, capsys):
     baseline = tmp_path / "baseline.json"
-    args = ["--quick", "--seeds", "1", "--budget-per-dimension", "20"]
+    args = ["--quick", "--seeds", "1", "--budgets", "20", "10"]
     assert main([*args, "--save", str(baseline), "--markdown", str(tmp_path / "results.md")]) == 0
     results = (tmp_path / "results.md").read_text()
     assert results.startswith("# Benchmark results")
-    assert "6 problems, 1 seeds, 20 evaluations per dimension" in results
+    assert "6 problems, 1 seeds, budgets of 10 and 20 evaluations per dimension" in results
     assert "| Problem |" in results
     assert main([*args, "--baseline", str(baseline)]) == 0
     assert "No regressions" in capsys.readouterr().out
@@ -201,9 +267,10 @@ def test_cli_checks_against_a_baseline(tmp_path, capsys):
 
 def test_cli_fails_on_a_regression(tmp_path, capsys):
     baseline = tmp_path / "baseline.json"
-    good = [Summary(s.problem, s.optimizer, 1, 0.0, 0.0, 0.0, 1.0) for s in summarize(run_benchmark(quick_problems(), seeds=range(1), budget_per_dimension=20))]
+    runs = run_benchmark(quick_problems(), seeds=range(1), budgets_per_dimension=[20])
+    good = [Summary(s.problem, s.optimizer, 20, 1, 0.0, 0.0, 0.0, 1.0) for s in summarize(runs)]
     save_summaries(good, baseline)
-    assert main(["--quick", "--seeds", "1", "--budget-per-dimension", "20", "--baseline", str(baseline)]) == 1
+    assert main(["--quick", "--seeds", "1", "--budgets", "20", "--baseline", str(baseline)]) == 1
     assert "Regressions against the baseline" in capsys.readouterr().out
 
 

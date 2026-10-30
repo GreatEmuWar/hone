@@ -1,6 +1,7 @@
 """Benchmark problems and a runner for comparing optimizers. Run `python -m hone.benchmarks --help`."""
 from .problems import Problem, quick_problems, standard_problems
 from .runner import (
+    BUDGETS,
     DEFAULT_OPTIMIZERS,
     Run,
     Summary,
@@ -10,4 +11,5 @@ from .runner import (
     save_summaries,
     summarize,
     to_markdown,
+    wins,
 )

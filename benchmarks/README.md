@@ -10,7 +10,9 @@ This folder holds the results of `python -m hone.benchmarks`:
 
 ## What the suite measures
 
-Each optimizer runs on each problem with 10 seeds and the same budget: 1,000 evaluations per dimension. The table reports the median **error**, the best value found minus the problem's known optimum, and the share of runs **solved** to an error of 0.0001 or less.
+Each optimizer runs on each problem with 10 seeds at five budgets: 10, 20, 50, 100 and 1,000 evaluations per dimension, so a 5-dimensional problem gets 50, 100, 250, 500 and 5,000 evaluations. Each budget is a separate run. The small budgets stand for expensive evaluations, such as a simulation that takes minutes, where a few dozen runs may be all there is time for. At every budget all optimizers get exactly the same number of evaluations.
+
+The results start with an overview: for each budget, the number of problems on which each optimizer has the lowest median error. A table per budget follows, reporting the median **error**, the best value found minus the problem's known optimum, and the share of runs **solved** to an error of 0.0001 or less.
 
 Every variable lies in [-5, 5]. Each problem is shifted so its optimum sits at a fixed point away from the centre, so an optimizer that drifts toward the centre gains nothing.
 
@@ -29,6 +31,15 @@ The plain functions are separable: each variable affects the value on its own, s
 | material-selection | A categorical choice that moves where the best continuous design is. Each material adds a base cost; titanium, at cost 0, gives the optimum |
 
 ## What the 0.5.0 results show
+
+### At small budgets
+
+- **CMA-ES is the best optimizer at every small budget.** From 10 to 50 evaluations per dimension it has the lowest median error on 28 to 31 of the 33 problems it can run. With 50 evaluations per dimension on sphere-10d its median error is 0.0245, against 1.78 for the genetic optimizer and 21.8 for random search.
+- **The genetic optimizer sizes its population from the budget.** With a fixed population of 50, a budget of 50 evaluations or fewer ran out during its first, random generation, so it was exactly random search on every problem with 5 dimensions or fewer. It now uses about a twentieth of the budget, between 16 and 50. Against the fixed population, its geometric-mean error falls by 8% at 10 evaluations per dimension, 16% at 20, 28% at 50 and 12% at 100, and is unchanged at 1,000. It now beats random search on 20 problems at 10 evaluations per dimension and 31 at 50, up from 9 and 29.
+- **The 2-dimensional ellipsoid and Rosenbrock got worse.** Smaller populations converge sooner, and on these badly scaled problems the fixed mutation step can't follow. ellipsoid-2d at 50 evaluations per dimension is about 11 times worse. These are problems on which the genetic optimizer already lost to random search, and an adaptive mutation step is the planned fix.
+- **Categorical problems have no strong option yet.** CMA-ES can't run them. The smaller population helps the genetic optimizer on material-selection (median error 2.79 rather than 6.17 in 10 dimensions at 50 evaluations per dimension), but it still often settles on the wrong material.
+
+### At 1,000 evaluations per dimension
 
 CMA-ES runs on the 33 problems without choice parameters. Against the genetic optimizer it wins 26, ties 3 (the integer spheres, which both solve) and loses 4: plain Rastrigin in 5 and 10 dimensions and plain mixed Rastrigin in 5 and 10 dimensions.
 

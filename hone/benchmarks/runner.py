@@ -14,12 +14,17 @@ from .problems import Problem
 # UnsupportedSearchSpace for a problem it cannot search; that problem is then skipped.
 OptimizerFactory = Callable[[Problem, int, int], Optimizer]
 
-POPULATION_SIZE = 50
+POPULATION_SIZE = 50  # random search's batch size, which doesn't change its results
+
+# Evaluations per dimension that the benchmark gives each run. The small budgets show how
+# an optimizer does when each evaluation is expensive, as with a slow simulation.
+BUDGETS = (10, 20, 50, 100, 1000)
+
+FLOOR = 1e-8  # errors below this count as equal when comparing results
 
 
 def genetic(problem: Problem, budget: int, seed: int) -> Optimizer:
-    config = GeneticOptimizerConfig(population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed)
-    return GeneticOptimizer(problem.search_space, config)
+    return GeneticOptimizer(problem.search_space, GeneticOptimizerConfig(max_evaluations=budget, seed=seed))
 
 
 def cma_es(problem: Problem, budget: int, seed: int) -> Optimizer:
@@ -36,9 +41,10 @@ DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {"genetic": genetic, "cma-es":
 
 @dataclass(frozen=True)
 class Run:
-    """One optimizer on one problem with one seed."""
+    """One optimizer on one problem with one seed and one budget."""
     problem: str
     optimizer: str
+    budget_per_dimension: int
     seed: int
     error: float  # best value found minus the problem's optimum; 0 means the optimum was found
     evaluations: int
@@ -47,9 +53,10 @@ class Run:
 
 @dataclass(frozen=True)
 class Summary:
-    """All runs of one optimizer on one problem."""
+    """All runs of one optimizer on one problem with one budget."""
     problem: str
     optimizer: str
+    budget_per_dimension: int
     runs: int
     median_error: float
     lower_quartile: float
@@ -63,6 +70,7 @@ class Summary:
         return cls(
             problem=runs[0].problem,
             optimizer=runs[0].optimizer,
+            budget_per_dimension=runs[0].budget_per_dimension,
             runs=len(runs),
             median_error=statistics.median(errors),
             lower_quartile=quartiles[0],
@@ -75,68 +83,113 @@ def run_benchmark(
     problems: Iterable[Problem],
     optimizers: dict[str, OptimizerFactory] | None = None,
     seeds: Iterable[int] = range(10),
-    budget_per_dimension: int = 1000,
+    budgets_per_dimension: Iterable[int] = BUDGETS,
 ) -> list[Run]:
-    """Run every optimizer on every problem with every seed, at budget_per_dimension × dimensions evaluations.
+    """Run every optimizer on every problem with every seed and every budget.
 
+    A budget of b evaluations per dimension gives a run b × dimensions evaluations. Each
+    budget is a separate run, so an optimizer can choose its settings from the budget.
     An optimizer that cannot search a problem's parameters is skipped for that problem.
     """
     optimizers = optimizers if optimizers is not None else DEFAULT_OPTIMIZERS
-    seeds = list(seeds)
+    seeds, budgets = list(seeds), list(budgets_per_dimension)
     runs = []
     for problem in problems:
-        budget = budget_per_dimension * problem.dimensions
         for name, factory in optimizers.items():
-            for seed in seeds:
-                try:
-                    optimizer = factory(problem, budget, seed)
-                except UnsupportedSearchSpace:
-                    break
-                result = optimizer.optimize(problem.function)
-                trace, best = [], float("inf")
-                for generation in result.generations:
-                    if generation.best_fitness is not None:
-                        best = min(best, generation.best_fitness - problem.optimum)
-                    trace.append((generation.evaluations, max(best, 0.0)))
-                runs.append(
-                    Run(
-                        problem=problem.name,
-                        optimizer=name,
-                        seed=seed,
-                        error=max(result.best_fitness - problem.optimum, 0.0),
-                        evaluations=result.evaluations,
-                        trace=trace,
-                    )
-                )
+            try:
+                for per_dimension in budgets:
+                    for seed in seeds:
+                        optimizer = factory(problem, per_dimension * problem.dimensions, seed)
+                        runs.append(_run(problem, name, per_dimension, seed, optimizer))
+            except UnsupportedSearchSpace:
+                continue
     return runs
 
 
+def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: Optimizer) -> Run:
+    result = optimizer.optimize(problem.function)
+    trace, best = [], float("inf")
+    for generation in result.generations:
+        if generation.best_fitness is not None:
+            best = min(best, generation.best_fitness - problem.optimum)
+        trace.append((generation.evaluations, max(best, 0.0)))
+    return Run(
+        problem=problem.name,
+        optimizer=name,
+        budget_per_dimension=per_dimension,
+        seed=seed,
+        error=max(result.best_fitness - problem.optimum, 0.0),
+        evaluations=result.evaluations,
+        trace=trace,
+    )
+
+
 def summarize(runs: list[Run], tolerance: float = 1e-4) -> list[Summary]:
-    """One Summary per problem and optimizer, in the order the runs were made."""
-    groups: dict[tuple[str, str], list[Run]] = {}
+    """One Summary per problem, optimizer and budget, in the order the runs were made."""
+    groups: dict[tuple[str, str, int], list[Run]] = {}
     for run in runs:
-        groups.setdefault((run.problem, run.optimizer), []).append(run)
+        groups.setdefault((run.problem, run.optimizer, run.budget_per_dimension), []).append(run)
     return [Summary.of(group, tolerance) for group in groups.values()]
 
 
-def to_markdown(summaries: list[Summary], tolerance: float = 1e-4) -> str:
-    """A table of results, one row per problem, with a column group per optimizer."""
+def wins(summaries: list[Summary], floor: float = FLOOR) -> dict[int, dict[str, int]]:
+    """For each budget, how many problems each optimizer has the lowest median error on.
+
+    Ties count for every optimizer in them, and errors below floor count as equal. Only
+    problems that at least two optimizers ran on are counted.
+    """
     optimizers = list(dict.fromkeys(s.optimizer for s in summaries))
-    by_key = {(s.problem, s.optimizer): s for s in summaries}
-    header = "| Problem | " + " | ".join(f"{o} median | {o} solved" for o in optimizers) + " |"
-    rule = "| --- | " + " | ".join("---: | ---:" for _ in optimizers) + " |"
-    rows = []
-    for problem in dict.fromkeys(s.problem for s in summaries):
-        cells = []
-        for o in optimizers:
-            s = by_key.get((problem, o))
-            cells += [f"{s.median_error:.3g}", f"{s.solved:.0%}"] if s else ["n/a", "n/a"]
-        rows.append(f"| {problem} | " + " | ".join(cells) + " |")
-    note = (
+    groups: dict[tuple[int, str], list[Summary]] = {}
+    for s in summaries:
+        groups.setdefault((s.budget_per_dimension, s.problem), []).append(s)
+    counts: dict[int, dict[str, int]] = {}
+    for (budget, _), group in groups.items():
+        tally = counts.setdefault(budget, dict.fromkeys(optimizers, 0))
+        if len(group) < 2:
+            continue
+        best = min(max(s.median_error, floor) for s in group)
+        for s in group:
+            tally[s.optimizer] += max(s.median_error, floor) == best
+    return dict(sorted(counts.items()))
+
+
+def to_markdown(summaries: list[Summary], tolerance: float = 1e-4) -> str:
+    """An overview of wins at each budget, then a table per budget with a row per problem."""
+    optimizers = list(dict.fromkeys(s.optimizer for s in summaries))
+    budgets = sorted({s.budget_per_dimension for s in summaries})
+    by_key = {(s.problem, s.optimizer, s.budget_per_dimension): s for s in summaries}
+    problems = list(dict.fromkeys(s.problem for s in summaries))
+
+    lines = [
+        "## Overview",
+        "",
+        "Problems on which each optimizer has the lowest median error, at each budget. Ties count for each "
+        f"optimizer in them, and errors below {FLOOR:g} count as equal.",
+        "",
+        "| Evaluations per dimension | " + " | ".join(optimizers) + " |",
+        "| ---: | " + " | ".join("---:" for _ in optimizers) + " |",
+        *(f"| {b} | " + " | ".join(str(t[o]) for o in optimizers) + " |" for b, t in wins(summaries).items()),
+    ]
+    for budget in budgets:
+        lines += [
+            "",
+            f"## {budget} evaluations per dimension",
+            "",
+            "| Problem | " + " | ".join(f"{o} median | {o} solved" for o in optimizers) + " |",
+            "| --- | " + " | ".join("---: | ---:" for _ in optimizers) + " |",
+        ]
+        for problem in problems:
+            cells = []
+            for o in optimizers:
+                s = by_key.get((problem, o, budget))
+                cells += [f"{s.median_error:.3g}", f"{s.solved:.0%}"] if s else ["n/a", "n/a"]
+            lines.append(f"| {problem} | " + " | ".join(cells) + " |")
+    lines += [
+        "",
         f"Median error over the runs (best value found minus the optimum); solved means error ≤ {tolerance:g}. "
-        "n/a: the optimizer does not support the problem's parameters."
-    )
-    return "\n".join([header, rule, *rows, "", note]) + "\n"
+        "n/a: the optimizer does not support the problem's parameters.",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def save_summaries(summaries: list[Summary], path: str | Path) -> None:
@@ -147,20 +200,21 @@ def load_summaries(path: str | Path) -> list[Summary]:
     return [Summary(**s) for s in json.loads(Path(path).read_text())]
 
 
-def regressions(current: list[Summary], baseline: list[Summary], factor: float = 10.0, floor: float = 1e-8) -> list[str]:
-    """Problems where an optimizer's median error grew by more than factor against the baseline.
+def regressions(current: list[Summary], baseline: list[Summary], factor: float = 10.0, floor: float = FLOOR) -> list[str]:
+    """Problems and budgets where an optimizer's median error grew by more than factor against the baseline.
 
     Errors below floor count as floor, so changes among values that are already essentially
     zero don't count as regressions.
     """
-    previous = {(s.problem, s.optimizer): s for s in baseline}
+    previous = {(s.problem, s.optimizer, s.budget_per_dimension): s for s in baseline}
     found = []
     for s in current:
-        before = previous.get((s.problem, s.optimizer))
+        before = previous.get((s.problem, s.optimizer, s.budget_per_dimension))
         if before is None:
             continue
         if max(s.median_error, floor) > factor * max(before.median_error, floor):
             found.append(
-                f"{s.optimizer} on {s.problem}: median error {s.median_error:.3g}, baseline {before.median_error:.3g}"
+                f"{s.optimizer} on {s.problem} at {s.budget_per_dimension} evaluations per dimension: "
+                f"median error {s.median_error:.3g}, baseline {before.median_error:.3g}"
             )
     return found
