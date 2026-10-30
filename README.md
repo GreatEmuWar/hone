@@ -32,7 +32,7 @@ result = optimizer.optimize(run_simulation, workers=8, timeout=600)
 
 `timeout` limits each evaluation, in seconds. An evaluation that runs longer is stopped and counts as failed, as does one whose process crashes, so one hung simulation can't stall the run. A timeout also runs evaluations in a background process when `workers` is 1.
 
-Each generation waits for its slowest evaluation before the next one starts, so workers beyond the population size sit idle. Keep `population_size` at least two or three times `workers`.
+Each generation waits for its slowest evaluation before the next one starts, so workers beyond the population size sit idle. CMA-ES allows for this: unless you set `population_size`, it uses at least twice as many candidates per generation as there are workers. That means its results, unlike the other optimizers', depend on the number of workers as well as the seed. For the genetic optimizer and random search, keep `population_size` at least two or three times `workers`.
 
 When evaluations run somewhere `optimize()` can't reach, such as jobs on a compute cluster or tests on a physical rig, ask the optimizer for candidates and tell it the results yourself, in any order:
 
@@ -125,7 +125,7 @@ from hone import CMAES, CMAESConfig
 result = CMAES(search_space, CMAESConfig(max_evaluations=5000, seed=0)).optimize(run_simulation)
 ```
 
-CMA-ES chooses its own population size from the number of variables, and by default restarts with a larger population when a run converges or stalls. Giving it a budget with `max_evaluations` is usually the only setting it needs. [benchmarks/results.md](benchmarks/results.md) compares the three optimizers.
+CMA-ES chooses its own population size from the number of variables and workers, and by default restarts with a larger population when a run converges or stalls. Giving it a budget with `max_evaluations` is usually the only setting it needs. [benchmarks/results.md](benchmarks/results.md) compares the three optimizers.
 
 All three take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 

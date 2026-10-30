@@ -80,6 +80,7 @@ class Optimizer(ABC):
         if isinstance(initial_points, dict):
             initial_points = [initial_points]
         self.initial_points = [search_space.check(point) for point in initial_points or []]
+        self._workers = 1  # how many evaluations run at once; optimizers may size their population from it
         self.reset()
 
     @abstractmethod
@@ -195,8 +196,10 @@ class Optimizer(ABC):
 
         The function is called with one keyword argument per parameter and must return a
         number. To record an evaluation as failed instead, raise EvaluationFailed or return NaN
-        or infinity; any other exception stops the run. With a seed, every call returns the
-        same result, however many workers are used.
+        or infinity; any other exception stops the run. With a seed, every call with the same
+        number of workers returns the same result. The genetic optimizer and random search
+        return it however many workers are used; CMA-ES does not, because its default
+        population grows with the number of workers.
 
         Args:
             objective_function: The function to optimize.
@@ -215,17 +218,21 @@ class Optimizer(ABC):
             name=getattr(objective_function, "__name__", "objective"), function=objective_function, search_space=self.search_space
         )
         evaluate = partial(_evaluate, objective)
-        self.reset()
-        if workers == 1 and timeout is None:
-            while not self._done:
-                for trial in self.ask():
-                    self._tell_outcome(trial, evaluate(trial.params))
-        else:
-            with EvaluationPool(evaluate, workers, timeout) as pool:
+        self._workers = workers
+        try:
+            self.reset()
+            if workers == 1 and timeout is None:
                 while not self._done:
-                    trials = self.ask()
-                    for trial, outcome in zip(trials, pool.map([trial.params for trial in trials])):
-                        self._tell_outcome(trial, outcome)
+                    for trial in self.ask():
+                        self._tell_outcome(trial, evaluate(trial.params))
+            else:
+                with EvaluationPool(evaluate, workers, timeout) as pool:
+                    while not self._done:
+                        trials = self.ask()
+                        for trial, outcome in zip(trials, pool.map([trial.params for trial in trials])):
+                            self._tell_outcome(trial, outcome)
+        finally:
+            self._workers = 1
         return self.result()
 
     def _tell_outcome(self, trial: Trial, outcome: float | None) -> None:
