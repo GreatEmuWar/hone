@@ -11,6 +11,7 @@ RUN poetry install --no-root --no-interaction --no-ansi
 
 COPY ./hone /src/hone
 COPY ./tests /src/tests
+COPY ./examples /src/examples
 RUN poetry install --only-root --no-interaction --no-ansi
 
 CMD ["pytest"]

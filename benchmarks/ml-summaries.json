@@ -1,0 +1,302 @@
+[
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.005263157894736636,
+    "lower_quartile": 0.003947368421052672,
+    "upper_quartile": 0.006578947368420879,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.005263157894736636,
+    "lower_quartile": 0.003508771929824517,
+    "upper_quartile": 0.006578947368420851,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0052476323552242965,
+    "lower_quartile": 0.003508771929824517,
+    "upper_quartile": 0.005263157894736636,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.0034932463903121214,
+    "upper_quartile": 0.005274802049371169,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0026238161776122038,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0035087719298246833,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0017543859649122862,
+    "solved": 0.1
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.005263157894736692,
+    "lower_quartile": 0.0052515137401023815,
+    "upper_quartile": 0.0052631578947369695,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.003070175438596584,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0017543859649122862,
+    "solved": 0.2
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.005263157894736803,
+    "lower_quartile": 0.003943487036174587,
+    "upper_quartile": 0.00833333333333322,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.00437820214252449,
+    "lower_quartile": 0.003508771929824517,
+    "upper_quartile": 0.0052592765098585514,
+    "solved": 0.0
+  },
+  {
+    "problem": "svm-breast-cancer",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0035087719298245723,
+    "lower_quartile": 0.002189101071262245,
+    "upper_quartile": 0.0035087719298246833,
+    "solved": 0.0
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.004707555456584522,
+    "lower_quartile": 0.002153148311950792,
+    "upper_quartile": 0.005666749001042276,
+    "solved": 0.0
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.003026109187540371,
+    "lower_quartile": 0.0013638458777440743,
+    "upper_quartile": 0.004181503189659458,
+    "solved": 0.0
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0005633319288099736,
+    "lower_quartile": 0.00029182498857760475,
+    "upper_quartile": 0.001754433402938932,
+    "solved": 0.2
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.001125860692522851,
+    "lower_quartile": 0.0006642559486889077,
+    "upper_quartile": 0.0012961111185766927,
+    "solved": 0.0
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 2.918244395883063e-05,
+    "lower_quartile": 1.7152895026573134e-06,
+    "upper_quartile": 0.00014537051283233793,
+    "solved": 0.6
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 3.919690227949246e-08,
+    "lower_quartile": 4.2333610783540365e-09,
+    "upper_quartile": 1.5555837945546713e-07,
+    "solved": 1.0
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0037469004625132474,
+    "lower_quartile": 0.002168622566412315,
+    "upper_quartile": 0.007393575864995311,
+    "solved": 0.0
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.002281961122747367,
+    "lower_quartile": 0.0010364232276701413,
+    "upper_quartile": 0.0037287737096766416,
+    "solved": 0.0
+  },
+  {
+    "problem": "kernel-ridge-diabetes",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0008492586299481686,
+    "lower_quartile": 0.00030682902802051104,
+    "upper_quartile": 0.0010223661268290996,
+    "solved": 0.0
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.005714285714285672,
+    "upper_quartile": 0.01003968253968246,
+    "solved": 0.0
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.005714285714285672,
+    "upper_quartile": 0.005833333333333274,
+    "solved": 0.0
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.005714285714285672,
+    "upper_quartile": 0.005714285714285672,
+    "solved": 0.0
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.005714285714285672,
+    "upper_quartile": 0.005714285714285672,
+    "solved": 0.2
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.001428571428571418,
+    "upper_quartile": 0.005714285714285672,
+    "solved": 0.3
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.004325396825396788,
+    "solved": 0.6
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.005714285714285672,
+    "upper_quartile": 0.005714285714285672,
+    "solved": 0.1
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.005714285714285672,
+    "upper_quartile": 0.005714285714285672,
+    "solved": 0.1
+  },
+  {
+    "problem": "random-forest-wine",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.005714285714285672,
+    "lower_quartile": 0.005714285714285672,
+    "upper_quartile": 0.005714285714285672,
+    "solved": 0.2
+  }
+]
