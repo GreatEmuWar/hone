@@ -1,19 +1,25 @@
-.DEFAULT_GOAL := run-tests
+.DEFAULT_GOAL := test
 
-.PHONY: build
-build:
-	@echo "Building..."
-	@docker-compose build
-
-.PHONY: install-requirements
-install-requirements:
-	@echo "Installing requirements..."
-	@pip install --upgrade pip
-	@pip install poetry
+.PHONY: install
+install:
 	@poetry install
 
-
-.PHONY: run-tests
-run-tests: install-requirements
-	@echo "Running tests..."
+.PHONY: test
+test: install
 	@poetry run pytest
+
+.PHONY: lint
+lint: install
+	@poetry run ruff check hone tests
+
+.PHONY: docker-build
+docker-build:
+	@docker build -t hone .
+
+.PHONY: docker-test
+docker-test: docker-build
+	@docker run --rm hone
+
+# Former name of the test target.
+.PHONY: run-tests
+run-tests: test

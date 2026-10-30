@@ -75,3 +75,13 @@ result = Result.load("run.json")
 | `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
 
 Both take the same arguments and return the same `Result`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles evaluation, tracking the best result, stopping and the `Result`.
+
+## Development
+
+Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
+
+| Command | Does |
+| --- | --- |
+| `make test` | Install the dependencies and run the tests with coverage |
+| `make lint` | Run ruff |
+| `make docker-test` | Build the Docker image and run the tests inside it |
