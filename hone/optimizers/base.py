@@ -1,11 +1,11 @@
 import math
 import numbers
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, ClassVar, List
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict
 
 from hone.config import OptimizerConfig
 from hone.objective_function import ObjectiveFunction
@@ -23,22 +23,29 @@ class EvaluationFailed(Exception):
     """Raise this from an objective function to record the evaluation as failed rather than stop the run."""
 
 
-@dataclass(frozen=True, slots=True)
-class Trial:
+class Trial(BaseModel):
     """A candidate handed out by ask(): evaluate params, then report the outcome with tell()."""
+    model_config = ConfigDict(frozen=True)
+
     id: int
     params: dict[str, Any]
     generation: int
 
 
-@dataclass(slots=True, eq=False)
-class Individual:
+class Individual(BaseModel):
     """One candidate solution: a value for every parameter, and its fitness once evaluated."""
     params: dict[str, Any]
     generation: int
     fitness: float | None = None
     failed: bool = False
     id: int = -1
+
+    # Each individual is a candidate of its own, even when another holds the same values:
+    # optimizers keep track of them by identity.
+    def __eq__(self, other: object) -> bool:
+        return self is other
+
+    __hash__ = object.__hash__
 
 
 class Optimizer(ABC):

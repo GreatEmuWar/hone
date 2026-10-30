@@ -187,7 +187,10 @@ def test_custom_optimizer_factory():
 
 
 def run(error, seed=0, problem="sphere-2d", optimizer="genetic", budget=10):
-    return Run(problem, optimizer, budget, seed, error, 2 * budget, [(2 * budget, error)])
+    return Run(
+        problem=problem, optimizer=optimizer, budget_per_dimension=budget, seed=seed, error=error,
+        evaluations=2 * budget, trace=[(2 * budget, error)],
+    )
 
 
 def test_summary_statistics():
@@ -292,7 +295,7 @@ def test_cli_checks_against_a_baseline(tmp_path, capsys):
 def test_cli_fails_on_a_regression(tmp_path, capsys):
     baseline = tmp_path / "baseline.json"
     runs = run_benchmark(quick_problems(), seeds=range(1), budgets_per_dimension=[4])
-    good = [Summary(s.problem, s.optimizer, 4, 1, 0.0, 0.0, 0.0, 1.0) for s in summarize(runs)]
+    good = [s.model_copy(update={"budget_per_dimension": 4, "runs": 1, "median_error": 0.0, "lower_quartile": 0.0, "upper_quartile": 0.0, "solved": 1.0}) for s in summarize(runs)]
     save_summaries(good, baseline)
     assert main(["--quick", "--seeds", "1", "--budgets", "4", "--baseline", str(baseline)]) == 1
     assert "Regressions against the baseline" in capsys.readouterr().out

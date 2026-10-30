@@ -128,6 +128,6 @@ def ml_problems() -> list[Problem]:
     """The machine learning tuning problems. Needs scikit-learn."""
     _require_sklearn()
     return [
-        Problem(name, function, SearchSpace(parameters), OPTIMA[name], frozenset({"ml"}))
+        Problem(name=name, function=function, search_space=SearchSpace(parameters), optimum=OPTIMA[name], tags=frozenset({"ml"}))
         for name, (function, parameters) in SPACES.items()
     ]

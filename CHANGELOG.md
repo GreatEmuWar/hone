@@ -9,6 +9,7 @@
 ### Changed
 
 - `SearchSpace` accepts any sequence of parameters, such as a tuple, not only a list.
+- `Trial`, the candidate `ask()` hands out, is a pydantic model like the rest of hone's data, so `trial.model_dump()` gives it as a dict. Its fields are unchanged.
 
 ## 0.6.0 (2026-10-30)
 

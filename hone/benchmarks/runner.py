@@ -5,11 +5,11 @@ import multiprocessing
 import statistics
 import zlib
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict
 
 from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, OptimizerConfig
 from hone.optimizers import CMAES, BayesianOptimizer, GeneticOptimizer, Optimizer, RandomSearch, UnsupportedSearchSpace
@@ -71,9 +71,10 @@ DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {
 }
 
 
-@dataclass(frozen=True)
-class Run:
+class Run(BaseModel):
     """One optimizer on one problem with one seed and one budget."""
+    model_config = ConfigDict(frozen=True)
+
     problem: str
     optimizer: str
     budget_per_dimension: int
@@ -83,9 +84,10 @@ class Run:
     trace: list[tuple[int, float]]  # (evaluations so far, error of the best so far), once per generation
 
 
-@dataclass(frozen=True)
-class Summary:
+class Summary(BaseModel):
     """All runs of one optimizer on one problem with one budget."""
+    model_config = ConfigDict(frozen=True)
+
     problem: str
     optimizer: str
     budget_per_dimension: int
@@ -266,11 +268,11 @@ def to_markdown(summaries: list[Summary], tolerance: float = 1e-4) -> str:
 
 
 def save_summaries(summaries: list[Summary], path: str | Path) -> None:
-    Path(path).write_text(json.dumps([asdict(s) for s in summaries], indent=2) + "\n")
+    Path(path).write_text(json.dumps([s.model_dump() for s in summaries], indent=2) + "\n")
 
 
 def load_summaries(path: str | Path) -> list[Summary]:
-    return [Summary(**s) for s in json.loads(Path(path).read_text())]
+    return [Summary.model_validate(s) for s in json.loads(Path(path).read_text())]
 
 
 def regressions(current: list[Summary], baseline: list[Summary], factor: float = 10.0, floor: float = FLOOR) -> list[str]:
