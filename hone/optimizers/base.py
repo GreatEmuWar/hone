@@ -13,6 +13,10 @@ from hone.parameters import Parameter, SearchSpace
 from hone.result import GenerationStats, Result
 
 
+class UnsupportedSearchSpace(ValueError):
+    """The optimizer cannot search this kind of parameter."""
+
+
 class EvaluationFailed(Exception):
     """Raise this from an objective function to record the evaluation as failed rather than stop the run."""
 
@@ -82,6 +86,7 @@ class Optimizer(ABC):
         self._needs_generation = True
         self._waiting: dict[int, Individual] = {}  # created this generation, not yet told
         self._handed_out: set[int] = set()
+        self._handed_out_total = 0  # trials handed out over the whole run
         self._next_id = 0
         self._evaluations = 0
         self._failures = 0
@@ -109,8 +114,10 @@ class Optimizer(ABC):
         if self._done:
             return []
         ready = [ind for ind_id, ind in self._waiting.items() if ind_id not in self._handed_out]
-        ready = ready if n is None else ready[:n]
+        limits = [n, self._budget_left()]
+        ready = ready[: min((limit for limit in limits if limit is not None), default=len(ready))]
         self._handed_out.update(ind.id for ind in ready)
+        self._handed_out_total += len(ready)
         return [Trial(id=ind.id, params=dict(ind.params), generation=ind.generation) for ind in ready]
 
     def tell(self, trial: Trial | int, value: float | None = None, *, failed: bool = False) -> None:
@@ -144,6 +151,14 @@ class Optimizer(ABC):
 
         if not self._waiting:
             self._finish_generation()
+        elif self._budget_left() == 0 and self._handed_out.isdisjoint(self._waiting):
+            # Out of budget, with every trial handed out so far reported: end on a partial generation.
+            self._finish_generation(final=True)
+
+    def _budget_left(self) -> int | None:
+        if self.config.max_evaluations is None:
+            return None
+        return max(self.config.max_evaluations - self._handed_out_total, 0)
 
     def result(self) -> Result:
         """The best result found so far, with a summary of every completed generation."""
@@ -210,12 +225,12 @@ class Optimizer(ABC):
         if not self._waiting:
             self._finish_generation()
 
-    def _finish_generation(self) -> None:
+    def _finish_generation(self, final: bool = False) -> None:
         self._history.append(self._summarize(self._generation, self._evaluations, self._population))
         if self._best is not None and self._reached(self._best.fitness):
             self._reached_threshold = True
             self._done = True
-        elif self._generation + 1 >= self.config.generations:
+        elif final or self._generation + 1 >= self.config.generations or self._budget_left() == 0:
             self._done = True
         else:
             # The next generation is bred from this one when ask() is next called.
@@ -239,8 +254,9 @@ class Optimizer(ABC):
         return fitness >= self.config.threshold if self.config.maximize else fitness <= self.config.threshold
 
     def _summarize(self, generation: int, evaluations: int, population: list[Individual]) -> GenerationStats:
-        succeeded = self._ranked([ind for ind in population if not ind.failed])
-        failures = len(population) - len(succeeded)
+        evaluated = [ind for ind in population if ind.fitness is not None]
+        succeeded = self._ranked([ind for ind in evaluated if not ind.failed])
+        failures = len(evaluated) - len(succeeded)
         if not succeeded:
             return GenerationStats(generation=generation, evaluations=evaluations, failures=failures)
         fitnesses = [ind.fitness for ind in succeeded]

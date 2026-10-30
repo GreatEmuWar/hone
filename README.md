@@ -72,7 +72,7 @@ Every parameter the objective function requires must be in the search space. The
 config = GeneticOptimizerConfig.from_file("config.yaml")
 ```
 
-Set `seed` to make a run repeatable.
+Set `seed` to make a run repeatable. `max_evaluations` sets a budget: the run stops after that many evaluations, even partway through a generation, which makes runs of different optimizers directly comparable.
 
 Each value of a new individual mutates with probability `mutation_rate` (default 0.1). A range value moves by a random step whose typical size is `mutation_scale` (default 0.1) times the width of its range. A choice switches to another option, and a fixed value never changes.
 
@@ -98,10 +98,19 @@ result = Result.load("run.json")
 
 | Optimizer | Config | Approach |
 | --- | --- | --- |
-| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation, keeping the best of each generation |
+| `CMAES` | `CMAESConfig` | Learns the scale of each variable and how variables interact; the strongest choice for continuous and integer problems. Doesn't support choice parameters |
+| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation; handles every kind of parameter, including choices, and does better than CMA-ES on problems with many local minima |
 | `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
 
-Both take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
+```python
+from hone import CMAES, CMAESConfig
+
+result = CMAES(search_space, CMAESConfig(max_evaluations=5000, seed=0)).optimize(run_simulation)
+```
+
+CMA-ES chooses its own population size from the number of variables, and by default restarts with a larger population when a run converges or stalls. Giving it a budget with `max_evaluations` is usually the only setting it needs. [benchmarks/results.md](benchmarks/results.md) compares the three optimizers.
+
+All three take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 
 ### Benchmarks
 

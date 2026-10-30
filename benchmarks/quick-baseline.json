@@ -3,10 +3,19 @@
     "problem": "sphere-5d",
     "optimizer": "genetic",
     "runs": 5,
-    "median_error": 0.0554272376664952,
-    "lower_quartile": 0.03895207785126442,
-    "upper_quartile": 0.06271414363327636,
+    "median_error": 0.04422362529455093,
+    "lower_quartile": 0.03724636643680473,
+    "upper_quartile": 0.05584835596017784,
     "solved": 0.0
+  },
+  {
+    "problem": "sphere-5d",
+    "optimizer": "cma-es",
+    "runs": 5,
+    "median_error": 1.9799715747412987e-12,
+    "lower_quartile": 1.7717476310774366e-12,
+    "upper_quartile": 2.8344296134922276e-12,
+    "solved": 1.0
   },
   {
     "problem": "sphere-5d",
@@ -21,9 +30,18 @@
     "problem": "ellipsoid-5d",
     "optimizer": "genetic",
     "runs": 5,
-    "median_error": 510.27427217309975,
-    "lower_quartile": 256.7618583348343,
-    "upper_quartile": 1112.3203972169838,
+    "median_error": 430.85162990413284,
+    "lower_quartile": 251.68449400914724,
+    "upper_quartile": 599.919812644812,
+    "solved": 0.0
+  },
+  {
+    "problem": "ellipsoid-5d",
+    "optimizer": "cma-es",
+    "runs": 5,
+    "median_error": 6.8138915965767275,
+    "lower_quartile": 1.1021455334412313,
+    "upper_quartile": 9.66992095091351,
     "solved": 0.0
   },
   {
@@ -39,9 +57,18 @@
     "problem": "rastrigin-5d",
     "optimizer": "genetic",
     "runs": 5,
-    "median_error": 2.8055777995158877,
-    "lower_quartile": 2.7442630015053737,
-    "upper_quartile": 3.3069940959134385,
+    "median_error": 2.546435133972878,
+    "lower_quartile": 2.350167657248363,
+    "upper_quartile": 2.5540439091140854,
+    "solved": 0.0
+  },
+  {
+    "problem": "rastrigin-5d",
+    "optimizer": "cma-es",
+    "runs": 5,
+    "median_error": 4.974790269469814,
+    "lower_quartile": 3.979836229623828,
+    "upper_quartile": 7.959669479100256,
     "solved": 0.0
   },
   {
@@ -64,6 +91,15 @@
   },
   {
     "problem": "integer-sphere-5d",
+    "optimizer": "cma-es",
+    "runs": 5,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "integer-sphere-5d",
     "optimizer": "random",
     "runs": 5,
     "median_error": 4.0,
@@ -75,9 +111,9 @@
     "problem": "material-selection-5d",
     "optimizer": "genetic",
     "runs": 5,
-    "median_error": 0.08351500378685024,
-    "lower_quartile": 0.03952859166363054,
-    "upper_quartile": 0.08691350308966564,
+    "median_error": 0.02307433368957771,
+    "lower_quartile": 0.014598098796670655,
+    "upper_quartile": 0.049835850938789276,
     "solved": 0.0
   },
   {
