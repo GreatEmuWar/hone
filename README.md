@@ -72,7 +72,7 @@ Every parameter the objective function requires must be in the search space. The
 config = GeneticOptimizerConfig.from_file("config.yaml")
 ```
 
-Set `seed` to make a run repeatable. `max_evaluations` sets a budget: the run stops after that many evaluations, even partway through a generation, which makes runs of different optimizers directly comparable.
+Set `seed` to make a run repeatable. `max_evaluations` sets a budget: the run stops after that many evaluations, even partway through a generation, which makes runs of different optimizers directly comparable. Given a budget, the genetic optimizer chooses its own population size, about a twentieth of the budget between 16 and 50, and runs until the budget is spent, unless you set `population_size` or `generations` yourself. Without a budget they default to 100 and 25.
 
 Each value of a new individual mutates with probability `mutation_rate` (default 0.1). A range value moves by a random step whose typical size is `mutation_scale` (default 0.1) times the width of its range. A choice switches to another option, and a fixed value never changes.
 

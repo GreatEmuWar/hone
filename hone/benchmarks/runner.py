@@ -14,7 +14,7 @@ from .problems import Problem
 # UnsupportedSearchSpace for a problem it cannot search; that problem is then skipped.
 OptimizerFactory = Callable[[Problem, int, int], Optimizer]
 
-POPULATION_SIZE = 50
+POPULATION_SIZE = 50  # random search's batch size, which doesn't change its results
 
 # Evaluations per dimension that the benchmark gives each run. The small budgets show how
 # an optimizer does when each evaluation is expensive, as with a slow simulation.
@@ -24,8 +24,7 @@ FLOOR = 1e-8  # errors below this count as equal when comparing results
 
 
 def genetic(problem: Problem, budget: int, seed: int) -> Optimizer:
-    config = GeneticOptimizerConfig(population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed)
-    return GeneticOptimizer(problem.search_space, config)
+    return GeneticOptimizer(problem.search_space, GeneticOptimizerConfig(max_evaluations=budget, seed=seed))
 
 
 def cma_es(problem: Problem, budget: int, seed: int) -> Optimizer:

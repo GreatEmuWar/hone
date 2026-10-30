@@ -34,10 +34,10 @@ The plain functions are separable: each variable affects the value on its own, s
 
 ### At small budgets
 
-- **CMA-ES is the best optimizer at every small budget.** From 10 to 50 evaluations per dimension it has the lowest median error on 32 or 33 of the 33 problems it can run. With 50 evaluations per dimension on sphere-10d its median error is 0.0245, against 4.06 for the genetic optimizer and 21.8 for random search.
-- **The genetic optimizer is often just random search.** At 10 evaluations per dimension its median error is exactly equal to random search's on every problem with 5 dimensions or fewer, 23 of 36. Its first generation is 50 random candidates, and a budget of 50 evaluations or fewer runs out before the second, so selection, crossover and mutation never run. At 20 evaluations per dimension it beats random search on 18 problems and loses on 7. From 50 on it beats random search on most problems.
-- **Categorical problems have no good option yet.** CMA-ES can't run them, and at 10 evaluations per dimension the genetic optimizer loses to random search on material-selection in 5 and 10 dimensions.
-- **The genetic optimizer's population should depend on the budget.** A population of 50 is too large for a budget of a few hundred evaluations. Choosing the population from the budget is the obvious fix, and these tables are the test for it.
+- **CMA-ES is the best optimizer at every small budget.** From 10 to 50 evaluations per dimension it has the lowest median error on 28 to 31 of the 33 problems it can run. With 50 evaluations per dimension on sphere-10d its median error is 0.0245, against 1.78 for the genetic optimizer and 21.8 for random search.
+- **The genetic optimizer sizes its population from the budget.** With a fixed population of 50, a budget of 50 evaluations or fewer ran out during its first, random generation, so it was exactly random search on every problem with 5 dimensions or fewer. It now uses about a twentieth of the budget, between 16 and 50. Against the fixed population, its geometric-mean error falls by 8% at 10 evaluations per dimension, 16% at 20, 28% at 50 and 12% at 100, and is unchanged at 1,000. It now beats random search on 20 problems at 10 evaluations per dimension and 31 at 50, up from 9 and 29.
+- **The 2-dimensional ellipsoid and Rosenbrock got worse.** Smaller populations converge sooner, and on these badly scaled problems the fixed mutation step can't follow. ellipsoid-2d at 50 evaluations per dimension is about 11 times worse. These are problems on which the genetic optimizer already lost to random search, and an adaptive mutation step is the planned fix.
+- **Categorical problems have no strong option yet.** CMA-ES can't run them. The smaller population helps the genetic optimizer on material-selection (median error 2.79 rather than 6.17 in 10 dimensions at 50 evaluations per dimension), but it still often settles on the wrong material.
 
 ### At 1,000 evaluations per dimension
 

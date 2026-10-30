@@ -17,6 +17,28 @@ def test_defaults():
     assert config.seed is None
 
 
+@pytest.mark.parametrize("budget, population", [(20, 16), (320, 16), (400, 20), (660, 33), (1000, 50), (100_000, 50)])
+def test_a_budget_sizes_the_population(budget, population):
+    config = GeneticOptimizerConfig(max_evaluations=budget)
+    assert config.population_size == population
+    assert config.generations == budget, "the budget, not the generation count, ends the run"
+
+
+def test_settings_given_with_a_budget_are_kept():
+    config = GeneticOptimizerConfig(max_evaluations=1000, population_size=20, generations=7)
+    assert (config.population_size, config.generations) == (20, 7)
+
+
+def test_a_budget_sized_population_fits_the_tournament():
+    assert GeneticOptimizerConfig(max_evaluations=50, tournament_size=20).population_size == 20
+
+
+def test_budget_defaults_apply_to_files_too(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text(yaml.safe_dump({"max_evaluations": 600}))
+    assert GeneticOptimizerConfig.from_file(path).population_size == 30
+
+
 def test_from_dict():
     config = GeneticOptimizerConfig.model_validate({"population_size": 10, "selection_method": "roulette"})
     assert config.population_size == 10

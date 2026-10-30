@@ -4,9 +4,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 6.99402378294935,
-    "lower_quartile": 5.922185106456407,
-    "upper_quartile": 10.387088461218559,
+    "median_error": 8.247481887637106,
+    "lower_quartile": 6.742810615709368,
+    "upper_quartile": 9.000762714315805,
     "solved": 0.0
   },
   {
@@ -14,9 +14,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 3.0286807803609643,
-    "lower_quartile": 2.532724051403081,
-    "upper_quartile": 3.5536975704466993,
+    "median_error": 0.2493250901308283,
+    "lower_quartile": 0.13956655378739977,
+    "upper_quartile": 0.30331406502532987,
     "solved": 0.0
   },
   {
@@ -94,9 +94,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 97960.86447404877,
-    "lower_quartile": 94243.77387609376,
-    "upper_quartile": 128762.70810736567,
+    "median_error": 250219.45289187058,
+    "lower_quartile": 230409.43574810965,
+    "upper_quartile": 424587.63832274213,
     "solved": 0.0
   },
   {
@@ -104,9 +104,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 11446.187763390657,
-    "lower_quartile": 6427.775384798388,
-    "upper_quartile": 26342.17661330048,
+    "median_error": 12491.003305785787,
+    "lower_quartile": 9755.464857319106,
+    "upper_quartile": 21028.99151312693,
     "solved": 0.0
   },
   {
@@ -184,9 +184,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 49.27815922609125,
-    "lower_quartile": 49.027962075758275,
-    "upper_quartile": 60.2450131496979,
+    "median_error": 47.18110013318535,
+    "lower_quartile": 46.467106958036894,
+    "upper_quartile": 52.25400747695223,
     "solved": 0.0
   },
   {
@@ -194,9 +194,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 14.113136067557534,
-    "lower_quartile": 12.168345765543734,
-    "upper_quartile": 17.779237720673542,
+    "median_error": 12.021645448192572,
+    "lower_quartile": 10.2623677677364,
+    "upper_quartile": 13.608873397200107,
     "solved": 0.0
   },
   {
@@ -274,9 +274,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 47.29715660711577,
-    "lower_quartile": 45.90008386790776,
-    "upper_quartile": 50.623296432731024,
+    "median_error": 40.93241612026037,
+    "lower_quartile": 38.066206908979716,
+    "upper_quartile": 43.311250283351455,
     "solved": 0.0
   },
   {
@@ -284,9 +284,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 25.327596601952635,
-    "lower_quartile": 24.266065115276387,
-    "upper_quartile": 28.505817823151297,
+    "median_error": 19.602453862213412,
+    "lower_quartile": 18.926446582077055,
+    "upper_quartile": 27.974156699242442,
     "solved": 0.0
   },
   {
@@ -364,9 +364,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 10.0,
-    "lower_quartile": 9.0,
-    "upper_quartile": 10.0,
+    "median_error": 9.0,
+    "lower_quartile": 7.0,
+    "upper_quartile": 11.0,
     "solved": 0.0
   },
   {
@@ -374,10 +374,10 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 2.0,
-    "lower_quartile": 2.0,
-    "upper_quartile": 3.0,
-    "solved": 0.0
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 1.0,
+    "solved": 0.6
   },
   {
     "problem": "integer-sphere-5d",
@@ -454,9 +454,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 10.094331087029882,
-    "lower_quartile": 9.397669989623243,
-    "upper_quartile": 12.728410083302824,
+    "median_error": 6.328642622579176,
+    "lower_quartile": 4.684811688368962,
+    "upper_quartile": 6.998259696423908,
     "solved": 0.0
   },
   {
@@ -464,9 +464,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 2.516329497672294,
-    "lower_quartile": 2.4822550362892257,
-    "upper_quartile": 2.5898928856226364,
+    "median_error": 0.4145053192371369,
+    "lower_quartile": 0.12866832142060866,
+    "upper_quartile": 1.1565277212447413,
     "solved": 0.0
   },
   {
