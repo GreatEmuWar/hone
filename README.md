@@ -117,13 +117,14 @@ All three take the same arguments and support `optimize()`, `ask()` and `tell()`
 `hone.benchmarks` runs optimizers on test problems with known optima and reports how close each one gets:
 
 ```
-python -m hone.benchmarks            # full suite: 36 problems, 10 seeds each; about 10 minutes
-python -m hone.benchmarks --quick    # 6 problems, 5 seeds; takes seconds
+python -m hone.benchmarks                  # full suite: 36 problems, 10 seeds each, five budgets
+python -m hone.benchmarks --quick          # 6 problems, 5 seeds, three budgets; takes seconds
+python -m hone.benchmarks --budgets 10 20  # only the budgets you name, in evaluations per dimension
 ```
 
-The suite has five standard continuous functions (sphere, ellipsoid, Rosenbrock, Rastrigin and Ackley) in 2, 5 and 10 dimensions, rotated versions of four of them in which the variables interact, and integer, mixed and categorical problems: 36 in all. Each function is shifted so its optimum is away from the centre of the search space. Every optimizer gets the same budget of evaluations. Latest results are in [benchmarks/results.md](benchmarks/results.md).
+The suite has five standard continuous functions (sphere, ellipsoid, Rosenbrock, Rastrigin and Ackley) in 2, 5 and 10 dimensions, rotated versions of four of them in which the variables interact, and integer, mixed and categorical problems: 36 in all. Each function is shifted so its optimum is away from the centre of the search space. Every optimizer gets exactly the same number of evaluations. Each problem runs at five budgets, 10, 20, 50, 100 and 1,000 evaluations per dimension, because the best optimizer for a slow simulation that allows a few dozen runs is often not the best one for a cheap function evaluated thousands of times. Latest results are in [benchmarks/results.md](benchmarks/results.md).
 
-To compare your own optimizer, pass a factory that builds it for a problem, a budget and a seed:
+To compare your own optimizer, pass a factory that builds it for a problem, a budget and a seed. The budget is the run's total number of evaluations, so the factory can choose settings to suit it:
 
 ```python
 from hone.benchmarks import run_benchmark, standard_problems, summarize, to_markdown
@@ -143,7 +144,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make docker-test` | Build the Docker image and run the tests inside it |
 | `make benchmark` | Run the full benchmark suite and update `benchmarks/results.md` |
 
-CI also runs the quick benchmark and fails if any optimizer's median error grows more than tenfold against `benchmarks/quick-baseline.json`. After an intended change in results, update the baseline with `python -m hone.benchmarks --quick --save benchmarks/quick-baseline.json`.
+CI also runs the quick benchmark and fails if any optimizer's median error, at any budget, grows more than tenfold against `benchmarks/quick-baseline.json`. After an intended change in results, update the baseline with `python -m hone.benchmarks --quick --save benchmarks/quick-baseline.json`.
 
 ## License
 
