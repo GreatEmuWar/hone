@@ -1,1 +1,3 @@
-from .genetic_optimizer import GeneticOptimizer, Individual, Population, Generation
+from .base import Individual, Optimizer
+from .genetic import GeneticOptimizer
+from .random_search import RandomSearch

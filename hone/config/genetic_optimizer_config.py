@@ -1,9 +1,8 @@
 from enum import StrEnum
-from pathlib import Path
-from typing import Self
 
-import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import Field, model_validator
+
+from .optimizer_config import OptimizerConfig
 
 
 class SelectionMethod(StrEnum):
@@ -12,23 +11,16 @@ class SelectionMethod(StrEnum):
     ROULETTE = 'roulette'
 
 
-class GeneticOptimizerConfig(BaseModel):
+class GeneticOptimizerConfig(OptimizerConfig):
     """Configuration for the genetic optimizer."""
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    population_size: int = Field(default=100, ge=2)
-    generations: int = Field(default=25, ge=1)
     mutation_rate: float = Field(default=0.1, ge=0, le=1)  # chance each gene of a child is mutated
     mutation_scale: float = Field(default=0.1, gt=0)  # size of a range mutation, as a fraction of the range width
-    crossover_rate: float = Field(default=0.8, ge=0, le=1)
+    crossover_rate: float = Field(default=0.8, ge=0, le=1)  # chance each gene of a child comes from its first parent
     elitism: bool = True
-    elitism_rate: float = Field(default=0.1, ge=0, lt=1)
+    elitism_rate: float = Field(default=0.1, ge=0, lt=1)  # share of each generation carried over unchanged
     selection_method: SelectionMethod = SelectionMethod.TOURNAMENT
     tournament_size: int = Field(default=4, ge=2)
-    tournament_p: float = Field(default=0.75, ge=0, le=1)
-    maximize: bool = False
-    threshold: float | None = None
-    seed: int | None = None  # fixes the random number generator, so runs can be repeated
+    tournament_p: float = Field(default=0.75, ge=0, le=1)  # chance a tournament picks its best rather than its worst
 
     @model_validator(mode="after")
     def _check_tournament_size(self):
@@ -37,12 +29,3 @@ class GeneticOptimizerConfig(BaseModel):
                 f"tournament_size {self.tournament_size} cannot exceed population_size {self.population_size}"
             )
         return self
-
-    @classmethod
-    def from_file(cls, filepath: str | Path) -> Self:
-        """Create a GeneticOptimizerConfig from a JSON or YAML file."""
-        filepath = Path(filepath)
-        text = filepath.read_text()
-        if filepath.suffix.lower() in {".yaml", ".yml"}:
-            return cls.model_validate(yaml.safe_load(text) or {})
-        return cls.model_validate_json(text)
