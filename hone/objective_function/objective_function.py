@@ -1,19 +1,22 @@
 import inspect
 import numbers
-from dataclasses import dataclass
 from typing import Any, Callable
+
+from pydantic import BaseModel, ConfigDict
 
 from hone.parameters import SearchSpace
 
 
-@dataclass(frozen=True)
-class ObjectiveFunction:
+class ObjectiveFunction(BaseModel):
     """Objective function to be optimized, paired with the search space it is called over."""
+    model_config = ConfigDict(frozen=True)
+
     name: str
     function: Callable
     search_space: SearchSpace
 
-    def __post_init__(self):
+    def model_post_init(self, context: Any) -> None:
+        # Checked after validation rather than in a validator, so a mismatch raises a plain ValueError.
         self._check_signature()
 
     def __call__(self, params: dict[str, Any]) -> float:

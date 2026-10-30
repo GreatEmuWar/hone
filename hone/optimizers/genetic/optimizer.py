@@ -1,7 +1,8 @@
 from functools import partial
+from typing import Callable
 
 from hone.config import GeneticOptimizerConfig, SelectionMethod
-from hone.optimizers.base import Individual, Optimizer
+from hone.optimizers.base import Individual, Optimizer, _fitness
 from hone.parameters import ChoiceParameter
 
 from . import selection
@@ -40,6 +41,7 @@ class GeneticOptimizer(Optimizer):
     config: GeneticOptimizerConfig
 
     def _select(self, individuals: list[Individual]) -> Individual:
+        select: Callable[..., Individual]
         match self.config.selection_method:
             case SelectionMethod.TOURNAMENT:
                 select = partial(selection.tournament, size=self.config.tournament_size, p=self.config.tournament_p)
@@ -69,9 +71,9 @@ class GeneticOptimizer(Optimizer):
         for parent in parents:
             niches.setdefault(tuple(repr(parent.params[name]) for name in choices), []).append(parent)
         # With more niches than children, the niches with the fittest members breed.
-        ranked = sorted(niches.values(), key=lambda members: self._ranked(members)[0].fitness, reverse=self.config.maximize)
+        ranked = sorted(niches.values(), key=lambda members: _fitness(self._ranked(members)[0]), reverse=self.config.maximize)
         per_niche = max(1, count // len(ranked))
-        children = []
+        children: list[Individual] = []
         for members in ranked:
             niche = {name: members[0].params[name] for name in choices}
             for _ in range(min(per_niche, count - len(children))):

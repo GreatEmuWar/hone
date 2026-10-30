@@ -13,20 +13,20 @@ the rotated versions the variables interact, as they usually do in engineering p
 """
 import math
 import zlib
-import dataclasses
-from dataclasses import dataclass
 from typing import Any, Callable
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict
 
 from hone.parameters import ChoiceParameter, Parameter, RangeParameter, SearchSpace
 
 BOUND = 5.0
 
 
-@dataclass(frozen=True)
-class Problem:
+class Problem(BaseModel):
     """An objective function, its search space, and the lowest value it can take."""
+    model_config = ConfigDict(frozen=True)
+
     name: str
     function: Callable[..., float]
     search_space: SearchSpace
@@ -80,7 +80,7 @@ def _vector_problem(
     function.__name__ = name.replace("-", "_")
     if parameters is None:
         parameters = [RangeParameter(n, -BOUND, BOUND, integer=integer) for n in names]
-    return Problem(name, function, SearchSpace(parameters), optimum=0.0, tags=tags)
+    return Problem(name=name, function=function, search_space=SearchSpace(parameters), optimum=0.0, tags=tags)
 
 
 # --- base functions, each with minimum 0 at z = 0 ---------------------------
@@ -162,7 +162,7 @@ def mixed_rastrigin(dimensions: int) -> Problem:
         return float(rastrigin(x - shift))
 
     function.__name__ = name.replace("-", "_")
-    return Problem(name, function, SearchSpace(parameters), optimum=0.0, tags=frozenset({"mixed"}))
+    return Problem(name=name, function=function, search_space=SearchSpace(parameters), optimum=0.0, tags=frozenset({"mixed"}))
 
 
 MATERIALS = {
@@ -192,7 +192,7 @@ def material_selection(dimensions: int) -> Problem:
         return float(MATERIALS[material] + sphere(x - targets[material]))
 
     function.__name__ = name.replace("-", "_")
-    return Problem(name, function, SearchSpace(parameters), optimum=0.0, tags=frozenset({"mixed", "categorical"}))
+    return Problem(name=name, function=function, search_space=SearchSpace(parameters), optimum=0.0, tags=frozenset({"mixed", "categorical"}))
 
 
 def standard_problems(dimensions: tuple[int, ...] = (2, 5, 10)) -> list[Problem]:
@@ -233,4 +233,4 @@ def noisy_problems() -> list[Problem]:
         mixed_rastrigin(5),
         material_selection(5),
     ]
-    return [dataclasses.replace(p, name=f"noisy-{p.name}", noise=NOISE, tags=p.tags | {"noisy"}) for p in plain]
+    return [p.model_copy(update={"name": f"noisy-{p.name}", "noise": NOISE, "tags": p.tags | {"noisy"}}) for p in plain]

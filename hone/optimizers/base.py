@@ -1,11 +1,11 @@
 import math
 import numbers
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, ClassVar, List
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict
 
 from hone.config import OptimizerConfig
 from hone.objective_function import ObjectiveFunction
@@ -23,22 +23,29 @@ class EvaluationFailed(Exception):
     """Raise this from an objective function to record the evaluation as failed rather than stop the run."""
 
 
-@dataclass(frozen=True, slots=True)
-class Trial:
+class Trial(BaseModel):
     """A candidate handed out by ask(): evaluate params, then report the outcome with tell()."""
+    model_config = ConfigDict(frozen=True)
+
     id: int
     params: dict[str, Any]
     generation: int
 
 
-@dataclass(slots=True, eq=False)
-class Individual:
+class Individual(BaseModel):
     """One candidate solution: a value for every parameter, and its fitness once evaluated."""
     params: dict[str, Any]
     generation: int
     fitness: float | None = None
     failed: bool = False
     id: int = -1
+
+    # Each individual is a candidate of its own, even when another holds the same values:
+    # optimizers keep track of them by identity.
+    def __eq__(self, other: object) -> bool:
+        return self is other
+
+    __hash__ = object.__hash__
 
 
 class Optimizer(ABC):
@@ -279,8 +286,9 @@ class Optimizer(ABC):
             self._finish_generation()
 
     def _finish_generation(self, final: bool = False) -> None:
+        assert self._population is not None
         self._history.append(self._summarize(self._generation, self._evaluations, self._population))
-        if self._best is not None and self._reached(self._best.fitness):
+        if self._best is not None and self._reached(_fitness(self._best)):
             self._reached_threshold = True
             self._done = True
         elif final or self._generation + 1 >= self.config.generations or self._budget_left() == 0:
@@ -341,7 +349,7 @@ class Optimizer(ABC):
 
     def _ranked(self, individuals: list[Individual]) -> list[Individual]:
         """The individuals, best first. Failed individuals sort last."""
-        return sorted(individuals, key=lambda x: x.fitness, reverse=self.config.maximize)
+        return sorted(individuals, key=_fitness, reverse=self.config.maximize)
 
     def _reached(self, fitness: float) -> bool:
         """Whether fitness is good enough to stop early. Never true without a threshold."""
@@ -355,7 +363,7 @@ class Optimizer(ABC):
         failures = len(evaluated) - len(succeeded)
         if not succeeded:
             return GenerationStats(generation=generation, evaluations=evaluations, failures=failures)
-        fitnesses = [ind.fitness for ind in succeeded]
+        fitnesses = [_fitness(ind) for ind in succeeded]
         return GenerationStats(
             generation=generation,
             evaluations=evaluations,
@@ -367,6 +375,12 @@ class Optimizer(ABC):
             median=float(np.median(fitnesses)),
             std=float(np.std(fitnesses)),
         )
+
+
+def _fitness(individual: Individual) -> float:
+    """The fitness of an individual that has been evaluated."""
+    assert individual.fitness is not None, "an individual was ranked before it was evaluated"
+    return individual.fitness
 
 
 def _key(params: dict[str, Any]) -> tuple:

@@ -2,6 +2,7 @@
 import argparse
 import sys
 import time
+from collections.abc import Sequence
 from importlib.metadata import version
 
 from . import ml
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline", help="compare against summaries saved with --save; exit 1 on a regression")
     args = parser.parse_args(argv)
 
+    default_budgets: Sequence[int]
     if args.quick:
         problems, default_budgets = quick_problems(), QUICK_BUDGETS
     elif args.ml:

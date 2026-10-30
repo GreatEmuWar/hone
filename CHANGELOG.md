@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0 (2026-10-30)
+
+### Added
+
+- **Type information.** hone ships a `py.typed` marker, so type checkers and editors use its type hints in your code. CI checks hone's own types with mypy.
+
+### Changed
+
+- `SearchSpace` accepts any sequence of parameters, such as a tuple, not only a list.
+- `Trial`, the candidate `ask()` hands out, is a pydantic model like the rest of hone's data, so `trial.model_dump()` gives it as a dict. Its fields are unchanged.
+
 ## 0.6.0 (2026-10-30)
 
 New optimizers and parameter types, noise handling, time limits, and fixes from an expert review of 0.5.0. Benchmark results are in [benchmarks/README.md](benchmarks/README.md).

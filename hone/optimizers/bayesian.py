@@ -184,7 +184,7 @@ class _Encoding:
 
     def __init__(self, search_space: SearchSpace) -> None:
         self.search_space = search_space
-        self._blocks: list[tuple[Parameter, slice]] = []
+        self._blocks: list[tuple[RangeParameter | ChoiceParameter, slice]] = []
         self._constant: dict[str, Any] = {}
         column = 0
         numeric = []

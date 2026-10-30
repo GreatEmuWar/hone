@@ -20,7 +20,7 @@ from typing import Any, List
 import numpy as np
 
 from hone.config import CMAESConfig
-from hone.optimizers.base import Individual, Optimizer, UnsupportedSearchSpace
+from hone.optimizers.base import Individual, Optimizer, UnsupportedSearchSpace, _fitness
 from hone.parameters import ChoiceParameter, FixedParameter, Parameter, RangeParameter, SearchSpace
 
 INTEGER_SPREAD = 0.25  # minimum standard deviation of an integer variable, in integer steps
@@ -71,9 +71,9 @@ class CMAES(Optimizer):
             raise UnsupportedSearchSpace("CMA-ES needs at least one range parameter with minimum below maximum")
         self._searched = searched
         self._constant = {
-            p.name: (p.value if isinstance(p, FixedParameter) else p.from_unit(0.0))
+            p.name: (p.from_unit(0.0) if isinstance(p, RangeParameter) else p.value)
             for p in search_space.parameters
-            if p not in searched
+            if isinstance(p, (RangeParameter, FixedParameter)) and p not in searched
         }
         self._integer = np.array([p.integer for p in searched])
         super().__init__(search_space, config, initial_points=initial_points)
@@ -124,6 +124,7 @@ class CMAES(Optimizer):
             self._evaluating_initial_points = True
             return self._initial_individuals(generation)
         if self._evaluating_initial_points:
+            assert previous is not None
             self._evaluating_initial_points = False
             succeeded = self._ranked([ind for ind in previous if not ind.failed])
             if succeeded:
@@ -147,7 +148,7 @@ class CMAES(Optimizer):
         ranked = [ind for ind in self._ranked(previous) if not ind.failed and id(ind) in self._vectors]
         if ranked:
             self._adapt(np.array([self._vectors[id(ind)] for ind in ranked[: len(self._weights)]]))
-            self._recent_bests.append(ranked[0].fitness)
+            self._recent_bests.append(_fitness(ranked[0]))
         self._vectors = {}
         if self.config.restarts and self._should_restart():
             self.population_size *= 2

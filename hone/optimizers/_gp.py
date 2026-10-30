@@ -54,13 +54,13 @@ class GaussianProcess:
         bounds = [LOG_LENGTH] * d + [LOG_SIGNAL, LOG_NOISE]
         starts = [self.theta]
         for _ in range(restarts):
+            assert rng is not None, "restarts need a random number generator"
             starts.append(np.array([rng.uniform(low, high) for low, high in bounds]))
-        best = None
-        for start in starts:
-            found = minimize(self._objective, np.clip(start, *np.array(bounds).T), jac=True, method="L-BFGS-B", bounds=bounds)
-            if best is None or found.fun < best.fun:
-                best = found
-        self.theta = best.x
+        fits = [
+            minimize(self._objective, np.clip(start, *np.array(bounds).T), jac=True, method="L-BFGS-B", bounds=bounds)
+            for start in starts
+        ]
+        self.theta = min(fits, key=lambda found: found.fun).x
         self._condition()
         return self
 
