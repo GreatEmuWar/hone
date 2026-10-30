@@ -6,6 +6,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | --- | --- |
 | [results.md](results.md) | The full suite's results table, from `make benchmark` |
 | `full-summaries.json` | The same results as data |
+| [ml-results.md](ml-results.md) | The machine learning tuning results, from `make benchmark-ml` |
+| `ml-summaries.json` | The same results as data |
 | `quick-baseline.json` | The quick suite's results, which CI compares every change against |
 
 ## What the suite measures
@@ -52,3 +54,16 @@ CMA-ES runs on the 33 problems without choice parameters. Against the genetic op
 - **The genetic optimizer against random search:** it loses ellipsoid-2d, rotated-ellipsoid-2d, rotated-rosenbrock-2d and rotated-rastrigin-2d, where its fixed mutation step is too coarse for the precision those problems need.
 
 Since 0.5.0 every optimizer gets exactly the same number of evaluations. Before, the genetic optimizer used about 10% fewer than its budget, because it does not evaluate its elites again.
+
+## Machine learning tuning
+
+`python -m hone.benchmarks --ml` tunes three scikit-learn models by 5-fold cross-validation, at 10, 20 and 50 evaluations per dimension: a support vector classifier on breast cancer data (C and gamma), kernel ridge regression on diabetes data (alpha, gamma and the kernel), and a random forest on wine data (depth, leaf size, features per split and split criterion). Each problem minimizes 1 − accuracy or 1 − R², so an error of 0.0035 on the breast cancer problem is 0.35 percentage points of accuracy, about 2 of its 569 samples.
+
+The optimum of a real model is unknown, so error is measured from the best score of a reference search: Bayesian optimization with 200 evaluations, and CMA-ES (where it applies), the genetic optimizer and random search with 1,000 each, three seeds of each.
+
+What the results show:
+
+- **Bayesian optimization is the best tuner.** At 20 and 50 evaluations per dimension it has the lowest median error on all three problems. On the kernel ridge problem it finds the reference R² in 60% of runs with 60 evaluations and in every run with 150, where no other optimizer gets within 0.0005 in its median run.
+- **The differences are smaller than on the test functions.** Most settings of a well-chosen model score within a percentage point or two of the best, so random search is a fair tuner, as the hyperparameter tuning literature also finds. The extra value of a better optimizer shows in the last fraction of a point, and in how few evaluations it takes to get there.
+- **Scores move in steps.** Accuracy changes in multiples of one sample, so several optimizers often stop at exactly the same score: the random forest's median error is 0.0057 for every optimizer at 10 evaluations per dimension.
+- **The genetic optimizer is no better than random search here.** It ties or loses on the SVM problem at every budget, and on kernel ridge it wins only at 50 evaluations per dimension. With budgets of 20 to 200 evaluations it runs only a few generations.

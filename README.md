@@ -153,6 +153,29 @@ runs = run_benchmark(standard_problems(), optimizers={"mine": make_my_optimizer}
 print(to_markdown(summarize(runs)))
 ```
 
+#### Machine learning tuning
+
+`python -m hone.benchmarks --ml` (or `make benchmark-ml`) tunes real models, each scored by 5-fold cross-validation on a dataset bundled with scikit-learn, which these problems need (`pip install scikit-learn`):
+
+| Problem | Model and data | Searched |
+| --- | --- | --- |
+| svm-breast-cancer | Support vector classifier, 569 breast tumour samples | C and gamma |
+| kernel-ridge-diabetes | Kernel ridge regression of disease progression, 442 patients | alpha, gamma and the kernel |
+| random-forest-wine | 20-tree random forest, 178 wines in 3 classes | depth, leaf size, features per split and split criterion |
+
+The best possible score is unknown, so error is measured from the best score a long reference search found. They run at 10, 20 and 50 evaluations per dimension, the budgets model tuning usually has. Results are in [benchmarks/ml-results.md](benchmarks/ml-results.md).
+
+[examples/tune_iris.py](examples/tune_iris.py) shows the same kind of tuning in a few lines. Settings that span orders of magnitude, such as C, are searched by their base-10 logarithm:
+
+```python
+def accuracy(log10_C, log10_gamma, kernel):
+    model = make_pipeline(StandardScaler(), SVC(C=10**log10_C, gamma=10**log10_gamma, kernel=kernel))
+    return cross_val_score(model, X, y, cv=folds).mean()
+
+search_space = [RangeParameter("log10_C", -3, 3), RangeParameter("log10_gamma", -4, 1), ChoiceParameter("kernel", ["rbf", "sigmoid"])]
+result = BayesianOptimizer(search_space, BayesianConfig(max_evaluations=30, maximize=True)).optimize(accuracy)
+```
+
 ## Development
 
 Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
@@ -163,6 +186,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make lint` | Run ruff |
 | `make docker-test` | Build the Docker image and run the tests inside it |
 | `make benchmark` | Run the full benchmark suite and update `benchmarks/results.md` |
+| `make benchmark-ml` | Run the machine learning tuning problems and update `benchmarks/ml-results.md` |
 
 CI also runs the quick benchmark and fails if any optimizer's median error, at any budget, grows more than tenfold against `benchmarks/quick-baseline.json`. After an intended change in results, update the baseline with `python -m hone.benchmarks --quick --save benchmarks/quick-baseline.json`.
 

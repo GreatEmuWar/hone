@@ -4,6 +4,7 @@ import sys
 import time
 from importlib.metadata import version
 
+from . import ml
 from .problems import quick_problems, standard_problems
 from .runner import BUDGETS, load_summaries, regressions, run_benchmark, save_summaries, summarize, to_markdown
 
@@ -19,13 +20,16 @@ def _join(numbers: list[int]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m hone.benchmarks", description=__doc__)
-    parser.add_argument("--quick", action="store_true", help="run the small CI subset with fewer seeds and evaluations")
+    suite = parser.add_mutually_exclusive_group()
+    suite.add_argument("--quick", action="store_true", help="run the small CI subset with fewer seeds and evaluations")
+    suite.add_argument("--ml", action="store_true", help="run the machine learning tuning problems instead (needs scikit-learn)")
     parser.add_argument("--seeds", type=int, help="number of seeds per problem (default 10, or 5 with --quick)")
     parser.add_argument(
         "--budgets",
         type=int,
         nargs="+",
-        help=f"evaluations per dimension, one run per budget (default {' '.join(map(str, BUDGETS))}, or {' '.join(map(str, QUICK_BUDGETS))} with --quick)",
+        help=f"evaluations per dimension, one run per budget (default {' '.join(map(str, BUDGETS))}, "
+        f"{' '.join(map(str, QUICK_BUDGETS))} with --quick, or {' '.join(map(str, ml.BUDGETS))} with --ml)",
     )
     parser.add_argument("--jobs", type=int, default=1, help="share the runs among this many processes (Linux only)")
     parser.add_argument("--tolerance", type=float, default=1e-4, help="error at or below which a run counts as solved")
@@ -34,9 +38,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline", help="compare against summaries saved with --save; exit 1 on a regression")
     args = parser.parse_args(argv)
 
-    problems = quick_problems() if args.quick else standard_problems()
+    if args.quick:
+        problems, default_budgets = quick_problems(), QUICK_BUDGETS
+    elif args.ml:
+        problems, default_budgets = ml.ml_problems(), ml.BUDGETS
+    else:
+        problems, default_budgets = standard_problems(), BUDGETS
     seeds = args.seeds or (5 if args.quick else 10)
-    budgets = sorted(set(args.budgets or (QUICK_BUDGETS if args.quick else BUDGETS)))
+    budgets = sorted(set(args.budgets or default_budgets))
 
     start = time.perf_counter()
     summaries = summarize(run_benchmark(problems, seeds=range(seeds), budgets_per_dimension=budgets, jobs=args.jobs), args.tolerance)
