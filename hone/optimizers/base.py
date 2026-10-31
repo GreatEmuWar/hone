@@ -495,7 +495,8 @@ class Optimizer(ABC):
     def _finish_generation(self, final: bool = False) -> None:
         assert self._population is not None
         self._history.append(self._summarize(self._generation, self._evaluations, self._population))
-        if self._best is not None and self._reached(_fitness(self._best)):
+        best = self._best_point()
+        if best is not None and self._reached(best[0]):
             self._reached_threshold = True
             self._finish()
         elif final or self._generation + 1 >= self.config.generations or self._budget_left() == 0:

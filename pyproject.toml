@@ -1,6 +1,6 @@
 [project]
 name = "hone-python"
-version = "0.8.0"
+version = "0.8.1"
 description = "A python-based optimization engine/library."
 authors = [{ name = "David Beare", email = "rnbeare@gmail.com" }]
 readme = "README.md"
@@ -31,11 +31,12 @@ dev = [
     "scikit-learn (>=1.5)",
     "mypy (>=2.4.1,<3.0.0)",
     "types-pyyaml (>=6.0.12.20261030,<7.0.0.0)",
-    "scipy-stubs (>=1.18.1.1,<2.0.0.0)"
+    "scipy-stubs (>=1.18.1.1,<2.0.0.0)",
+    "hypothesis (>=6.170,<7.0)"
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "pbt/tests"]
 xfail_strict = true
 addopts = "--cov=hone --cov-report=term-missing"
 
