@@ -298,5 +298,165 @@
     "lower_quartile": 0.005714285714285672,
     "upper_quartile": 0.005714285714285672,
     "solved": 0.2
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.00437820214252449,
+    "lower_quartile": 0.002189101071262245,
+    "upper_quartile": 0.005274802049371141,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0026238161776122038,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0034932463903121214,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0017543859649122862,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.00043859649122807154,
+    "upper_quartile": 0.0017543859649122862,
+    "solved": 0.3
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.00043859649122807154,
+    "upper_quartile": 0.0017543859649122862,
+    "solved": 0.3
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.0021929824561403854,
+    "upper_quartile": 0.006563421828908511,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.0021929824561403854,
+    "upper_quartile": 0.006563421828908511,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.002189101071262245,
+    "upper_quartile": 0.0035087719298246833,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.00437820214252449,
+    "lower_quartile": 0.0034932463903121214,
+    "upper_quartile": 0.0149278062412668,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0034932463903121214,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0149278062412668,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0017543859649122862,
+    "solved": 0.1
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0052631578947369695,
+    "lower_quartile": 0.0026315789473683737,
+    "upper_quartile": 0.00833333333333322,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0026238161776122038,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.004809035863996253,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.0021929824561403854,
+    "upper_quartile": 0.006563421828908511,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.0021929824561403854,
+    "upper_quartile": 0.006563421828908511,
+    "solved": 0.0
+  },
+  {
+    "problem": "model-selection-breast-cancer-flat",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0035087719298246833,
+    "lower_quartile": 0.002189101071262245,
+    "upper_quartile": 0.0035087719298246833,
+    "solved": 0.0
   }
 ]

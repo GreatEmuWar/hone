@@ -177,4 +177,4 @@ Search spaces are generated with up to six parameters, each possibly switched on
 | A parameter is switched on exactly when it has no condition or its test holds at the point, so a parameter whose parent is switched off is off too | `conditions` module docstring; docs/design/conditions.md |
 | `check` refuses a value for a parameter that is switched off, and a point missing one that is switched on | `SearchSpace.check` docstring |
 | A search space with conditions saved to JSON and loaded again is equal to the original and switches the same parameters on | `conditions` module docstring: "a search space with conditions saves and loads like any other" |
-| Random search only hands out points without switched-off parameters, and its best point is one too | `Optimizer` docstring |
+| Every optimizer only hands out points without switched-off parameters, and its best point is one too | `Optimizer` docstring |
