@@ -27,6 +27,7 @@ INTEGER_SPREAD = 0.25  # minimum standard deviation of an integer variable, in i
 MAX_CONDITION = 1e14  # restart when the covariance matrix is this badly conditioned
 MIN_STEP = 1e-12  # restart when every continuous step, in [0, 1] units, falls below this
 FLAT = 1e-12  # restart when recent generations' best values differ by less than this
+RESAMPLES = 100  # draws from the distribution for a feasible candidate before falling back to a random feasible point
 
 
 class CMAES(Optimizer):
@@ -50,6 +51,7 @@ class CMAES(Optimizer):
         initial_points: Points to evaluate first: one dict of parameter values, or a list of them.
     """
     config_class = CMAESConfig
+    supports_constraints = True
     config: CMAESConfig
 
     def __init__(
@@ -137,10 +139,28 @@ class CMAES(Optimizer):
         self._widen = np.where(spread < minimum, minimum / np.maximum(spread, 1e-300), 1.0)
         return [self._sample(generation) for _ in range(self.population_size)]
 
-    def _sample(self, generation: int) -> Individual:
+    def _draw(self) -> np.ndarray:
         z = self.rng.standard_normal(len(self._mean))
-        x = _mirror(self._mean + self._sigma * self._widen * (self._B @ (self._D * z)))
-        individual = Individual(params=self._decode(x), generation=generation)
+        return _mirror(self._mean + self._sigma * self._widen * (self._B @ (self._D * z)))
+
+    def _sample(self, generation: int) -> Individual:
+        """A candidate from the search distribution, drawn again while it breaks a constraint.
+
+        Redrawing did better on the constrained benchmark than ranking infeasible candidates
+        below every feasible one without evaluating them.
+        """
+        x = self._draw()
+        params = self._decode(x)
+        if self.search_space.constraints and not self.search_space.feasible(params):
+            for _ in range(RESAMPLES):
+                x = self._draw()
+                params = self._decode(x)
+                if self.search_space.feasible(params):
+                    break
+            else:
+                params = self.search_space.sample(self.rng)
+                x = self._encode(params)
+        individual = Individual(params=params, generation=generation)
         self._vectors[individual] = x
         return individual
 

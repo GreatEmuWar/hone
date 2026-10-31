@@ -5,7 +5,18 @@ import os
 
 from hypothesis import HealthCheck, given, settings, strategies as st
 
-from hone import OptimizerConfig, RandomSearch, RangeParameter, SearchSpace
+from hone import (
+    CMAES,
+    BayesianConfig,
+    BayesianOptimizer,
+    CMAESConfig,
+    GeneticOptimizer,
+    GeneticOptimizerConfig,
+    OptimizerConfig,
+    RandomSearch,
+    RangeParameter,
+    SearchSpace,
+)
 from pbt_runs import seeds
 
 EXAMPLES = int(os.environ.get("PBT_EXAMPLES", "25"))
@@ -97,12 +108,20 @@ def linear_constraints(draw):
     return constraints
 
 
-# "Every optimizer then only ever asks for points that satisfy every constraint": random search, for now.
+OPTIMIZERS = {
+    RandomSearch: OptimizerConfig,
+    GeneticOptimizer: GeneticOptimizerConfig,
+    CMAES: CMAESConfig,
+    BayesianOptimizer: BayesianConfig,
+}
+
+
+# "Every optimizer then only ever asks for points that satisfy every constraint."
 @run_settings
-@given(linear_constraints(), seeds)
-def test_random_search_only_asks_for_feasible_points(constraints, seed):
+@given(linear_constraints(), seeds, st.sampled_from(list(OPTIMIZERS)))
+def test_every_optimizer_only_asks_for_feasible_points(constraints, seed, optimizer_class):
     space = SearchSpace(PARAMETERS, constraints)
-    optimizer = RandomSearch(space, OptimizerConfig(max_evaluations=60, seed=seed))
+    optimizer = optimizer_class(space, OPTIMIZERS[optimizer_class](max_evaluations=40, seed=seed))
     while not optimizer.done:
         for trial in optimizer.ask():
             assert space.feasible(trial.params)

@@ -49,8 +49,8 @@ The function takes parameters by name, like an objective, and the point is feasi
 | Optimizer | Infeasible candidate |
 | --- | --- |
 | Random search | Drawn again |
-| Genetic optimizer | Mutated again, as repeat avoidance does; after that, bred again from new parents |
-| CMA-ES | Two variants, chosen on the benchmark: drawn again from the same distribution, or ranked below every feasible candidate by how far it violates, without being evaluated |
+| Genetic optimizer | Repaired: moved toward its fitter parent, which is feasible, by halving the gap ten times and keeping the last point inside, so it lands near the boundary. On the constrained benchmark this beat breeding again from new parents at every budget (×0.84 to ×0.44) |
+| CMA-ES | Drawn again from the same distribution, up to 100 times, then replaced by a random feasible point. Ranking infeasible candidates below every feasible one without evaluating them was also tried: on the constrained benchmark it did worse at every budget (×1.17 to ×1.59) |
 | Bayesian optimization | Its candidate pool keeps only feasible points, and a refined point that leaves the region is dropped |
 
 Initial points must be feasible, or the optimizer raises `ValueError` when created, naming the constraint they break.

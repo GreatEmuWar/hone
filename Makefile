@@ -25,6 +25,10 @@ benchmark-ml: install
 benchmark-noisy: install
 	@poetry run python -m hone.benchmarks --noisy --jobs 4 --markdown benchmarks/noisy-results.md --save benchmarks/noisy-summaries.json
 
+.PHONY: benchmark-constrained
+benchmark-constrained: install
+	@poetry run python -m hone.benchmarks --constrained --jobs 4 --markdown benchmarks/constrained-results.md --save benchmarks/constrained-summaries.json
+
 .PHONY: docker-build
 docker-build:
 	@docker build -t hone .
