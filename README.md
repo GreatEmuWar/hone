@@ -302,6 +302,8 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 
 To release, raise `version` in `pyproject.toml` and add a section for it to `CHANGELOG.md`. Once the change is on `main` and its checks pass, CI tags the version and publishes a GitHub release with that section as its notes and the built package attached.
 
+`tests/properties/` holds property tests, which check hone against what its documentation promises over search spaces, configs and objectives that Hypothesis generates; set `PBT_EXAMPLES` (default 25) for a deeper search. Its README lists every property and where it is promised.
+
 CI also runs the quick benchmark and fails if any optimizer's median error, at any budget, grows more than tenfold against `benchmarks/quick-baseline.json`. After an intended change in results, update the baseline with `python -m hone.benchmarks --quick --save benchmarks/quick-baseline.json`.
 
 ## License

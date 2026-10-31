@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **With `noise=True`, a threshold could stop the run too early.** The threshold was checked against the best point's average as it was when that point was first told, not its current average, so one lucky evaluation could end the run with `reached_threshold` set while the reported `best_fitness` missed the threshold. It is now checked against the reported best.
+- **Elites could fill the whole population.** An `elitism_rate` below 1 could round to every individual, leaving nothing to evaluate, so the genetic optimizer stopped long before its budget was spent. At least one child is now bred each generation.
+
+### Added
+
+- **Property tests** in `tests/properties/`, from an independent bug hunt that found both fixes above: 93 properties that the documentation promises, checked with Hypothesis.
+
 ## 0.8.0 (2026-10-31)
 
 ### Added

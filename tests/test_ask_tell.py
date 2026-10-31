@@ -226,15 +226,28 @@ def test_workers_pass_other_exceptions_on():
         make_optimizer(generations=1, population_size=4).optimize(objectives.raises_a_bug, workers=2)
 
 
+class Repeats(RandomSearch):
+    """Random search that carries its first generation over unchanged, so later ones have nothing new to evaluate."""
+
+    def _next_population(self, previous, generation):
+        return super()._next_population(previous, generation) if previous is None else previous
+
+
 def test_a_generation_with_nothing_new_to_evaluate_is_skipped():
-    """With elitism_rate 0.9 and two individuals, both are elites, so later generations need no evaluations."""
-    optimizer = make_optimizer(generations=4, population_size=2, tournament_size=2, elitism_rate=0.9)
+    optimizer = Repeats(bounded_parameters(), OptimizerConfig(generations=4, population_size=2, seed=0))
     assert len(optimizer.ask()) == 2
     for trial in optimizer._waiting.copy().values():
         optimizer.tell(trial.id, sphere(**trial.params))
     assert optimizer.ask() == [] and optimizer.done
     result = optimizer.result()
     assert len(result.generations) == 4 and result.evaluations == 2
+
+
+def test_elites_never_fill_the_whole_population():
+    """An elitism_rate that rounds to every individual still breeds a child each generation, so the budget is spent."""
+    optimizer = make_optimizer(max_evaluations=200, elitism_rate=0.97)
+    assert optimizer.config.population_size == 16 and round(16 * 0.97) == 16
+    assert optimizer.optimize(sphere).evaluations == 200
 
 
 # --- evaluation budget ----------------------------------------------------

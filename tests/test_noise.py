@@ -188,3 +188,15 @@ def test_cli_runs_the_noisy_suite(tmp_path):
     results = tmp_path / "noisy.md"
     assert main(["--noisy", "--seeds", "1", "--budgets", "2", "--markdown", str(results)]) == 0
     assert "| noisy-sphere-5d |" in results.read_text()
+
+
+def test_the_threshold_is_checked_against_the_current_average():
+    """One lucky value doesn't stop the run once later evaluations of that point bring its average back up."""
+    config = OptimizerConfig(population_size=4, noise=True, threshold=-0.5, seed=0)
+    optimizer = RandomSearch([RangeParameter("n", 0, 1, integer=True)], config)
+    trials = optimizer.ask()
+    assert [t.params["n"] for t in trials] == [1, 1, 1, 0]
+    for trial, value in zip(trials, [-1.0, 1.0, 1.0, 1.0]):
+        optimizer.tell(trial, value)  # n=1 is lucky once, then averages 1/3
+    result = optimizer.result()
+    assert not result.reached_threshold and not optimizer.done and result.best_fitness == pytest.approx(1 / 3)

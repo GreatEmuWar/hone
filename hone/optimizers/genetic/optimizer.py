@@ -93,6 +93,7 @@ class GeneticOptimizer(Optimizer):
         if self.config.noise:
             # A point bred again since it was evaluated has more evaluations now; rank by their average.
             self._refresh_averages(parents)
-        elites = self._ranked(parents)[: round(size * self.config.elitism_rate)] if self.config.elitism else []
+        # At least one child per generation, however the share rounds, so the search keeps moving.
+        elites = self._ranked(parents)[: min(round(size * self.config.elitism_rate), size - 1)] if self.config.elitism else []
         niched = self._niche_children(parents, int(self.config.niche_share * (size - len(elites))), generation)
         return elites + niched + [self._child(parents, generation) for _ in range(size - len(elites) - len(niched))]
