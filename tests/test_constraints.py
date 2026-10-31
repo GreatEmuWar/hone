@@ -1,5 +1,8 @@
 """Constraints: building them from parameters, checking points against them, and keeping optimizers to them."""
 import math
+import subprocess
+import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -249,3 +252,10 @@ def test_a_checkpoint_resumes_a_run_with_a_function_constraint(tmp_path):
         for trial in resumed.ask():
             resumed.tell(trial, area(**trial.params))
     assert resumed.result() == whole
+
+
+def test_the_pressure_vessel_example_finds_the_published_design():
+    example = Path(__file__).parent.parent / "examples" / "pressure_vessel.py"
+    output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout
+    best = next(line for line in output.splitlines() if line.startswith("best: cost"))
+    assert float(best.split()[2].rstrip(",")) < 6059.714 * 1.01
