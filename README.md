@@ -306,7 +306,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make benchmark-noisy` | Run the noisy problems and update `benchmarks/noisy-results.md` |
 | `make benchmark-ml` | Run the machine learning tuning problems and update `benchmarks/ml-results.md` |
 
-To release, raise `version` in `pyproject.toml` and add a section for it to `CHANGELOG.md`. Once the change is on `main` and its checks pass, CI tags the version and publishes a GitHub release with that section as its notes and the built package attached.
+To release, raise `version` in `pyproject.toml` and add a section for it to `CHANGELOG.md`. Once the change is on `main` and its checks pass, CI tags the version, publishes a GitHub release with that section as its notes and the built package attached, and uploads the same package to PyPI as `hone-python`.
 
 `pbt/tests/` holds property tests, which check hone against what its documentation promises over search spaces, configs and objectives that Hypothesis generates; set `PBT_EXAMPLES` (default 25) for a deeper search. `pbt/SUMMARY.md` lists every property and where it is promised.
 
