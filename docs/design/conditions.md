@@ -1,6 +1,6 @@
 # Conditional parameters: design
 
-Status: signed off. Parts 1 and 2 are in: the notation, the search space, every optimizer and the conditional benchmark. Documentation and an example follow.
+Status: done, released in 0.11.0: the notation and the search space (#34), every optimizer and the conditional benchmark (#35), and a README section with an example (#36).
 
 ## What users get
 
