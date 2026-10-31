@@ -87,6 +87,20 @@ def good_enough_or_overnight(progress):
 
 Pressing Ctrl+C stops the run too. Either way, `optimize()` stops the workers and returns the best result so far, with `stopped` set.
 
+### Resuming a run
+
+A run of days shouldn't be lost to a crash, a reboot or a killed job. Give `optimize()` a checkpoint file:
+
+```python
+result = optimizer.optimize(run_simulation, workers=8, checkpoint="design-study.checkpoint")
+```
+
+After each generation the run's whole state is saved to the file. Run the same script again and the run carries on from the last generation saved, instead of starting over; the result is the same as if it had never stopped. Once the run has finished, running it again returns its result at once. The optimizer must be set up as before, with the same config, search space and initial points; a checkpoint from a different setup is refused.
+
+With ask and tell, call `optimizer.save_checkpoint(path)` whenever you like, and `optimizer.load_checkpoint(path)` on a new optimizer set up the same way. Trials that were handed out but not yet told are handed out again by the next `ask()`, and can still be told by their ids.
+
+A checkpoint is a pickle, which can run code when it is loaded, so only load checkpoints you saved yourself.
+
 ### Failed evaluations
 
 Simulations crash, time out or fail to converge. Report such a run as failed rather than inventing a penalty value:

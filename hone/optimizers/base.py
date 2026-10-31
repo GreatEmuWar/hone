@@ -1,11 +1,14 @@
 import math
 import numbers
+import os
+import pickle
 import platform
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from functools import cache, partial
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 from typing import Any, Callable, ClassVar, List
 
 import numpy as np
@@ -136,6 +139,7 @@ class Optimizer(ABC):
         self._start_clock: float | None = None
         self._end_clock: float | None = None
         self._stopped = False
+        self._reissue: list[int] = []  # trials handed out before a checkpoint was loaded, to hand out again
 
     @property
     def done(self) -> bool:
@@ -158,14 +162,19 @@ class Optimizer(ABC):
             self._started_at, self._start_clock = datetime.now(UTC), time.monotonic()
         while self._needs_generation and not self._done:
             self._start_generation()
+        # Trials handed out before a checkpoint was loaded come first, stragglers included;
+        # the budget already counts them.
+        outstanding = {**self._late, **self._waiting}
+        reissued = [outstanding[i] for i in self._reissue if i in outstanding][:n]
+        self._reissue = [i for i in self._reissue if i in outstanding and i not in {ind.id for ind in reissued}]
         if self._done:
-            return []
+            return [Trial(id=ind.id, params=dict(ind.params), generation=ind.generation) for ind in reissued]
         ready = [ind for ind_id, ind in self._waiting.items() if ind_id not in self._handed_out]
-        limits = [n, self._budget_left()]
+        limits = [None if n is None else n - len(reissued), self._budget_left()]
         ready = ready[: min((limit for limit in limits if limit is not None), default=len(ready))]
         self._handed_out.update(ind.id for ind in ready)
         self._handed_out_total += len(ready)
-        return [Trial(id=ind.id, params=dict(ind.params), generation=ind.generation) for ind in ready]
+        return [Trial(id=ind.id, params=dict(ind.params), generation=ind.generation) for ind in reissued + ready]
 
     def tell(self, trial: Trial | int, value: float | None = None, *, failed: bool = False) -> None:
         """Report the outcome of a trial from ask(), by the trial or its id.
@@ -281,6 +290,64 @@ class Optimizer(ABC):
         self._stopped = stopped
         self._end_clock = time.monotonic()
 
+    # --- checkpoints ------------------------------------------------------------
+
+    def save_checkpoint(self, path: str | Path) -> None:
+        """Save the run's whole state to path, so load_checkpoint() can carry it on later, in another process.
+
+        The file is replaced in one step, so a crash while saving leaves the previous checkpoint intact.
+        """
+        state = dict(self.__dict__)
+        elapsed = self._elapsed() if self._start_clock is not None else None
+        state.update(_start_clock=None, _end_clock=None, _workers=1)
+        checkpoint = {
+            "format": CHECKPOINT_FORMAT,
+            "hone_version": _hone_version(),
+            "setup": self._setup(),
+            "elapsed": elapsed,
+            "state": state,
+        }
+        path = Path(path)
+        temporary = path.with_name(path.name + ".tmp")
+        temporary.write_bytes(pickle.dumps(checkpoint, protocol=pickle.HIGHEST_PROTOCOL))
+        os.replace(temporary, path)
+
+    def load_checkpoint(self, path: str | Path) -> None:
+        """Carry on the run saved in path by save_checkpoint(), from where it was saved.
+
+        The checkpoint must come from an optimizer set up like this one: the same class, config,
+        search space and initial points. Trials handed out but not yet told when it was saved
+        are handed out again by ask(), and can still be told by their ids.
+
+        A checkpoint is a pickle, which can run code when it is loaded: only load checkpoints
+        you saved yourself.
+        """
+        checkpoint = pickle.loads(Path(path).read_bytes())
+        if not isinstance(checkpoint, dict) or checkpoint.get("format") != CHECKPOINT_FORMAT:
+            raise ValueError(f"{path} is not a checkpoint this version of hone can read")
+        if checkpoint["setup"] != self._setup():
+            raise ValueError(
+                f"{path} was saved by an optimizer set up differently: a checkpoint needs the same "
+                "optimizer, config, search space and initial points"
+            )
+        workers = self._workers
+        self.__dict__.update(checkpoint["state"])
+        self._workers = workers
+        elapsed = checkpoint["elapsed"]
+        if elapsed is not None:
+            self._start_clock = time.monotonic() - elapsed
+            self._end_clock = self._start_clock + elapsed if self._done else None
+        self._reissue = list(self._late) + [i for i in self._waiting if i in self._handed_out]
+
+    def _setup(self) -> dict[str, Any]:
+        """What a checkpoint must share with the optimizer that loads it."""
+        return {
+            "optimizer": type(self).__name__,
+            "config": self.config.model_dump(mode="json"),
+            "search_space": self.search_space.model_dump(mode="json"),
+            "initial_points": [dict(point) for point in self.initial_points],
+        }
+
     # --- running the objective for you ----------------------------------------
 
     def optimize(
@@ -290,6 +357,7 @@ class Optimizer(ABC):
         workers: int = 1,
         timeout: float | None = None,
         callback: Callable[[Progress], bool | None] | None = None,
+        checkpoint: str | Path | None = None,
     ) -> Result:
         """Run the optimizer from the start, calling objective_function for every candidate.
 
@@ -307,6 +375,10 @@ class Optimizer(ABC):
                 longer is stopped and counts as failed, as does one whose process crashes.
             callback: Called with a Progress after each generation. Return True from it to stop
                 the run; optimize() then returns the best result so far.
+            checkpoint: A file to save the run's state to after each generation. If the file
+                exists, the run carries on from it instead of starting over, so a run killed
+                partway through picks up where it left off; one that finished returns its
+                result at once. The result is the same as an uninterrupted run's.
 
         Pressing Ctrl+C also stops the run and returns the best result so far, marked as
         stopped, once at least one evaluation has succeeded.
@@ -326,26 +398,35 @@ class Optimizer(ABC):
         try:
             self.reset()
             self._objective_name, self._run_workers, self._run_timeout = objective.name, workers, timeout
-            reported = 0
+            if checkpoint is not None and Path(checkpoint).exists():
+                self.load_checkpoint(checkpoint)
+            reported = len(self._history)
+
+            def after_generation() -> int:
+                done = self._report(callback, reported)
+                if checkpoint is not None:
+                    self.save_checkpoint(checkpoint)
+                return done
+
             try:
                 if workers == 1 and timeout is None:
                     while not self._done:
                         for trial in self.ask():
                             self._tell_outcome(trial, evaluate(trial.params))
-                        reported = self._report(callback, reported)
+                        reported = after_generation()
                 elif self.config.min_finished == 1:
                     with EvaluationPool(evaluate, workers, timeout) as pool:
                         while not self._done:
                             trials = self.ask()
                             for trial, outcome in zip(trials, pool.map([trial.params for trial in trials])):
                                 self._tell_outcome(trial, outcome)
-                            reported = self._report(callback, reported)
+                            reported = after_generation()
                 else:
                     with EvaluationPool(evaluate, workers, timeout) as pool:
                         running: dict[int, Trial] = {}
                         while not self.done:
                             # Keep every worker busy: start what the optimizer has ready.
-                            if not self._done and pool.idle:
+                            if pool.idle:
                                 for trial in self.ask(pool.idle):
                                     running[trial.id] = trial
                                     pool.submit(trial.id, trial.params)
@@ -353,7 +434,8 @@ class Optimizer(ABC):
                                 break  # nothing out, and nothing more to hand out
                             for trial_id, outcome in pool.collect():
                                 self._tell_outcome(running.pop(trial_id), outcome)
-                            reported = self._report(callback, reported)
+                            if len(self._history) > reported:
+                                reported = after_generation()
                             if self._done and (self._stopped or self._reached_threshold):
                                 self._late = {}  # stopped early: the stragglers' results aren't needed
                                 break
@@ -504,6 +586,9 @@ class Optimizer(ABC):
             median=float(np.median(fitnesses)),
             std=float(np.std(fitnesses)),
         )
+
+
+CHECKPOINT_FORMAT = 1  # raised when the checkpoint layout changes, so old files are refused clearly
 
 
 @cache
