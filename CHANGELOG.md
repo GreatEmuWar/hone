@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Checkpoints.** `optimize(checkpoint="run.checkpoint")` saves the run's state after each generation, and carries the run on from the file if it exists, so a killed run picks up where it left off with the same result as an uninterrupted one. `save_checkpoint()` and `load_checkpoint()` do the same for ask and tell.
+
 ## 0.7.1 (2026-10-30)
 
 ### Added
