@@ -34,14 +34,21 @@ def blend_crossover(
 
 
 def mutate(
-    params: dict[str, Any], search_space: SearchSpace, rng: np.random.Generator, *, rate: float, scale: float
+    params: dict[str, Any],
+    search_space: SearchSpace,
+    rng: np.random.Generator,
+    *,
+    rate: float,
+    scale: float,
+    only: set[str] | None = None,
 ) -> dict[str, Any]:
     """Mutate each gene with probability rate, returning new parameters.
 
     How a gene changes depends on its parameter: ranges are nudged by scale times their width,
-    choices switch to another value, and fixed parameters never change.
+    choices switch to another value, and fixed parameters never change. With only, genes not
+    in it are left as they are, such as those a condition switches off.
     """
     return {
-        name: search_space[name].mutate(value, rng, scale) if rng.uniform(0, 1) < rate else value
+        name: search_space[name].mutate(value, rng, scale) if (only is None or name in only) and rng.uniform(0, 1) < rate else value
         for name, value in params.items()
     }

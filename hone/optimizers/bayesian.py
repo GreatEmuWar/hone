@@ -7,6 +7,9 @@ simulations, experiments, training runs. It makes the most of a small budget.
 Range parameters are scaled to [0, 1], on a log scale where they have one; integers are searched
 as numbers and rounded. Each choice
 parameter becomes one column per choice, holding 1 for the chosen one and 0 for the rest.
+A parameter a condition switches off is encoded the same way whatever value it holds: a range at
+INACTIVE, and a choice with every column 0. So points that differ only where parameters are
+switched off are the same point to the model, and the values they happen to hold add no noise.
 """
 import math
 from typing import Any, List
@@ -20,12 +23,14 @@ from hone.config import BayesianConfig
 from hone.optimizers._gp import GaussianProcess
 from hone.optimizers.base import Individual, Optimizer, UnsupportedSearchSpace
 from hone.parameters import ChoiceParameter, Parameter, RangeParameter, SearchSpace
+from hone.parameters.conditions import ChoiceTest, holds
 
 GLOBAL_CANDIDATES = 1000  # random candidates per search of the model
 LOCAL_CANDIDATES = 500  # candidates near the best points found so far
 REFINED = 5  # the best candidates are refined by gradient search
 REFIT_EVERY = 5  # past FIT_EVERY_UNTIL observations, refit the model's hyperparameters only this often
 FIT_EVERY_UNTIL = 50
+INACTIVE = 0.5  # where a range switched off by a condition is encoded
 
 
 class BayesianOptimizer(Optimizer):
@@ -46,6 +51,7 @@ class BayesianOptimizer(Optimizer):
     """
     config_class = BayesianConfig
     supports_constraints = True
+    supports_conditions = True
     config: BayesianConfig
 
     def __init__(
@@ -209,6 +215,8 @@ class _Encoding:
 
     def __init__(self, search_space: SearchSpace) -> None:
         self.names = search_space.names  # not the search space itself, whose function constraints may not pickle
+        # The conditions alone, to tell which parameters a point switches off.
+        self._conditions = SearchSpace(search_space.parameters, conditions=search_space.conditions) if search_space.conditions else None
         self._blocks: list[tuple[RangeParameter | ChoiceParameter, slice]] = []
         self._constant: dict[str, Any] = {}
         column = 0
@@ -234,13 +242,41 @@ class _Encoding:
         self.numeric = np.array(numeric, dtype=int)
 
     def encode(self, params: dict) -> np.ndarray:
+        on = self._conditions.active(params) if self._conditions is not None else params
         x = np.zeros(self.columns)
         for p, block in self._blocks:
-            if isinstance(p, RangeParameter):
+            if p.name not in on:
+                x[block] = INACTIVE if isinstance(p, RangeParameter) else 0.0
+            elif isinstance(p, RangeParameter):
                 x[block] = p.to_unit(params[p.name])
             else:
                 x[block.start + p.choices.index(params[p.name])] = 1.0
         return x
+
+    def _switch_off(self, X: np.ndarray) -> np.ndarray:
+        """X with the columns of parameters each row switches off set as encode() sets them."""
+        if self._conditions is None:
+            return X
+        blocks = {p.name: (p, block) for p, block in self._blocks}
+        on: dict[str, np.ndarray] = {}
+        for parameter in self._conditions._order:
+            test = self._conditions._tests.get(parameter.name)
+            if test is None:
+                on[parameter.name] = np.ones(len(X), dtype=bool)
+                continue
+            mask = np.logical_and.reduce([on[name] for name in test.names()])
+            if isinstance(test, ChoiceTest):
+                if test.name in blocks:
+                    p, block = blocks[test.name]
+                    assert isinstance(p, ChoiceParameter)
+                    mask &= X[:, [block.start + p.choices.index(value) for value in test.values]].max(axis=1) > 0.5
+            else:
+                for row in np.flatnonzero(mask):
+                    mask[row] = holds(test, self.decode(X[row]))
+            on[parameter.name] = mask
+        for p, block in self._blocks:
+            X[~on[p.name], block] = INACTIVE if isinstance(p, RangeParameter) else 0.0
+        return X
 
     def decode(self, x: np.ndarray) -> dict:
         values = dict(self._constant)
@@ -261,7 +297,7 @@ class _Encoding:
                 chosen = np.argmax(X[:, block], axis=1)
                 X[:, block] = 0.0
                 X[np.arange(len(X)), block.start + chosen] = 1.0
-        return X
+        return self._switch_off(X)
 
     def spread(self, rng: np.random.Generator, count: int) -> np.ndarray:
         """count points spread over the space: a Latin hypercube for numbers, random choices otherwise."""
