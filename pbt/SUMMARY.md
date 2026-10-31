@@ -8,9 +8,9 @@ This was an independent bug hunt on hone 0.8.0. It followed the procedure in [ag
 
 | Report | Target | Severity | Type | Summary |
 | --- | --- | --- | --- | --- |
-| [bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md](bug_reports/bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md) | `hone.optimizers.base` | Medium | Logic | With `noise=True`, the threshold is checked against a stale average of the best point. A lucky single evaluation can stop the run early with `reached_threshold=True` while the reported `best_fitness`, the current average, misses the threshold. In one realistic example, the run spent 30 of 200 evaluations. The report includes a two-line fix, which passes all 492 existing tests. |
+| [bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md](bug_reports/bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md) | `hone.optimizers.base` | Medium | Logic | With `noise=True`, the threshold is checked against a stale average of the best point. A lucky single evaluation can stop the run early with `reached_threshold=True` while the reported `best_fitness`, the current average, misses the threshold. In one realistic example, the run spent 30 of 200 evaluations. The report includes a two-line fix, which passes all 492 existing tests. **Fixed** in `hone/optimizers/base.py`. |
 
-**Tests**: 93 property tests in `pbt/tests/`. With the default settings, 92 pass, and 1 is a strict `xfail` that documents the bug above. If the bug is fixed, that test fails as an unexpected pass, so remove its `xfail` marker then.
+**Tests**: 93 property tests in `pbt/tests/`. All pass with the default settings. `test_noisy_threshold_consistent` covers the bug above, now fixed, and keeps its failing example as a regression check.
 
 How to run them:
 
@@ -32,7 +32,7 @@ These failures were triaged and turned out not to be bugs, or not bugs that can 
 
 ## Properties tested, by target
 
-**Source** says where each claim comes from. All properties passed, except the one marked ✗.
+**Source** says where each claim comes from. All properties pass. The one marked ✗ failed until the bug report's fix was applied.
 
 ### `hone.parameters` (`test_pbt_parameters.py`)
 
@@ -110,7 +110,7 @@ Each property was run on every optimizer that supports the generated search spac
 | The same with worker processes in `optimize()` | README Slow evaluations |
 | With noise, `best_fitness` is the average of every evaluation of `best_params` | README Noisy objectives |
 | `final_evaluations`: the last evaluations re-evaluate up to 5 earlier points, each at least twice, and the result is the finalist with the best average | README Noisy objectives |
-| ✗ With noise, `reached_threshold` implies the reported best reached the threshold | Config `threshold`; README `reached_threshold` and noise. **Bug report above** |
+| ✗ With noise, `reached_threshold` implies the reported best reached the threshold | Config `threshold`; README `reached_threshold` and noise. **Bug report above; fixed** |
 | The objective's signature is checked before any evaluation, and a non-numeric return raises `TypeError` | README Parameters: "The optimizer checks this before it starts" |
 
 ### `hone.optimizers.genetic` (`test_pbt_genetic.py`)

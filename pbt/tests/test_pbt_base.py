@@ -470,10 +470,8 @@ def test_final_evaluations(problem, final):
     assert result.best_fitness == pytest.approx(min(averages))
 
 
-# With noise, reached_threshold still means the reported best reached the threshold. Fails: see
-# bug_report_hone_optimizers_base_*_thre.md. The stopping check uses the best individual's average as it was when
-# that individual was told, which later evaluations of the same point can raise.
-@pytest.mark.xfail(strict=True, reason="bug: with noise the threshold is checked against a stale average; see pbt/bug_reports")
+# With noise, reached_threshold still means the reported best reached the threshold. The example is the case from
+# pbt/bug_reports/bug_report_hone_optimizers_base_*.md, where the check once used a stale average.
 @run_settings
 @example(
     problem=("genetic", SearchSpace([RangeParameter("n", 0, 10, integer=True)]), 10, 200),
