@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Callable, Self
 
 from pydantic import BaseModel, ConfigDict
 
@@ -89,12 +89,17 @@ class Result(BaseModel):
             return NotImplemented
         return self.model_dump(exclude={"run"}) == other.model_dump(exclude={"run"})
 
-    def rebuild_optimizer(self, optimizer_class: "type[Optimizer] | None" = None) -> "Optimizer":
+    def rebuild_optimizer(
+        self, optimizer_class: "type[Optimizer] | None" = None, *, functions: dict[str, Callable[..., float]] | None = None
+    ) -> "Optimizer":
         """A new optimizer set up exactly as this result's was, to repeat or extend the run.
 
         Running it gives the same result, given the same objective and, for CMA-ES and
         Bayesian optimization, the same number of workers (run.workers). An optimizer that
         isn't one of hone's own is rebuilt by passing its class.
+
+        A constraint made with Constraint.function isn't saved with a result: after loading
+        one, pass each such constraint's function by name, as functions={"stress": stress}.
         """
         from hone import optimizers
 
@@ -108,7 +113,7 @@ class Result(BaseModel):
                 raise ValueError(f"{self.run.optimizer} isn't one of hone's optimizers; pass its class to rebuild it")
             optimizer_class = builtin[self.run.optimizer]
         config = optimizer_class.config_class.model_validate(self.run.config)
-        return optimizer_class(self.run.search_space, config, initial_points=self.run.initial_points or None)
+        return optimizer_class(self.run.search_space.with_functions(functions or {}), config, initial_points=self.run.initial_points or None)
 
     def save(self, filepath: str | Path) -> None:
         Path(filepath).write_text(self.model_dump_json(indent=2))

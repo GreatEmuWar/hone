@@ -77,6 +77,7 @@ class Optimizer(ABC):
             Fixed parameters may be left out.
     """
     config_class: ClassVar[type[OptimizerConfig]] = OptimizerConfig
+    supports_constraints: ClassVar[bool] = False  # whether it keeps to a search space's constraints
 
     def __init__(
         self,
@@ -91,9 +92,17 @@ class Optimizer(ABC):
         self.config = config if config is not None else self.config_class()
         if not isinstance(self.config, self.config_class):
             raise TypeError(f"{type(self).__name__} needs a {self.config_class.__name__}, got {type(self.config).__name__}")
+        if search_space.constraints and not self.supports_constraints:
+            raise UnsupportedSearchSpace(f"{type(self).__name__} doesn't support constraints yet; RandomSearch does")
         if isinstance(initial_points, dict):
             initial_points = [initial_points]
         self.initial_points = [search_space.check(point) for point in initial_points or []]
+        for point in self.initial_points:
+            if broken := search_space.broken(point):
+                raise ValueError(f"the initial point {point} breaks the constraint `{broken[0]}`")
+        if search_space.constraints and not self.initial_points:
+            # Fail now, before any evaluation, if the constraints leave nothing to search.
+            search_space.sample(np.random.default_rng(0))
         self._workers = 1  # how many evaluations run at once; optimizers may size their population from it
         self.reset()
 
@@ -297,7 +306,9 @@ class Optimizer(ABC):
 
         The file is replaced in one step, so a crash while saving leaves the previous checkpoint intact.
         """
-        state = dict(self.__dict__)
+        # The search space is left out: the loading optimizer has its own, which must match, and a
+        # constraint function may not be picklable.
+        state = {name: value for name, value in self.__dict__.items() if name != "search_space"}
         elapsed = self._elapsed() if self._start_clock is not None else None
         state.update(_start_clock=None, _end_clock=None, _workers=1)
         checkpoint = {

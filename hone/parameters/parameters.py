@@ -6,6 +6,8 @@ from typing import Annotated, Any, Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .constraints import AnyConstraint, ExpressionConstraint, FunctionConstraint, InfeasibleSearchSpace, Variable, _Arithmetic
+
 type Value = float | int | str
 
 
@@ -20,7 +22,7 @@ class _Parameter(BaseModel):
         super().__init__(**data)
 
 
-class RangeParameter(_Parameter):
+class RangeParameter(_Arithmetic, _Parameter):
     """A number between minimum and maximum, optionally restricted to integers.
 
     With log=True the range is searched on a logarithmic scale: values are drawn evenly in
@@ -36,6 +38,9 @@ class RangeParameter(_Parameter):
 
     def __init__(self, name: str, minimum: float, maximum: float, **data: Any) -> None:
         super().__init__(name=name, minimum=minimum, maximum=maximum, **data)
+
+    def _as_term(self) -> Variable:
+        return Variable(name=self.name)
 
     @model_validator(mode="after")
     def _check_bounds(self):
@@ -185,14 +190,22 @@ class ChoiceParameter(_Parameter):
 type Parameter = Annotated[RangeParameter | FixedParameter | ChoiceParameter, Field(discriminator="kind")]
 
 
+MAX_DRAWS = 100_000  # draws in a row without a feasible point before a search space counts as infeasible
+
+
 class SearchSpace(BaseModel):
-    """The set of parameters an objective function is optimized over."""
+    """The set of parameters an objective function is optimized over, and any constraints on them.
+
+    Every point an optimizer asks for satisfies every constraint, so the objective is never
+    evaluated where a constraint rules it out.
+    """
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     parameters: list[Parameter] = Field(min_length=1)
+    constraints: list[AnyConstraint] = Field(default_factory=list)
 
-    def __init__(self, parameters: Sequence[Parameter], **data: Any) -> None:
-        super().__init__(parameters=list(parameters), **data)
+    def __init__(self, parameters: Sequence[Parameter], constraints: Sequence[AnyConstraint] = (), **data: Any) -> None:
+        super().__init__(parameters=list(parameters), constraints=list(constraints), **data)
 
     @model_validator(mode="after")
     def _check_unique_names(self):
@@ -202,13 +215,68 @@ class SearchSpace(BaseModel):
             raise ValueError(f"each parameter needs a unique name; repeated: {', '.join(duplicates)}")
         return self
 
+    @model_validator(mode="after")
+    def _check_constraints(self):
+        by_name = {parameter.name: parameter for parameter in self.parameters}
+        for constraint in self.constraints:
+            if isinstance(constraint, ExpressionConstraint):
+                for name in sorted(constraint.names()):
+                    if name not in by_name:
+                        raise ValueError(f"the constraint `{constraint}` uses {name!r}, which isn't a parameter of this search space")
+                    if not isinstance(by_name[name], RangeParameter):
+                        raise ValueError(
+                            f"the constraint `{constraint}` uses {name!r}, which isn't a range parameter; "
+                            "use Constraint.function for constraints on other kinds"
+                        )
+            elif isinstance(constraint, FunctionConstraint):
+                missing = sorted(constraint.required() - set(by_name))
+                if missing:
+                    raise ValueError(f"the constraint {constraint.name!r} needs parameters missing from the search space: {', '.join(missing)}")
+        return self
+
     @property
     def names(self) -> list[str]:
         return [parameter.name for parameter in self.parameters]
 
     def sample(self, rng: np.random.Generator) -> dict[str, Any]:
-        """Draw one value for every parameter."""
-        return {parameter.name: parameter.sample(rng) for parameter in self.parameters}
+        """Draw one value for every parameter, at a point that satisfies every constraint.
+
+        Points are drawn until one is feasible. Raises InfeasibleSearchSpace after MAX_DRAWS
+        draws in a row without one.
+        """
+        for _ in range(MAX_DRAWS if self.constraints else 1):
+            point = {parameter.name: parameter.sample(rng) for parameter in self.parameters}
+            if self.feasible(point):
+                return point
+        raise InfeasibleSearchSpace(
+            f"no point satisfying every constraint was found in {MAX_DRAWS:,} random draws: the constraints may "
+            "contradict each other, or leave too small a region to sample"
+        )
+
+    def with_functions(self, functions: dict[str, Any]) -> "SearchSpace":
+        """This search space with function constraints given their functions by name, as after loading one.
+
+        Raises ValueError if a function constraint is left without one.
+        """
+        constraints: list[AnyConstraint] = []
+        for constraint in self.constraints:
+            if isinstance(constraint, FunctionConstraint) and constraint.name in functions:
+                constraint = constraint.model_copy(update={"func": functions[constraint.name]})
+            if isinstance(constraint, FunctionConstraint) and constraint.func is None:
+                raise ValueError(f"the constraint {constraint.name!r} needs its function, which isn't saved; pass it in functions")
+            constraints.append(constraint)
+        unknown = sorted(set(functions) - {c.name for c in self.constraints if isinstance(c, FunctionConstraint)})
+        if unknown:
+            raise ValueError(f"no function constraint is named {', '.join(map(repr, unknown))}")
+        return SearchSpace(self.parameters, constraints)
+
+    def feasible(self, params: dict[str, Any]) -> bool:
+        """Whether params satisfy every constraint."""
+        return all(constraint.satisfied(params) for constraint in self.constraints)
+
+    def broken(self, params: dict[str, Any]) -> list[AnyConstraint]:
+        """The constraints params don't satisfy."""
+        return [constraint for constraint in self.constraints if not constraint.satisfied(params)]
 
     def check(self, params: dict[str, Any]) -> dict[str, Any]:
         """params as a complete point of this space, in parameter order, or ValueError if they aren't one.
