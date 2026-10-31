@@ -4,9 +4,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 10,
-    "median_error": 0.0061403508771927795,
-    "lower_quartile": 0.0035087719298246833,
-    "upper_quartile": 0.010537959944107944,
+    "median_error": 0.0052553951249804665,
+    "lower_quartile": 0.003508771929824517,
+    "upper_quartile": 0.009649122807017435,
     "solved": 0.0
   },
   {
@@ -14,9 +14,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 20,
     "runs": 10,
-    "median_error": 0.0035087719298246833,
-    "lower_quartile": 0.0035087719298246833,
-    "upper_quartile": 0.005263157894736636,
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.003504890544946543,
     "solved": 0.0
   },
   {
@@ -25,9 +25,9 @@
     "budget_per_dimension": 50,
     "runs": 10,
     "median_error": 0.0017543859649122862,
-    "lower_quartile": 0.0017543859649122862,
+    "lower_quartile": 0.00043859649122807154,
     "upper_quartile": 0.0017543859649122862,
-    "solved": 0.1
+    "solved": 0.3
   },
   {
     "problem": "svm-breast-cancer",
@@ -124,9 +124,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 10,
-    "median_error": 0.0037469004625194646,
-    "lower_quartile": 0.0020689315137424336,
-    "upper_quartile": 0.00465391903746043,
+    "median_error": 0.0032729074784491052,
+    "lower_quartile": 0.002047849126634499,
+    "upper_quartile": 0.004328803100636325,
     "solved": 0.0
   },
   {
@@ -134,20 +134,20 @@
     "optimizer": "genetic",
     "budget_per_dimension": 20,
     "runs": 10,
-    "median_error": 0.0007691415933642198,
-    "lower_quartile": 0.00017977646101663414,
-    "upper_quartile": 0.0016769383884594202,
-    "solved": 0.3
+    "median_error": 0.0014256035934644418,
+    "lower_quartile": 0.0009350181575874805,
+    "upper_quartile": 0.002045881962647489,
+    "solved": 0.0
   },
   {
     "problem": "kernel-ridge-diabetes",
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 10,
-    "median_error": 0.00028871193953566854,
-    "lower_quartile": 1.2283430667808792e-05,
-    "upper_quartile": 0.0011863073057966078,
-    "solved": 0.4
+    "median_error": 0.0009142318280380146,
+    "lower_quartile": 0.0004323989086870428,
+    "upper_quartile": 0.0011225470124002213,
+    "solved": 0.0
   },
   {
     "problem": "kernel-ridge-diabetes",
@@ -216,7 +216,7 @@
     "runs": 10,
     "median_error": 0.005714285714285672,
     "lower_quartile": 0.005714285714285672,
-    "upper_quartile": 0.005714285714285672,
+    "upper_quartile": 0.005833333333333274,
     "solved": 0.1
   },
   {
@@ -235,9 +235,9 @@
     "budget_per_dimension": 50,
     "runs": 10,
     "median_error": 0.005714285714285672,
-    "lower_quartile": 0.00154761904761902,
+    "lower_quartile": 0.005714285714285672,
     "upper_quartile": 0.005714285714285672,
-    "solved": 0.2
+    "solved": 0.1
   },
   {
     "problem": "random-forest-wine",
