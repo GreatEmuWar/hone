@@ -5,6 +5,7 @@
 ### Added
 
 - **Choosing an optimizer automatically.** `choose_optimizer(search_space, max_evaluations, ...)` returns the optimizer the benchmark suggests: Bayesian optimization for 200 evaluations or fewer, then the genetic optimizer if there are choice parameters, and CMA-ES otherwise. On the benchmark, its pick's median error is 1.24 times the best optimizer's on geometric mean, against 5.9 times for always using CMA-ES.
+- **Checkpoints.** `optimize(checkpoint="run.checkpoint")` saves the run's state after each generation, and carries the run on from the file if it exists, so a killed run picks up where it left off with the same result as an uninterrupted one. `save_checkpoint()` and `load_checkpoint()` do the same for ask and tell.
 
 ## 0.7.1 (2026-10-30)
 
