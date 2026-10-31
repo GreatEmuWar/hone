@@ -109,6 +109,10 @@ class BayesianOptimizer(Optimizer):
         # The best value so far. With noise, the best observation is likely a lucky one, so use the
         # lowest the model predicts at any evaluated point instead.
         best = float(model.predict(X)[0].min()) if self.config.noise else float(model.z.min())
+        # Candidates still being evaluated are assumed to come out as predicted, so none is proposed again.
+        for individual in self._outstanding():
+            x = self._encoding.encode(individual.params)
+            model = model.with_observation(x, float(model.predict(x)[0][0]))
         chosen = []
         for _ in range(count):
             x = self._maximize_improvement(model, best)

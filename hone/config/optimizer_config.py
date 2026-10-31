@@ -19,6 +19,11 @@ class OptimizerConfig(BaseModel):
     # With noise, evaluations kept back to re-evaluate the most promising points at the end, so
     # the result is chosen, and its value reported, from averages rather than single lucky values
     final_evaluations: int = Field(default=0, ge=0)
+    # The share of each generation's evaluations that must finish before the next generation is
+    # bred. Below 1, the slowest evaluations don't hold up the run: they finish in the background,
+    # and their results join the generation under way when they arrive. Results then depend on
+    # timing, so runs are no longer exactly repeatable.
+    min_finished: float = Field(default=1.0, gt=0, le=1)
 
     @model_validator(mode="after")
     def _check_final_evaluations(self):

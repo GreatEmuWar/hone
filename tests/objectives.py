@@ -91,3 +91,9 @@ def slow_sphere(x, y):
     """Sphere, taking a tenth of a second per evaluation."""
     time.sleep(0.1)
     return x**2 + y**2
+
+
+def sometimes_slow(x, y):
+    """Sphere, taking a third of a second for about one point in four and almost no time for the rest."""
+    time.sleep(0.3 if int(abs(x) * 1e6) % 4 == 0 else 0.005)
+    return x**2 + y**2

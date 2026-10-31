@@ -191,3 +191,40 @@ def test_checkpoints_work_with_workers(tmp_path):
     path = tmp_path / "run.checkpoint"
     make().optimize(objectives.sphere, workers=2, checkpoint=path, callback=interrupt_at(2))
     assert make().optimize(objectives.sphere, workers=2, checkpoint=path) == make().optimize(objectives.sphere)
+
+
+def test_stragglers_out_at_a_checkpoint_are_handed_out_again(tmp_path):
+    def make():
+        return GeneticOptimizer(bounded_parameters(), GeneticOptimizerConfig(population_size=4, generations=2, min_finished=0.5, seed=0))
+
+    optimizer = make()
+    first = optimizer.ask()
+    optimizer.tell(first[0], 1.0)
+    optimizer.tell(first[1], 2.0)
+    second = optimizer.ask()  # first[2] and first[3] are now stragglers
+    path = tmp_path / "run.checkpoint"
+    optimizer.save_checkpoint(path)
+
+    resumed = make()
+    resumed.load_checkpoint(path)
+    again = resumed.ask()
+    assert {t.id for t in again} == {t.id for t in first[2:]} | {t.id for t in second}
+    for trial in again:
+        resumed.tell(trial, sphere(**trial.params))
+    while not resumed.done:
+        for trial in resumed.ask():
+            resumed.tell(trial, sphere(**trial.params))
+    assert resumed.result().evaluations == 8
+
+
+def test_an_asynchronous_run_carries_on_from_its_checkpoint(tmp_path):
+    import objectives
+
+    def make():
+        return GeneticOptimizer(bounded_parameters(), GeneticOptimizerConfig(population_size=8, max_evaluations=64, min_finished=0.5, seed=0))
+
+    path = tmp_path / "run.checkpoint"
+    stopped = make().optimize(objectives.sometimes_slow, workers=4, checkpoint=path, callback=interrupt_at(2))
+    assert stopped.stopped
+    resumed = make().optimize(objectives.sometimes_slow, workers=4, checkpoint=path)
+    assert resumed.evaluations == 64 and not resumed.stopped

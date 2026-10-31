@@ -5,6 +5,7 @@
 ### Added
 
 - **Checkpoints.** `optimize(checkpoint="run.checkpoint")` saves the run's state after each generation, and carries the run on from the file if it exists, so a killed run picks up where it left off with the same result as an uninterrupted one. `save_checkpoint()` and `load_checkpoint()` do the same for ask and tell.
+- **Not waiting for the slowest evaluations.** `min_finished` (default 1) is the share of each generation's evaluations that must finish before the next generation is bred. Below 1, slow evaluations finish in the background and their results join the generation under way, so workers no longer sit idle while one slow evaluation runs on. Bayesian optimization assumes evaluations still running come out as its model predicts, so it doesn't propose them again.
 
 ## 0.7.1 (2026-10-30)
 
