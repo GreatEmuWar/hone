@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Not waiting for the slowest evaluations.** `min_finished` (default 1) is the share of each generation's evaluations that must finish before the next generation is bred. Below 1, slow evaluations finish in the background and their results join the generation under way, so workers no longer sit idle while one slow evaluation runs on. Bayesian optimization assumes evaluations still running come out as its model predicts, so it doesn't propose them again.
+
 ## 0.7.1 (2026-10-30)
 
 ### Added

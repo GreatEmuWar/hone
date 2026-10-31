@@ -21,10 +21,10 @@ class _Worker:
         self.process.start()
         child.close()
         self.ready = False
-        self.task: int | None = None  # index of the candidate being evaluated
+        self.task: Any = None  # key of the candidate being evaluated, or None while idle
         self.deadline = float("inf")
 
-    def start(self, task: int, params: dict, timeout: float | None) -> None:
+    def start(self, task: Any, params: dict, timeout: float | None) -> None:
         self.connection.send((task, params))
         self.task = task
         self.deadline = time.monotonic() + timeout if timeout is not None else float("inf")
@@ -76,6 +76,8 @@ class EvaluationPool:
         self._evaluate = evaluate
         self._timeout = timeout
         self._workers = [self._new_worker() for _ in range(workers)]
+        self._queue: list[tuple[Any, dict]] = []  # submitted, not yet started
+        self._finished: list[tuple[Any, float | None]] = []
 
     def _new_worker(self) -> _Worker:
         return _Worker(self._context, self._evaluate)
@@ -83,12 +85,34 @@ class EvaluationPool:
     def map(self, candidates: list[dict]) -> list[float | None]:
         """The outcome of each candidate, in order: its value, or None if it failed, timed out or crashed its worker."""
         outcomes: list[float | None] = [None] * len(candidates)
-        waiting = list(range(len(candidates)))[::-1]
-        while waiting or any(w.task is not None for w in self._workers):
+        for index, params in enumerate(candidates):
+            self.submit(index, params)
+        while self.pending:
+            for index, outcome in self.collect():
+                outcomes[index] = outcome
+        return outcomes
+
+    def submit(self, key: Any, params: dict) -> None:
+        """Queue a candidate, identified by key, to be evaluated by the next free worker."""
+        self._queue.append((key, params))
+
+    @property
+    def pending(self) -> int:
+        """Candidates submitted whose outcomes haven't been collected yet."""
+        return len(self._queue) + sum(w.task is not None for w in self._workers) + len(self._finished)
+
+    @property
+    def idle(self) -> int:
+        """Workers with nothing to do, counting those still starting up."""
+        return max(sum(w.task is None for w in self._workers) - len(self._queue), 0)
+
+    def collect(self) -> list[tuple[Any, float | None]]:
+        """Wait until at least one candidate is finished, and return (key, outcome) for each one that is."""
+        while not self._finished and (self._queue or any(w.task is not None for w in self._workers)):
             for worker in self._workers:
-                if worker.ready and worker.task is None and waiting:
-                    task = waiting.pop()
-                    worker.start(task, candidates[task], self._timeout)
+                if worker.ready and worker.task is None and self._queue:
+                    key, params = self._queue.pop(0)
+                    worker.start(key, params, self._timeout)
             # The time limit starts once a worker has started, so it never counts start-up time.
             watched = [w for w in self._workers if w.task is not None or not w.ready]
             deadline = min((w.deadline for w in watched), default=float("inf"))
@@ -96,12 +120,13 @@ class EvaluationPool:
             heard = wait([w.connection for w in watched], timeout=limit)
             for worker in watched:
                 if worker.connection in heard:
-                    self._collect(worker, outcomes)
+                    self._collect(worker)
                 elif time.monotonic() >= worker.deadline:
-                    self._replace(worker)  # out of time: its outcome stays None
-        return outcomes
+                    self._replace(worker)  # out of time: its outcome is None
+        finished, self._finished = self._finished, []
+        return finished
 
-    def _collect(self, worker: _Worker, outcomes: list[float | None]) -> None:
+    def _collect(self, worker: _Worker) -> None:
         try:
             message = worker.connection.recv()
         except (EOFError, OSError):
@@ -115,10 +140,13 @@ class EvaluationPool:
         task, value, error = message
         if error is not None:
             raise error
-        outcomes[task] = value
+        self._finished.append((task, value))
         worker.task = None
 
     def _replace(self, worker: _Worker) -> None:
+        """Stop worker, counting its evaluation, if any, as failed, and start a new one in its place."""
+        if worker.task is not None:
+            self._finished.append((worker.task, None))
         worker.stop(force=True)
         self._workers[self._workers.index(worker)] = self._new_worker()
 

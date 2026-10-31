@@ -111,6 +111,9 @@ class Optimizer(ABC):
         self._population: list[Individual] | None = None  # the current generation, or the last one finished
         self._needs_generation = True
         self._waiting: dict[int, Individual] = {}  # created this generation, not yet told
+        self._late: dict[int, Individual] = {}  # handed out in an earlier generation, still being evaluated
+        self._told_this_generation = 0
+        self._quorum = 0  # evaluations of the current generation needed before the next is bred
         self._handed_out: set[int] = set()
         self._handed_out_total = 0  # trials handed out over the whole run
         self._next_id = 0
@@ -136,8 +139,11 @@ class Optimizer(ABC):
 
     @property
     def done(self) -> bool:
-        """Whether the run has finished: every generation is complete, or the threshold was reached."""
-        return self._done
+        """Whether the run has finished: every generation is complete, or the threshold was reached.
+
+        With min_finished below 1, the run isn't done until every late result has been told.
+        """
+        return self._done and not self._late
 
     def ask(self, n: int | None = None) -> list[Trial]:
         """Hand out up to n candidates to evaluate, or all that are ready when n is None.
@@ -170,8 +176,9 @@ class Optimizer(ABC):
         parents.
         """
         trial_id = trial.id if isinstance(trial, Trial) else trial
-        individual = self._waiting.get(trial_id)
-        if individual is None or trial_id not in self._handed_out:
+        late = trial_id in self._late
+        individual = self._late.get(trial_id) if late else self._waiting.get(trial_id)
+        if individual is None or not (late or trial_id in self._handed_out):
             raise ValueError(f"trial {trial_id} is not waiting for a result; it was never asked for or was already told")
         if not failed:
             if value is None:
@@ -180,7 +187,7 @@ class Optimizer(ABC):
                 raise TypeError(f"the value must be a number, got {value!r}")
             failed = not math.isfinite(value)
 
-        del self._waiting[trial_id]
+        del (self._late if late else self._waiting)[trial_id]
         self._evaluations += 1
         if failed:
             self._failures += 1
@@ -197,7 +204,19 @@ class Optimizer(ABC):
             if self._best is None or self._is_better(individual.fitness, self._best.fitness):
                 self._best = individual
 
+        if late:
+            # A straggler from an earlier generation joins the one under way, to breed from.
+            if self._population is not None and not self._done:
+                self._population.append(individual)
+            return
+        self._told_this_generation += 1
         if not self._waiting:
+            self._finish_generation()
+        elif self._handed_out.issuperset(self._waiting) and self._told_this_generation >= self._quorum:
+            # Enough of the generation has finished: the rest go on in the background.
+            self._late.update(self._waiting)
+            self._population = [ind for ind in self._population or [] if ind.fitness is not None]
+            self._waiting = {}
             self._finish_generation()
         elif self._budget_left() == 0 and self._handed_out.isdisjoint(self._waiting):
             # Out of budget, with every trial handed out so far reported: end on a partial generation.
@@ -314,13 +333,30 @@ class Optimizer(ABC):
                         for trial in self.ask():
                             self._tell_outcome(trial, evaluate(trial.params))
                         reported = self._report(callback, reported)
-                else:
+                elif self.config.min_finished == 1:
                     with EvaluationPool(evaluate, workers, timeout) as pool:
                         while not self._done:
                             trials = self.ask()
                             for trial, outcome in zip(trials, pool.map([trial.params for trial in trials])):
                                 self._tell_outcome(trial, outcome)
                             reported = self._report(callback, reported)
+                else:
+                    with EvaluationPool(evaluate, workers, timeout) as pool:
+                        running: dict[int, Trial] = {}
+                        while not self.done:
+                            # Keep every worker busy: start what the optimizer has ready.
+                            if not self._done and pool.idle:
+                                for trial in self.ask(pool.idle):
+                                    running[trial.id] = trial
+                                    pool.submit(trial.id, trial.params)
+                            if not running:
+                                break  # nothing out, and nothing more to hand out
+                            for trial_id, outcome in pool.collect():
+                                self._tell_outcome(running.pop(trial_id), outcome)
+                            reported = self._report(callback, reported)
+                            if self._done and (self._stopped or self._reached_threshold):
+                                self._late = {}  # stopped early: the stragglers' results aren't needed
+                                break
             except KeyboardInterrupt:
                 if self._best is None:
                     raise  # nothing to return
@@ -364,11 +400,13 @@ class Optimizer(ABC):
             self._population = self._next_population(self._population, self._generation)
         self._waiting = {}
         self._handed_out = set()
+        self._told_this_generation = 0
         for individual in self._population:
             if individual.fitness is None:
                 individual.id = self._next_id
                 self._next_id += 1
                 self._waiting[individual.id] = individual
+        self._quorum = math.ceil(self.config.min_finished * len(self._waiting) - 1e-9)
         if not self._waiting:
             self._finish_generation()
 
@@ -423,6 +461,10 @@ class Optimizer(ABC):
             Individual(params=dict(self._points[self._finalists[i % len(self._finalists)]]), generation=generation)
             for i in range(reserve)
         ]
+
+    def _outstanding(self) -> list[Individual]:
+        """Individuals of earlier generations still being evaluated."""
+        return list(self._late.values())
 
     def _initial_individuals(self, generation: int) -> list[Individual]:
         return [Individual(params=dict(point), generation=generation) for point in self.initial_points]
