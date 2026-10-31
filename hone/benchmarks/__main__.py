@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from importlib.metadata import version
 
 from . import ml
+from .constrained import constrained_problems
 from .problems import noisy_problems, quick_problems, standard_problems
 from .runner import BUDGETS, load_summaries, regressions, run_benchmark, save_summaries, summarize, to_markdown
 
@@ -26,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     suite.add_argument("--quick", action="store_true", help="run the small CI subset with fewer seeds and evaluations")
     suite.add_argument("--ml", action="store_true", help="run the machine learning tuning problems instead (needs scikit-learn)")
     suite.add_argument("--noisy", action="store_true", help="run the problems with noise added to every evaluation instead")
+    suite.add_argument("--constrained", action="store_true", help="run the problems with constraints instead")
     parser.add_argument("--seeds", type=int, help="number of seeds per problem (default 10, or 5 with --quick)")
     parser.add_argument(
         "--budgets",
@@ -49,6 +51,8 @@ def main(argv: list[str] | None = None) -> int:
         problems, default_budgets = ml.ml_problems(), ml.BUDGETS
     elif args.noisy:
         problems, default_budgets = noisy_problems(), NOISY_BUDGETS
+    elif args.constrained:
+        problems, default_budgets = constrained_problems(), BUDGETS
     else:
         problems, default_budgets = standard_problems(), BUDGETS
     seeds = args.seeds or (5 if args.quick else 10)
