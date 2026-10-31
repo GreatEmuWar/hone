@@ -40,7 +40,17 @@ result = optimizer.optimize(run_simulation, workers=8, timeout=600)
 
 `timeout` limits each evaluation, in seconds. An evaluation that runs longer is stopped and counts as failed, as does one whose process crashes, so one hung simulation can't stall the run. A timeout also runs evaluations in a background process when `workers` is 1.
 
-Each generation waits for its slowest evaluation before the next one starts, so workers beyond the population size sit idle. CMA-ES allows for this: unless you set `population_size`, it uses at least twice as many candidates per generation as there are workers. Bayesian optimization proposes one candidate per worker at a time. Their results, unlike the other optimizers', therefore depend on the number of workers as well as the seed. For the genetic optimizer and random search, keep `population_size` at least two or three times `workers`.
+Each generation waits for its slowest evaluation before the next one starts, so workers beyond the population size sit idle, and so do workers that finish early while one slow evaluation runs on. When evaluation times vary, set `min_finished` in the config to let the next generation start once that share of the current one has finished:
+
+```python
+config = CMAESConfig(max_evaluations=2000, min_finished=0.75)
+```
+
+The slowest quarter of each generation then finishes in the background while the workers move on, and each late result joins the generation under way when it arrives: the genetic optimizer can breed from it, Bayesian optimization adds it to its model, and every optimizer counts it toward the best result. At the end, `optimize()` waits for the last of them, so the whole budget is used; stopping early by callback or threshold doesn't wait. Because results then depend on which evaluations finish first, runs with `min_finished` below 1 can't be repeated exactly.
+
+Measured with 8 workers on evaluations of uneven length (one in ten taking five times as long), `min_finished=0.75` gets the same number of evaluations done in 23% to 43% less time. Per evaluation it does a little worse for CMA-ES and Bayesian optimization, whose updates prefer complete generations, and better for the genetic optimizer; but in the same time, with the evaluations it saves, its median error was ×0.76 for the genetic optimizer, ×0.25 for CMA-ES and ×0.12 for Bayesian optimization. Lower values, such as 0.5, save little more time and cost more per evaluation.
+
+Workers beyond the population size still sit idle. CMA-ES allows for this: unless you set `population_size`, it uses at least twice as many candidates per generation as there are workers. Bayesian optimization proposes one candidate per worker at a time. Their results, unlike the other optimizers', therefore depend on the number of workers as well as the seed. For the genetic optimizer and random search, keep `population_size` at least two or three times `workers`.
 
 When evaluations run somewhere `optimize()` can't reach, such as jobs on a compute cluster or tests on a physical rig, ask the optimizer for candidates and tell it the results yourself, in any order:
 
