@@ -4,7 +4,15 @@
 
 ### Added
 
-- **Conditional parameters.** `SearchSpace(parameters, conditions=[model["svm"] >> [kernel, C], kernel["rbf"] >> gamma])` switches parameters on only while a test holds: a choice parameter's values, such as `model["svm"]`, or a comparison of range parameters in brackets, such as `(layers >= 3) >> units_3`. A parameter that is switched off isn't passed to the objective, which gives it a default, and results and initial points leave it out. Constraints on it apply only while it is switched on, and `test >> constraint` makes a constraint apply only while the test holds. Random search supports them so far; the other optimizers refuse them until they do. See [docs/design/conditions.md](docs/design/conditions.md).
+- **Conditional parameters.** `SearchSpace(parameters, conditions=[model["svm"] >> [kernel, C], kernel["rbf"] >> gamma])` switches parameters on only while a test holds: a choice parameter's values, such as `model["svm"]`, or a comparison of range parameters in brackets, such as `(layers >= 3) >> units_3`. A parameter that is switched off isn't passed to the objective, which gives it a default, and results and initial points leave it out. Constraints on it apply only while it is switched on, and `test >> constraint` makes a constraint apply only while the test holds. Every optimizer supports them. See [docs/design/conditions.md](docs/design/conditions.md).
+  - Bayesian optimization encodes a parameter switched off the same whatever value it holds, so its model isn't misled by values that don't matter. On the conditional benchmark its geometric-mean error is ×0.0004 and ×0.0003 that of the same problems with every parameter always on, at 10 and 20 evaluations per dimension.
+  - The genetic optimizer keeps a value for every gene, switched off or not, takes a gene from the parent it is on in, and mutates only genes switched on. With conditions, `niche_share` defaults to 0.5, so each branch breeds within itself; its error is ×0.05, ×0.08 and ×0.00004 the always-on version's at 50, 100 and 1,000 evaluations per dimension.
+  - CMA-ES searches conditions on range parameters, keeping a parameter's place in its distribution while it is switched off.
+- **A conditional benchmark suite.** `python -m hone.benchmarks --conditional` runs four problems with conditional parameters, each also as a flat version with every parameter always on, to compare. The machine learning suite gains model-selection-breast-cancer, which chooses a classifier and its settings, and its flat version.
+
+### Changed
+
+- `GeneticOptimizerConfig.niche_share` defaults to `None`: 0.5 for a search space with conditions, and 0, as before, otherwise. Results without conditions don't change.
 
 ## 0.10.0 (2026-10-31)
 

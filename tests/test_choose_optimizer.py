@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from hone import CMAES, BayesianOptimizer, GeneticOptimizer, choose_optimizer
-from hone.benchmarks import constrained_problems, ml, noisy_problems, standard_problems
+from hone.benchmarks import conditional_problems, constrained_problems, ml, noisy_problems, standard_problems
 from hone.parameters import ChoiceParameter, RangeParameter
 
 NUMBERS = [RangeParameter("x", -5, 5), RangeParameter("n", 0, 10, integer=True)]
@@ -73,6 +73,7 @@ def picks_against_best(summaries, problems):
         ("noisy-summaries.json", noisy_problems),
         ("ml-summaries.json", ml.ml_problems),
         ("constrained-summaries.json", constrained_problems),
+        ("conditional-summaries.json", conditional_problems),
     ],
 )
 def test_its_picks_come_close_to_the_best_optimizer_on_the_benchmark(file, problems):
