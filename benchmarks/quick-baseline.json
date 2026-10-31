@@ -4,9 +4,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 4.648158093344625,
-    "lower_quartile": 4.075547736488436,
-    "upper_quartile": 7.354676866353801,
+    "median_error": 4.149765305354629,
+    "lower_quartile": 3.7713209251884856,
+    "upper_quartile": 4.253330415349814,
     "solved": 0.0
   },
   {
@@ -14,9 +14,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 0.23406974110794607,
-    "lower_quartile": 0.11381659000261948,
-    "upper_quartile": 0.41316385895748026,
+    "median_error": 0.12410985646012151,
+    "lower_quartile": 0.12044270607244992,
+    "upper_quartile": 0.19357599464464786,
     "solved": 0.0
   },
   {
@@ -24,9 +24,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 0.030330847495779474,
-    "lower_quartile": 0.009944319730062566,
-    "upper_quartile": 0.034827511792959544,
+    "median_error": 0.009355351429782364,
+    "lower_quartile": 0.008592589446918132,
+    "upper_quartile": 0.02602526755836032,
     "solved": 0.0
   },
   {
@@ -104,9 +104,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 250000.38238714248,
-    "lower_quartile": 230409.43574810965,
-    "upper_quartile": 273095.6567809294,
+    "median_error": 146587.6755623626,
+    "lower_quartile": 127056.00017834561,
+    "upper_quartile": 150241.31276934338,
     "solved": 0.0
   },
   {
@@ -114,9 +114,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 11559.000145421815,
-    "lower_quartile": 6952.014577144748,
-    "upper_quartile": 13200.824051441334,
+    "median_error": 4696.313568444043,
+    "lower_quartile": 1859.7350529525206,
+    "upper_quartile": 15687.370053159455,
     "solved": 0.0
   },
   {
@@ -124,9 +124,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 360.07126035515375,
-    "lower_quartile": 123.49807911001042,
-    "upper_quartile": 906.1280206833852,
+    "median_error": 133.28321060542655,
+    "lower_quartile": 60.005345800395794,
+    "upper_quartile": 136.3068503115104,
     "solved": 0.0
   },
   {
@@ -204,9 +204,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 40.87357729641486,
-    "lower_quartile": 34.36148695187417,
-    "upper_quartile": 42.55839608592609,
+    "median_error": 33.92391702843037,
+    "lower_quartile": 21.40606823708268,
+    "upper_quartile": 38.151096694161325,
     "solved": 0.0
   },
   {
@@ -214,9 +214,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 8.307006163272938,
-    "lower_quartile": 5.107904554044737,
-    "upper_quartile": 8.865528272961754,
+    "median_error": 8.568106655538166,
+    "lower_quartile": 7.652810498637464,
+    "upper_quartile": 13.231681592743037,
     "solved": 0.0
   },
   {
@@ -224,9 +224,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 3.2840250925085854,
-    "lower_quartile": 2.5552563656160174,
-    "upper_quartile": 3.322842078067964,
+    "median_error": 2.0180489040888006,
+    "lower_quartile": 1.1559178035538125,
+    "upper_quartile": 2.825124388020612,
     "solved": 0.0
   },
   {
@@ -304,9 +304,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 33.272630366444034,
-    "lower_quartile": 30.029253654609718,
-    "upper_quartile": 43.03328524546145,
+    "median_error": 38.50084554834074,
+    "lower_quartile": 22.18897117973576,
+    "upper_quartile": 40.89576261287073,
     "solved": 0.0
   },
   {
@@ -314,9 +314,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 10.616323185730018,
-    "lower_quartile": 8.545585784005226,
-    "upper_quartile": 16.642392587539412,
+    "median_error": 13.768919326798638,
+    "lower_quartile": 10.980576223410928,
+    "upper_quartile": 14.842375465795541,
     "solved": 0.0
   },
   {
@@ -324,9 +324,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 9.062578987133527,
-    "lower_quartile": 8.092322138502873,
-    "upper_quartile": 14.260745136867037,
+    "median_error": 8.848704678127802,
+    "lower_quartile": 4.995300577554332,
+    "upper_quartile": 12.07639777229521,
     "solved": 0.0
   },
   {
@@ -404,9 +404,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 10.0,
-    "lower_quartile": 9.0,
-    "upper_quartile": 11.0,
+    "median_error": 5.0,
+    "lower_quartile": 4.0,
+    "upper_quartile": 5.0,
     "solved": 0.0
   },
   {
@@ -417,7 +417,7 @@
     "median_error": 0.0,
     "lower_quartile": 0.0,
     "upper_quartile": 0.0,
-    "solved": 0.8
+    "solved": 1.0
   },
   {
     "problem": "integer-sphere-5d",
@@ -504,9 +504,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 6.5064466543609,
-    "lower_quartile": 6.3514368954787255,
-    "upper_quartile": 11.986974440838692,
+    "median_error": 11.145275962846078,
+    "lower_quartile": 8.671233603565945,
+    "upper_quartile": 14.104565144918595,
     "solved": 0.0
   },
   {
@@ -514,9 +514,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 0.23425264279661318,
-    "lower_quartile": 0.10900883800120009,
-    "upper_quartile": 1.2118563774509126,
+    "median_error": 1.2697450561557877,
+    "lower_quartile": 0.12025254129733146,
+    "upper_quartile": 1.324138762425815,
     "solved": 0.0
   },
   {
@@ -524,9 +524,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 0.018194170265640748,
-    "lower_quartile": 0.01555886734996771,
-    "upper_quartile": 1.0115088889605042,
+    "median_error": 1.0260268972968023,
+    "lower_quartile": 0.03830619409555725,
+    "upper_quartile": 2.0240503899952436,
     "solved": 0.0
   },
   {

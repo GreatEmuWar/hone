@@ -4,9 +4,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 10,
-    "median_error": 0.007894736842105121,
-    "lower_quartile": 0.003947368421052672,
-    "upper_quartile": 0.010541841328986057,
+    "median_error": 0.0061403508771927795,
+    "lower_quartile": 0.0035087719298246833,
+    "upper_quartile": 0.010087719298245534,
     "solved": 0.0
   },
   {
@@ -14,9 +14,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 20,
     "runs": 10,
-    "median_error": 0.005263157894736636,
-    "lower_quartile": 0.0035087719298246833,
-    "upper_quartile": 0.007017543859648923,
+    "median_error": 0.0035010091600684023,
+    "lower_quartile": 0.002189101071262245,
+    "upper_quartile": 0.0035087719298246833,
     "solved": 0.0
   },
   {
@@ -24,10 +24,10 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 10,
-    "median_error": 0.0035087719298246833,
-    "lower_quartile": 0.0034971277751902063,
-    "upper_quartile": 0.003520416084458855,
-    "solved": 0.0
+    "median_error": 0.0017543859649122862,
+    "lower_quartile": 0.0017543859649122862,
+    "upper_quartile": 0.0017543859649122862,
+    "solved": 0.1
   },
   {
     "problem": "svm-breast-cancer",
@@ -124,9 +124,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 10,
-    "median_error": 0.003965397280563665,
-    "lower_quartile": 0.0019149709762374956,
-    "upper_quartile": 0.00549465869959484,
+    "median_error": 0.0024935078141035127,
+    "lower_quartile": 0.0018057065400526873,
+    "upper_quartile": 0.00449788265642459,
     "solved": 0.0
   },
   {
@@ -134,9 +134,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 20,
     "runs": 10,
-    "median_error": 0.0014564317946503813,
-    "lower_quartile": 0.0007481318735043097,
-    "upper_quartile": 0.002603680257074803,
+    "median_error": 0.001308463246624758,
+    "lower_quartile": 0.0008613386976220883,
+    "upper_quartile": 0.0018188596870673535,
     "solved": 0.0
   },
   {
@@ -144,10 +144,10 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 10,
-    "median_error": 0.0006444930119105519,
-    "lower_quartile": 0.00010835021263419509,
-    "upper_quartile": 0.0009767778050528697,
-    "solved": 0.3
+    "median_error": 0.0005126942183746319,
+    "lower_quartile": 0.00012933777433862814,
+    "upper_quartile": 0.0008629015384110372,
+    "solved": 0.2
   },
   {
     "problem": "kernel-ridge-diabetes",
@@ -217,7 +217,7 @@
     "median_error": 0.005714285714285672,
     "lower_quartile": 0.005714285714285672,
     "upper_quartile": 0.005833333333333274,
-    "solved": 0.1
+    "solved": 0.0
   },
   {
     "problem": "random-forest-wine",
@@ -227,7 +227,7 @@
     "median_error": 0.005714285714285672,
     "lower_quartile": 0.005714285714285672,
     "upper_quartile": 0.005714285714285672,
-    "solved": 0.1
+    "solved": 0.0
   },
   {
     "problem": "random-forest-wine",
@@ -237,7 +237,7 @@
     "median_error": 0.005714285714285672,
     "lower_quartile": 0.005714285714285672,
     "upper_quartile": 0.005714285714285672,
-    "solved": 0.2
+    "solved": 0.0
   },
   {
     "problem": "random-forest-wine",

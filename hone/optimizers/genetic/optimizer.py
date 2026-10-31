@@ -1,12 +1,20 @@
+import math
 from functools import partial
 from typing import Callable
 
 from hone.config import GeneticOptimizerConfig, SelectionMethod
 from hone.optimizers.base import Individual, Optimizer, _fitness
-from hone.parameters import ChoiceParameter
+from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from . import selection
 from .variation import mutate, uniform_crossover
+
+
+# Adaptive mutation: how much a child's mutation size varies from its parents', divided by the
+# square root of the number of variables, and the bounds on the size. Chosen on the benchmark.
+STEP_SPREAD = 0.5
+MIN_STEP = 1e-9
+MAX_STEP = 0.5
 
 
 class GeneticOptimizer(Optimizer):
@@ -19,6 +27,10 @@ class GeneticOptimizer(Optimizer):
     keeps the previous one's elites unchanged, then fills the rest of the population with
     children: two parents are selected, crossed over, and mutated. Failed evaluations are
     never elites or parents.
+
+    With adaptive mutation, each individual carries its own mutation size, as in evolution
+    strategies: a child takes the geometric mean of its parents' sizes, varied at random, so
+    individuals with sizes that suit the problem's current scale breed more.
 
     Args:
         search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
@@ -40,6 +52,20 @@ class GeneticOptimizer(Optimizer):
     config_class = GeneticOptimizerConfig
     config: GeneticOptimizerConfig
 
+    def reset(self) -> None:
+        super().reset()
+        variables = sum(
+            not isinstance(p, FixedParameter) and not (isinstance(p, RangeParameter) and p.maximum == p.minimum)
+            for p in self.search_space.parameters
+        )
+        if self.config.mutation_rate is not None:
+            self._mutation_rate = self.config.mutation_rate
+        else:
+            self._mutation_rate = 0.1 if self.config.noise else max(0.1, 1 / max(variables, 1))
+        self._adaptive = self.config.adaptive_mutation if self.config.adaptive_mutation is not None else not self.config.noise
+        self._step_spread = STEP_SPREAD / math.sqrt(max(variables, 1))
+        self._steps: dict[Individual, float] = {}  # each individual's mutation size, with adaptive mutation
+
     def _select(self, individuals: list[Individual]) -> Individual:
         select: Callable[..., Individual]
         match self.config.selection_method:
@@ -53,10 +79,18 @@ class GeneticOptimizer(Optimizer):
         """A child of two parents selected from parents. A niche fixes the child's choice parameters."""
         first, second = self._select(parents), self._select(parents)
         params = uniform_crossover(first.params, second.params, self.rng, rate=self.config.crossover_rate)
-        params = mutate(
-            params, self.search_space, self.rng, rate=self.config.mutation_rate, scale=self.config.mutation_scale
-        )
-        return Individual(params={**params, **(niche or {})}, generation=generation)
+        step = self.config.mutation_scale
+        if self._adaptive:
+            inherited = math.sqrt(self._step(first) * self._step(second))
+            step = min(max(inherited * math.exp(self.rng.normal(0, self._step_spread)), MIN_STEP), MAX_STEP)
+        params = mutate(params, self.search_space, self.rng, rate=self._mutation_rate, scale=step)
+        child = Individual(params={**params, **(niche or {})}, generation=generation)
+        if self._adaptive:
+            self._steps[child] = step
+        return child
+
+    def _step(self, individual: Individual) -> float:
+        return self._steps.get(individual, self.config.mutation_scale)
 
     def _niche_children(self, parents: list[Individual], count: int, generation: int) -> list[Individual]:
         """Up to count children bred within niches: parents sharing every choice parameter's value.
@@ -96,4 +130,9 @@ class GeneticOptimizer(Optimizer):
         # At least one child per generation, however the share rounds, so the search keeps moving.
         elites = self._ranked(parents)[: min(round(size * self.config.elitism_rate), size - 1)] if self.config.elitism else []
         niched = self._niche_children(parents, int(self.config.niche_share * (size - len(elites))), generation)
-        return elites + niched + [self._child(parents, generation) for _ in range(size - len(elites) - len(niched))]
+        population = elites + niched + [self._child(parents, generation) for _ in range(size - len(elites) - len(niched))]
+        if self._adaptive:
+            # Keep the sizes of individuals that can still breed: this generation, and any still being evaluated.
+            keep = set(population) | set(self._outstanding())
+            self._steps = {individual: step for individual, step in self._steps.items() if individual in keep}
+        return population

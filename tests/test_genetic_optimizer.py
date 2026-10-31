@@ -1,9 +1,11 @@
 """How the genetic optimizer builds each generation."""
+import numpy as np
 import pytest
 
+from hone import GeneticOptimizer, GeneticOptimizerConfig
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
-from conftest import individual, make_optimizer, run
+from conftest import bounded_parameters, individual, make_optimizer, run, sphere
 
 
 def evaluated_population(size):
@@ -134,3 +136,49 @@ def test_niches_solve_the_categorical_problem_the_default_misses():
 
     assert materials(niche_share=0.5) == ["titanium"] * 6
     assert materials().count("titanium") < 6
+
+
+# --- adaptive mutation ------------------------------------------------------
+
+
+def test_the_default_mutation_rate_follows_the_number_of_variables():
+    two = make_optimizer()
+    ten = GeneticOptimizer([RangeParameter(f"x{i}", -5, 5) for i in range(10)], GeneticOptimizerConfig(seed=0))
+    with_fixed = GeneticOptimizer(bounded_parameters() + [FixedParameter("mode", "fast")], GeneticOptimizerConfig(seed=0))
+    assert two._mutation_rate == 0.5 and ten._mutation_rate == 0.1 and with_fixed._mutation_rate == 0.5
+    assert make_optimizer(mutation_rate=0.3)._mutation_rate == 0.3
+    assert make_optimizer(noise=True)._mutation_rate == 0.1
+
+
+def test_mutation_adapts_unless_there_is_noise():
+    assert make_optimizer()._adaptive and not make_optimizer(noise=True)._adaptive
+    assert not make_optimizer(adaptive_mutation=False)._adaptive and make_optimizer(noise=True, adaptive_mutation=True)._adaptive
+
+
+def test_with_noise_the_defaults_behave_as_before():
+    def noisy(seed):
+        rng = np.random.default_rng(seed)
+        return lambda x, y: x**2 + y**2 + rng.normal()
+
+    default = make_optimizer(max_evaluations=300, noise=True).optimize(noisy(1))
+    before = make_optimizer(max_evaluations=300, noise=True, mutation_rate=0.1, adaptive_mutation=False).optimize(noisy(1))
+    assert default == before
+
+
+def test_mutation_sizes_shrink_as_the_population_converges():
+    optimizer = make_optimizer(max_evaluations=2000)
+    optimizer.optimize(sphere)
+    steps = list(optimizer._steps.values())
+    assert steps and np.median(steps) < optimizer.config.mutation_scale / 5  # about a tenth, measured
+
+
+def test_adaptive_mutation_reaches_more_precise_answers():
+    adaptive = [make_optimizer(max_evaluations=2000, seed=seed).optimize(sphere).best_fitness for seed in range(5)]
+    fixed = [make_optimizer(max_evaluations=2000, seed=seed, adaptive_mutation=False).optimize(sphere).best_fitness for seed in range(5)]
+    assert np.median(adaptive) < np.median(fixed) / 5  # about 15 times, measured
+
+
+def test_only_breeding_individuals_keep_a_mutation_size():
+    optimizer = make_optimizer(population_size=10, generations=30)
+    optimizer.optimize(sphere)
+    assert set(optimizer._steps) <= set(optimizer._population)

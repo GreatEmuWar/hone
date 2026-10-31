@@ -27,8 +27,15 @@ class GeneticOptimizerConfig(OptimizerConfig):
     population to about a twentieth of the budget, between 16 and 50, and generations to
     as many as the budget allows. Without a budget they default to 100 and 25.
     """
-    mutation_rate: float = Field(default=0.1, ge=0, le=1)  # chance each gene of a child is mutated
-    mutation_scale: float = Field(default=0.1, gt=0)  # size of a range mutation, as a fraction of the range width
+    # Chance each gene of a child is mutated. None: 1 / the number of variables, at least 0.1;
+    # with noise, 0.1, which the benchmark's noisy problems favour at large budgets.
+    mutation_rate: float | None = Field(default=None, ge=0, le=1)
+    # Size of a range mutation, as a fraction of the range width: the starting size when
+    # mutation adapts, and the size throughout when it doesn't.
+    mutation_scale: float = Field(default=0.1, gt=0)
+    # Each individual carries its own mutation size, which its children inherit and vary, so
+    # selection tunes it as the run goes. None: on, except with noise, where it didn't help.
+    adaptive_mutation: bool | None = None
     crossover_rate: float = Field(default=0.8, ge=0, le=1)  # chance each gene of a child comes from its first parent
     elitism: bool = True
     elitism_rate: float = Field(default=0.1, ge=0, lt=1)  # share of each generation carried over unchanged
