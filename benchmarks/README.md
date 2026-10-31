@@ -60,6 +60,18 @@ CMA-ES now widens the steps of integer variables only where they are sampled, an
 
 Since 0.5.0 every optimizer gets exactly the same number of evaluations. Before, the genetic optimizer used about 10% fewer than its budget, because it does not evaluate its elites again.
 
+## Choosing an optimizer automatically
+
+`choose_optimizer` turns these results into a rule: Bayesian optimization for 200 evaluations or fewer, then the genetic optimizer if there are choice parameters, and CMA-ES otherwise. For each problem and budget, its pick's median error was compared with the best optimizer's:
+
+| Suite | Pick's error against the best, geometric mean | Best on | Always CMA-ES | Always the genetic optimizer |
+| --- | ---: | ---: | ---: | ---: |
+| Standard, 36 problems × 5 budgets | ×1.24 | 148 of 180 | ×5.9, and 15 it can't run | ×199 |
+| Noisy, 6 × 3 | ×1.12 | 13 of 18 | ×1.69, and 3 it can't run | ×1.99 |
+| Machine learning, 3 × 3 | ×1.05 | 8 of 9 | ×1.14, and 6 it can't run | ×29 |
+
+A test (`tests/test_choose_optimizer.py`) recomputes this from the saved summaries, so the rule stays backed by the results whenever they are regenerated. A rule that also limited Bayesian optimization to 50 evaluations per variable did worse (×1.36 on the standard suite), so the simpler one stays.
+
 ## Machine learning tuning
 
 `python -m hone.benchmarks --ml` tunes three scikit-learn models by 5-fold cross-validation, at 10, 20 and 50 evaluations per dimension: a support vector classifier on breast cancer data (C and gamma), kernel ridge regression on diabetes data (alpha, gamma and the kernel), and a random forest on wine data (depth, leaf size, features per split and split criterion). Each problem minimizes 1 − accuracy or 1 − R², so an error of 0.0035 on the breast cancer problem is 0.35 percentage points of accuracy, about 2 of its 569 samples.

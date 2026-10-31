@@ -207,7 +207,7 @@ Two results are equal when they found the same things: the same best point, gene
 | --- | --- | --- |
 | `BayesianOptimizer` | `BayesianConfig` | Models the objective with a Gaussian process and evaluates where the model expects the most improvement. The first choice when evaluations are expensive and the budget is a few hundred evaluations or fewer. Supports range and choice parameters |
 | `CMAES` | `CMAESConfig` | Learns the scale of each variable and how variables interact. The first choice for continuous and integer problems with larger budgets; doesn't support choice parameters |
-| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation. Handles every kind of parameter, so it's the choice for problems with choice parameters |
+| `GeneticOptimizer` | `GeneticOptimizerConfig` | Selection, crossover and mutation. Handles every kind of parameter, so it's the choice for problems with choice parameters and larger budgets |
 | `RandomSearch` | `OptimizerConfig` | Evaluates random points; useful as a baseline |
 
 ```python
@@ -219,6 +219,23 @@ result = CMAES(search_space, CMAESConfig(max_evaluations=5000, seed=0)).optimize
 CMA-ES chooses its own population size from the number of variables and workers, and by default restarts with a larger population when a run converges or stalls. Giving it a budget with `max_evaluations` is usually the only setting it needs.
 
 Bayesian optimization spends a fraction of a second choosing each candidate, rising to a second or so after a few hundred evaluations. That is time well spent when an evaluation is a simulation or a training run that takes minutes, and wasted on a function that takes microseconds. Its first `2 × (variables + 1)` candidates are spread over the search space; after that it proposes one candidate at a time, or one per worker with `optimize(workers=n)`, and `population_size` sets that batch size directly. [benchmarks/results.md](benchmarks/results.md) compares the optimizers.
+
+`choose_optimizer` picks one for you, by what the benchmark shows works best for the budget and the kinds of parameter:
+
+```python
+from hone import choose_optimizer
+
+optimizer = choose_optimizer(search_space, max_evaluations=150, seed=0)  # BayesianOptimizer
+result = optimizer.optimize(run_simulation)
+```
+
+| Budget | Parameters | Chosen |
+| --- | --- | --- |
+| 200 evaluations or fewer | Any, unless a choice parameter has `choose_n` | `BayesianOptimizer` |
+| More than 200 | Any choice parameter | `GeneticOptimizer` |
+| More than 200 | Numbers only | `CMAES` |
+
+Other settings, such as `seed`, `maximize`, `noise` or `threshold`, are passed on to the chosen optimizer's config. On the benchmark's 180 problem and budget pairs, its pick had a median error 1.24 times the best optimizer's, on geometric mean, and was the best on 148; always using CMA-ES gives 5.9 times the best, and it can't run the 15 problems with choice parameters. Its biggest misses are plain Rastrigin with 1,000 evaluations per dimension, where the genetic optimizer wins because the variables don't interact, which a rule can't know in advance; on the rotated versions CMA-ES wins.
 
 All four take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 
