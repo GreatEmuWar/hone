@@ -118,7 +118,7 @@ Each property was run on every optimizer that supports the generated search spac
 | --- | --- |
 | Any valid config with a budget spends the whole budget (except elitism that rounds to the whole population; see above) | README: "runs until the budget is spent" |
 | Generation 0 is the full population; each later one evaluates `population_size − elites` | Docstring: elites kept unchanged, the rest are children |
-| Without mutation, every gene of a child comes from a successfully evaluated individual | Docstring: crossover and mutation; "Failed evaluations are never elites or parents" |
+| With uniform crossover and without mutation, every gene of a child comes from a successfully evaluated individual | Docstring: crossover and mutation; "Failed evaluations are never elites or parents" |
 | A choice option whose evaluations always fail is never bred, without mutation | Docstring; README Failed evaluations: "never used to breed new candidates" |
 | With elitism, each generation's best never gets worse | Elites carried over unchanged |
 | Results don't depend on the number of workers | `optimize` docstring: "The genetic optimizer and random search return it however many workers are used" |
@@ -153,7 +153,7 @@ Roulette selection, niches, tournament settings and maximization are all covered
 
 | Property | Source |
 | --- | --- |
-| The chosen optimizer follows the README table (Bayesian up to 200 without `choose_n`; genetic with choices; CMA-ES otherwise), including at the 200/201 boundary | `choose_optimizer` docstring; README table; CHANGELOG 0.8.0 |
+| The chosen optimizer follows the README table (Bayesian up to 200 without `choose_n`; genetic with choice or integer parameters; CMA-ES otherwise), including at the 200/201 boundary | `choose_optimizer` docstring; README table; CHANGELOG 0.8.0 |
 | `max_evaluations`, `seed`, `maximize`, `noise` and `threshold` are passed on to the config | Docstring: "Other settings ... are passed on" |
 | Initial points are passed on, after checking | Signature; README |
 | The chosen optimizer runs and spends its budget | Implied by the README example |
