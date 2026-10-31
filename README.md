@@ -305,6 +305,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make benchmark` | Run the full benchmark suite and update `benchmarks/results.md` |
 | `make benchmark-noisy` | Run the noisy problems and update `benchmarks/noisy-results.md` |
 | `make benchmark-ml` | Run the machine learning tuning problems and update `benchmarks/ml-results.md` |
+| `make benchmark-constrained` | Run the constrained problems and update `benchmarks/constrained-results.md` |
 
 To release, raise `version` in `pyproject.toml` and add a section for it to `CHANGELOG.md`. Once the change is on `main` and its checks pass, CI tags the version and publishes a GitHub release with that section as its notes and the built package attached.
 

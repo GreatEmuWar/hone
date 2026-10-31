@@ -1,0 +1,1792 @@
+[
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.9585999099738288,
+    "lower_quartile": 0.4286422537231846,
+    "upper_quartile": 1.9369760124079582,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.7241467740712839,
+    "lower_quartile": 0.15245325934496473,
+    "upper_quartile": 1.0143795209509008,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.035536615247017345,
+    "lower_quartile": 0.02714460414570552,
+    "upper_quartile": 0.05255567179331089,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.02076830316554712,
+    "lower_quartile": 0.010948459298648572,
+    "upper_quartile": 0.02443372094543872,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0004058496686938362,
+    "lower_quartile": 0.00011325470390993742,
+    "upper_quartile": 0.0009456593784849532,
+    "solved": 0.3
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.9439811378305238,
+    "lower_quartile": 0.5038098579641055,
+    "upper_quartile": 3.1617395716606707,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.5147125038598257,
+    "lower_quartile": 0.27756000537724007,
+    "upper_quartile": 1.0528777565994134,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.07591425109509142,
+    "lower_quartile": 0.0472964657419212,
+    "upper_quartile": 0.08808573034366973,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.00385003475722423,
+    "lower_quartile": 0.0020054986897742877,
+    "upper_quartile": 0.004550268830604498,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.001566372536220717,
+    "lower_quartile": 0.001012691787347364,
+    "upper_quartile": 0.0021432297375303944,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.0006181234928345214,
+    "lower_quartile": 0.00043433637960921256,
+    "upper_quartile": 0.0010035914335144724,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.00039406613817383196,
+    "lower_quartile": 0.00019514061009540118,
+    "upper_quartile": 0.00046722708728397233,
+    "solved": 0.1
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 9.725814976435654e-05,
+    "lower_quartile": 4.811430146822726e-05,
+    "upper_quartile": 0.0002672155788506214,
+    "solved": 0.5
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.9585999099738288,
+    "lower_quartile": 0.4286422537231846,
+    "upper_quartile": 1.5908241822752573,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.9585999099738288,
+    "lower_quartile": 0.3365813601684882,
+    "upper_quartile": 1.2827097078026413,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.5524434167514908,
+    "lower_quartile": 0.2623412943281458,
+    "upper_quartile": 0.8449538609916541,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.25905590181460125,
+    "lower_quartile": 0.1278015414606386,
+    "upper_quartile": 0.28783862450944236,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.07238269205017966,
+    "lower_quartile": 0.036215195974596104,
+    "upper_quartile": 0.14323302145935934,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 19.971158380776494,
+    "lower_quartile": 12.66644120484758,
+    "upper_quartile": 87.49374106606822,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 10.000106080710028,
+    "lower_quartile": 8.265065255547416,
+    "upper_quartile": 15.788116890312626,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 2.5170670925986522,
+    "lower_quartile": 1.3703781600600036,
+    "upper_quartile": 3.6281743041342196,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.24794361016314714,
+    "lower_quartile": 0.11973288814832694,
+    "upper_quartile": 0.6014363988444955,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0032724681367912734,
+    "lower_quartile": 0.00182567221233082,
+    "upper_quartile": 0.004294380405377163,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 25.948508646095434,
+    "lower_quartile": 15.537119765265494,
+    "upper_quartile": 37.3076260019202,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 15.69123899618735,
+    "lower_quartile": 14.222953791646738,
+    "upper_quartile": 32.89152730587084,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 6.726913152043197,
+    "lower_quartile": 4.831644818694207,
+    "upper_quartile": 9.091963698012819,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.14341435803404945,
+    "lower_quartile": 0.07113166595933945,
+    "upper_quartile": 1.1900319641698296,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.029756363213170656,
+    "lower_quartile": 0.023105736263133392,
+    "upper_quartile": 0.03875228796949276,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.010895383328359043,
+    "lower_quartile": 0.004652266888124368,
+    "upper_quartile": 0.015547424358034745,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.002150749875374669,
+    "lower_quartile": 0.0007933016168378271,
+    "upper_quartile": 0.004744890602589369,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.0009819547609193346,
+    "lower_quartile": 0.0007399661040786709,
+    "upper_quartile": 0.002685049846059495,
+    "solved": 0.1
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 27.925864556483987,
+    "lower_quartile": 15.479792945184577,
+    "upper_quartile": 281.4537840555661,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 12.383670145932975,
+    "lower_quartile": 10.326646228364357,
+    "upper_quartile": 16.522070129015948,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 6.6966638500150655,
+    "lower_quartile": 4.179861381213966,
+    "upper_quartile": 11.47538299793641,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 6.0852947829734,
+    "lower_quartile": 4.179861381213966,
+    "upper_quartile": 7.695788049229089,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 1.542996438120893,
+    "lower_quartile": 1.1645112841199063,
+    "upper_quartile": 2.2006206829168233,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 9.252973592550939,
+    "lower_quartile": 8.13718956903989,
+    "upper_quartile": 9.869427482853277,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 4.738917587739726,
+    "lower_quartile": 2.5718228136210186,
+    "upper_quartile": 6.202601900321469,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.5976115108353617,
+    "lower_quartile": 0.23988434808643078,
+    "upper_quartile": 0.8126485436030324,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.08791380743785349,
+    "lower_quartile": 0.06539533565655958,
+    "upper_quartile": 0.15895940700510292,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.01128470270278914,
+    "lower_quartile": 0.007030993931046892,
+    "upper_quartile": 0.014948219548783837,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 4.33285277678937,
+    "lower_quartile": 3.0675462088204406,
+    "upper_quartile": 7.393055789472562,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 2.010596934551932,
+    "lower_quartile": 1.1505768338157811,
+    "upper_quartile": 2.7453699224465833,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.057140183480847484,
+    "lower_quartile": 0.03836530491913759,
+    "upper_quartile": 0.09452023092187656,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.004883655086266314,
+    "lower_quartile": 0.0032984223458686346,
+    "upper_quartile": 0.0059560799014164445,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.009651194382288009,
+    "lower_quartile": 0.007404006755733605,
+    "upper_quartile": 0.011940692380345563,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.005188934909360787,
+    "lower_quartile": 0.004997723035785218,
+    "upper_quartile": 0.0063410188756048425,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 10.79608668002439,
+    "lower_quartile": 4.527479664922329,
+    "upper_quartile": 17.595262168421517,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 6.642359004078167,
+    "lower_quartile": 3.906265933588017,
+    "upper_quartile": 8.709821868563951,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 5.399931541409543,
+    "lower_quartile": 3.5344077149025557,
+    "upper_quartile": 6.841178946108875,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 3.3565377304394324,
+    "lower_quartile": 2.40797405609371,
+    "upper_quartile": 4.017780597452904,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 1.8421124268938116,
+    "lower_quartile": 1.4987664153501694,
+    "upper_quartile": 2.7700292047913897,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 287.82754864076276,
+    "lower_quartile": 176.97963962570537,
+    "upper_quartile": 424.0314748762894,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 74.35510085960016,
+    "lower_quartile": 39.48310255648463,
+    "upper_quartile": 129.93975921644085,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 8.470116798499967,
+    "lower_quartile": 7.621287303953769,
+    "upper_quartile": 32.27951315996848,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 4.623407899083746,
+    "lower_quartile": 0.9483045804960031,
+    "upper_quartile": 7.005731830477168,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.11938033068527698,
+    "lower_quartile": 0.057968953648929844,
+    "upper_quartile": 0.3030755785772703,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 337.33273514708804,
+    "lower_quartile": 245.20737956880714,
+    "upper_quartile": 378.97918051028967,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 136.5446098498065,
+    "lower_quartile": 95.67118185833729,
+    "upper_quartile": 224.67495398536957,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 33.0728995727219,
+    "lower_quartile": 14.45099047756354,
+    "upper_quartile": 49.93558728171176,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.6356058244402432,
+    "lower_quartile": 0.32075684109129865,
+    "upper_quartile": 3.7191953856292757,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.6425761649431498,
+    "lower_quartile": 0.5035867351108716,
+    "upper_quartile": 0.7665288810085742,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.22047293505306254,
+    "lower_quartile": 0.18248095380203155,
+    "upper_quartile": 0.2631998138727685,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 504.9616651976415,
+    "lower_quartile": 431.149301456953,
+    "upper_quartile": 1120.8662059949158,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 446.2669829765762,
+    "lower_quartile": 258.94155394699857,
+    "upper_quartile": 494.68035322951465,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 168.33098013306142,
+    "lower_quartile": 128.55242162842035,
+    "upper_quartile": 341.98225402389335,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 135.21178431533883,
+    "lower_quartile": 106.12807212409005,
+    "upper_quartile": 176.66071922817974,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-5d",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 80.22643105178285,
+    "lower_quartile": 72.29078998573964,
+    "upper_quartile": 110.7982941587342,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 8.405538997874576,
+    "lower_quartile": 5.722720275204609,
+    "upper_quartile": 12.878378371937355,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 2.233116801314694,
+    "lower_quartile": 1.926885765534849,
+    "upper_quartile": 3.030063137108729,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.6641613752083229,
+    "lower_quartile": 0.5027382426784996,
+    "upper_quartile": 0.8044203605499394,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.2574371969238959,
+    "lower_quartile": 0.22280692772131844,
+    "upper_quartile": 0.29555525230094204,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.019509310979212158,
+    "lower_quartile": 0.016180067042571078,
+    "upper_quartile": 0.042486021057462686,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 11.26032253114669,
+    "lower_quartile": 9.217838856616515,
+    "upper_quartile": 13.20151306007153,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 2.7645364128577987,
+    "lower_quartile": 2.283738064235311,
+    "upper_quartile": 3.2485426742208765,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.09249029084116478,
+    "lower_quartile": 0.07070295547165084,
+    "upper_quartile": 0.12906284070682028,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.006444660393766122,
+    "lower_quartile": 0.005141943769757795,
+    "upper_quartile": 0.007937638339374276,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.03382422219077241,
+    "lower_quartile": 0.029185911070015502,
+    "upper_quartile": 0.03785721985941465,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.021832662953567894,
+    "lower_quartile": 0.018620311691286473,
+    "upper_quartile": 0.026316905577798644,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 30.271395354968842,
+    "lower_quartile": 28.59159359904273,
+    "upper_quartile": 34.939419253439304,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 28.21630271055018,
+    "lower_quartile": 21.46118907527158,
+    "upper_quartile": 29.815661655181124,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 25.04525389478745,
+    "lower_quartile": 21.46118907527158,
+    "upper_quartile": 28.373977307182727,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 23.026694883482158,
+    "lower_quartile": 21.164587904289505,
+    "upper_quartile": 26.252201890208667,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-sphere-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 12.688952533342711,
+    "lower_quartile": 10.044303825803379,
+    "upper_quartile": 14.136123967496783,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 300.4914190836547,
+    "lower_quartile": 206.42080421789953,
+    "upper_quartile": 483.95705385350084,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 132.47169341844727,
+    "lower_quartile": 88.89749870432452,
+    "upper_quartile": 206.8601962394707,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 14.53182991536953,
+    "lower_quartile": 7.622924509775634,
+    "upper_quartile": 23.751306192902813,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 6.508736937779315,
+    "lower_quartile": 4.519568561593665,
+    "upper_quartile": 9.135762830110576,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.19246426644441694,
+    "lower_quartile": 0.11806457785053337,
+    "upper_quartile": 0.24968220598104307,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 687.44051146284,
+    "lower_quartile": 613.2025418897773,
+    "upper_quartile": 727.1773985285058,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 431.9315573579247,
+    "lower_quartile": 279.1698337387884,
+    "upper_quartile": 562.489632129886,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 44.2779986066095,
+    "lower_quartile": 35.355553112524504,
+    "upper_quartile": 69.522800591401,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 4.792260927776026,
+    "lower_quartile": 2.339822028669478,
+    "upper_quartile": 7.862811924281139,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0,
+    "lower_quartile": 0.0,
+    "upper_quartile": 0.0,
+    "solved": 1.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 3.6686912463648174,
+    "lower_quartile": 2.4707074959495388,
+    "upper_quartile": 8.238985473364515,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 1.4267302869063174,
+    "lower_quartile": 1.171395020834987,
+    "upper_quartile": 1.5612731456379039,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1584.3176421423943,
+    "lower_quartile": 1332.1324236142173,
+    "upper_quartile": 1920.3679812607415,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 1584.3176421423943,
+    "lower_quartile": 1332.1324236142173,
+    "upper_quartile": 1705.3130492320445,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 1028.3013926195822,
+    "lower_quartile": 846.4002721859019,
+    "upper_quartile": 1289.653765005723,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 872.347409103483,
+    "lower_quartile": 664.5133427591351,
+    "upper_quartile": 951.0340738041644,
+    "solved": 0.0
+  },
+  {
+    "problem": "boundary-ellipsoid-10d",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 398.62457407608787,
+    "lower_quartile": 328.598054949731,
+    "upper_quartile": 479.21197394248304,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.0947290422014944,
+    "lower_quartile": 0.6765727565193951,
+    "upper_quartile": 1.5477363698182012,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.49612686457068855,
+    "lower_quartile": 0.22340206854098318,
+    "upper_quartile": 0.8328518791171988,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.23572482451267607,
+    "lower_quartile": 0.06263133980676265,
+    "upper_quartile": 0.5104993590251262,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.1406179107063505,
+    "lower_quartile": 0.047560356256339004,
+    "upper_quartile": 0.24174956059810682,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.001736041596442923,
+    "lower_quartile": 0.00029928761423219475,
+    "upper_quartile": 0.011106637389385454,
+    "solved": 0.1
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.5226339474409862,
+    "lower_quartile": 0.33534478284023617,
+    "upper_quartile": 1.0071657953137945,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.26840152578223253,
+    "lower_quartile": 0.22665051805056916,
+    "upper_quartile": 0.3922166466137236,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.23195317676251637,
+    "lower_quartile": 0.06365785687127418,
+    "upper_quartile": 0.3260682447588281,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.04534346167558633,
+    "lower_quartile": 0.020147893145207145,
+    "upper_quartile": 0.08499683417170933,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 5.640027830265654e-17,
+    "lower_quartile": 3.9887499348608806e-17,
+    "upper_quartile": 1.87559287703276e-16,
+    "solved": 1.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.3783387687312876,
+    "lower_quartile": 0.1703581368007117,
+    "upper_quartile": 0.4504424116092492,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.00288029782826645,
+    "lower_quartile": 0.0019535580424795617,
+    "upper_quartile": 0.00989027488629036,
+    "solved": 0.1
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 2.325742267718878e-05,
+    "lower_quartile": 5.144319422664251e-06,
+    "upper_quartile": 5.149313454403468e-05,
+    "solved": 1.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 1.6658214248745137e-06,
+    "lower_quartile": 1.0779421285099844e-06,
+    "upper_quartile": 4.352699765838893e-06,
+    "solved": 1.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.522421978519597,
+    "lower_quartile": 1.1880495597890384,
+    "upper_quartile": 2.1689786856093147,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 1.4184769822525847,
+    "lower_quartile": 0.779252049428937,
+    "upper_quartile": 1.633013513586043,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.5344416685817241,
+    "lower_quartile": 0.11543170457907007,
+    "upper_quartile": 0.8493938475125369,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.11731055224844977,
+    "lower_quartile": 0.05954457692209333,
+    "upper_quartile": 0.16823802662035214,
+    "solved": 0.0
+  },
+  {
+    "problem": "rosenbrock-disk-2d",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.024029526337448513,
+    "lower_quartile": 0.006274653120080397,
+    "upper_quartile": 0.043755345386061156,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 30124.82611065187,
+    "lower_quartile": 17835.052265979775,
+    "upper_quartile": 35537.62606147264,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 15097.51901793231,
+    "lower_quartile": 10296.925426015283,
+    "upper_quartile": 19551.981889281436,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 3677.8990208107634,
+    "lower_quartile": 2190.870364096026,
+    "upper_quartile": 4517.771934148883,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 1177.6861416711495,
+    "lower_quartile": 640.5717228363164,
+    "upper_quartile": 1738.6432327336224,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 438.44125708260253,
+    "lower_quartile": 394.20646727135295,
+    "upper_quartile": 722.6332344206623,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 10007.775250993274,
+    "lower_quartile": 9650.929973639551,
+    "upper_quartile": 12481.298068356238,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 7917.465660903426,
+    "lower_quartile": 6281.319544891611,
+    "upper_quartile": 9387.442501824939,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 1466.9251140741394,
+    "lower_quartile": 909.8321540560742,
+    "upper_quartile": 2271.0831061679737,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 411.3229411783195,
+    "lower_quartile": 259.6521209867374,
+    "upper_quartile": 494.3514595717104,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 311.0653672349972,
+    "lower_quartile": 7.702963833060494,
+    "upper_quartile": 340.5456530852639,
+    "solved": 0.3
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 266.0483945836945,
+    "lower_quartile": 65.88226809561274,
+    "upper_quartile": 447.02073520885756,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 190.6323311994106,
+    "lower_quartile": 35.785533330716135,
+    "upper_quartile": 365.7733516264557,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 179.5729301392753,
+    "lower_quartile": 14.144370482990325,
+    "upper_quartile": 359.36873245121546,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 19139.647183640955,
+    "lower_quartile": 14909.285406071947,
+    "upper_quartile": 25215.711580387466,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 15194.882743619088,
+    "lower_quartile": 12167.795979112649,
+    "upper_quartile": 17499.449899784395,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 14184.169992111996,
+    "lower_quartile": 10185.405229779797,
+    "upper_quartile": 15619.700878504747,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 7524.61991912024,
+    "lower_quartile": 6190.841844746956,
+    "upper_quartile": 8112.251969952145,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 3111.610169741324,
+    "lower_quartile": 2373.311263994625,
+    "upper_quartile": 3621.271909508964,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.011126398809674377,
+    "lower_quartile": 0.007977337665303778,
+    "upper_quartile": 0.013613433585550477,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.009216788244874154,
+    "lower_quartile": 0.006496560797351801,
+    "upper_quartile": 0.013067865635434597,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0029145082218908613,
+    "lower_quartile": 0.0026905700186908993,
+    "upper_quartile": 0.008410222092836386,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.0024932016898378097,
+    "lower_quartile": 0.0021027384792855143,
+    "upper_quartile": 0.006417274524720622,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0009464572424132218,
+    "lower_quartile": 0.0008085177150457235,
+    "upper_quartile": 0.001484037627867626,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.006853793037519132,
+    "lower_quartile": 0.004887254880796515,
+    "upper_quartile": 0.0087697341159987,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.006853793037519132,
+    "lower_quartile": 0.004887254880796515,
+    "upper_quartile": 0.007811959282263003,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0018644024014390142,
+    "lower_quartile": 0.001235366662106678,
+    "upper_quartile": 0.002695573576872975,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.00037675578598034797,
+    "lower_quartile": 0.00012922919029165203,
+    "upper_quartile": 0.0008946399404777235,
+    "solved": 0.3
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 7.798719405781307e-07,
+    "lower_quartile": 1.8473750461366414e-07,
+    "upper_quartile": 1.366208981283274e-06,
+    "solved": 1.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.00016950672556887043,
+    "lower_quartile": 0.00013293446204080267,
+    "upper_quartile": 0.0007417558385761618,
+    "solved": 0.1
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 7.266209377745306e-05,
+    "lower_quartile": 7.164451764277895e-05,
+    "upper_quartile": 0.0004491740353966328,
+    "solved": 0.7
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 6.635277443720316e-05,
+    "lower_quartile": 6.178892077462724e-05,
+    "upper_quartile": 6.982145102324682e-05,
+    "solved": 0.8
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.00867777341953197,
+    "lower_quartile": 0.005896428662188615,
+    "upper_quartile": 0.010484959199232613,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.004564997940970249,
+    "lower_quartile": 0.0038813408324617693,
+    "upper_quartile": 0.005687308122742131,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.0034822886221321982,
+    "lower_quartile": 0.0027631800862150573,
+    "upper_quartile": 0.004095719821001044,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.0027696215068299737,
+    "lower_quartile": 0.0023943093475720907,
+    "upper_quartile": 0.0032469879277150036,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0009793565061473105,
+    "lower_quartile": 0.0008570453869363595,
+    "upper_quartile": 0.0012258402649654543,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.3269985671422542,
+    "lower_quartile": 0.6450512529579517,
+    "upper_quartile": 1.4932489081860183,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.8219853655227412,
+    "lower_quartile": 0.513213312762372,
+    "upper_quartile": 0.9783106486084301,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.49800344702230337,
+    "lower_quartile": 0.23828557476599943,
+    "upper_quartile": 0.7100806905642263,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.28997760298750896,
+    "lower_quartile": 0.15648627019906403,
+    "upper_quartile": 0.5042360624363749,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.08007454295648608,
+    "lower_quartile": 0.020830932837547944,
+    "upper_quartile": 0.19813105844105977,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.9462616908060058,
+    "lower_quartile": 0.8013045757046757,
+    "upper_quartile": 1.0919833139141177,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.489062729428674,
+    "lower_quartile": 0.37454161141054265,
+    "upper_quartile": 0.5327265311122786,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.20464225366851518,
+    "lower_quartile": 0.17772305535928268,
+    "upper_quartile": 0.3421444150646348,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.12670001861297198,
+    "lower_quartile": 0.04797496802822088,
+    "upper_quartile": 0.22852799067782442,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 3.0679135210043285e-07,
+    "lower_quartile": 3.0679118806498096e-07,
+    "upper_quartile": 3.0679177098758004e-07,
+    "solved": 1.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.04098254558198666,
+    "lower_quartile": 0.02885832035267477,
+    "upper_quartile": 0.07023948211491349,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.01757608337204386,
+    "lower_quartile": 0.01650281568221812,
+    "upper_quartile": 0.019809430039391285,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.010421926595775344,
+    "lower_quartile": 0.008001935619340317,
+    "upper_quartile": 0.011380098183297327,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.135322486156886,
+    "lower_quartile": 0.7582381025908735,
+    "upper_quartile": 1.420948666031294,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.7645639868214831,
+    "lower_quartile": 0.6083533416340579,
+    "upper_quartile": 1.0177815211531882,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.5873638805754073,
+    "lower_quartile": 0.5235238394700861,
+    "upper_quartile": 0.7186886264717556,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.5111014220220291,
+    "lower_quartile": 0.39775788123984523,
+    "upper_quartile": 0.5438569488648435,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.2003474705053888,
+    "lower_quartile": 0.17970947453359531,
+    "upper_quartile": 0.24535898063466832,
+    "solved": 0.0
+  }
+]

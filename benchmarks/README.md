@@ -10,6 +10,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `noisy-summaries.json` | The same results as data |
 | [ml-results.md](ml-results.md) | The machine learning tuning results, from `make benchmark-ml` |
 | `ml-summaries.json` | The same results as data |
+| [constrained-results.md](constrained-results.md) | The constrained problems' results, from `make benchmark-constrained` |
+| `constrained-summaries.json` | The same results as data |
 | `quick-baseline.json` | The quick suite's results, which CI compares every change against |
 
 ## What the suite measures
