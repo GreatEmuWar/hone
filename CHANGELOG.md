@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.11.0 (2026-10-31)
+
+Conditional parameters: parameters that exist only while others take certain values, written `model["svm"] >> [kernel, C]`, which every optimizer supports. A README section explains them, an example chooses a classifier and its settings in one search, and the benchmark has a conditional suite comparing each optimizer with searching every parameter all the time. See [benchmarks/README.md](benchmarks/README.md#conditional-problems).
 
 ### Added
 
@@ -9,6 +11,7 @@
   - The genetic optimizer keeps a value for every gene, switched off or not, takes a gene from the parent it is on in, and mutates only genes switched on. With conditions, `niche_share` defaults to 0.5, so each branch breeds within itself; its error is ×0.05, ×0.08 and ×0.00004 the always-on version's at 50, 100 and 1,000 evaluations per dimension.
   - CMA-ES searches conditions on range parameters, keeping a parameter's place in its distribution while it is switched off.
 - **A conditional benchmark suite.** `python -m hone.benchmarks --conditional` runs four problems with conditional parameters, each also as a flat version with every parameter always on, to compare. The machine learning suite gains model-selection-breast-cancer, which chooses a classifier and its settings, and its flat version.
+- **An example**, `examples/choose_a_model.py`, choosing among an SVM with three kernels, a random forest and logistic regression, with each one's settings and a conditional constraint on the forest's size.
 
 ### Changed
 

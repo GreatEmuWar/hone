@@ -186,6 +186,49 @@ Constraints should be quick to check: hone checks them for every candidate it co
 
 Starting points must satisfy the constraints. If the constraints leave nothing to search, or a region too small to find in 100,000 random draws, the optimizer raises `InfeasibleSearchSpace` when it's created, before any evaluation. Each optimizer keeps to constraints in its own way: random search and Bayesian optimization only consider points that satisfy them, CMA-ES draws a candidate again while it breaks one, and the genetic optimizer moves such a child back toward its fitter parent until it is feasible, which tends to land it near the boundary, where constrained optima usually are. On the benchmark's constrained problems the choice between optimizers follows the same pattern as without constraints; see [benchmarks/README.md](benchmarks/README.md#constrained-problems). [examples/pressure_vessel.py](examples/pressure_vessel.py) designs a pressure vessel of least cost under three constraints and finds the best published design. [examples/maintenance_schedule.py](examples/maintenance_schedule.py) chooses a maintenance schedule for a production line, scored by a noisy simulation of a year, with a constraint on technician hours and a function constraint that depends on the chosen shift; it halves the expected yearly cost of a sensible schedule chosen by hand.
 
+### Conditional parameters
+
+Some settings only exist when another takes certain values: a kernel's settings only for the model that has kernels, a third layer's size only with three layers or more. Write each condition as `test >> parameters`, read "then", and pass them to `SearchSpace`:
+
+```python
+from hone import ChoiceParameter, RangeParameter, SearchSpace
+
+model = ChoiceParameter("model", ["svm", "forest"])
+kernel = ChoiceParameter("kernel", ["linear", "rbf"])
+C = RangeParameter("C", 1e-3, 1e3, log=True)
+gamma = RangeParameter("gamma", 1e-5, 1, log=True)
+trees = RangeParameter("trees", 10, 500, integer=True)
+
+search_space = SearchSpace(
+    [model, kernel, C, gamma, trees],
+    conditions=[
+        model["svm"] >> [kernel, C],
+        kernel["rbf"] >> gamma,  # only with an svm too, since kernel is
+        model["forest"] >> trees,
+    ],
+)
+
+def train(model, kernel=None, C=None, gamma=None, trees=None):
+    ...
+```
+
+The left of `>>` is a test: a choice parameter indexed by the values that switch the parameters on, such as `model["svm"]` or `optimizer["sgd", "nesterov"]`, or a comparison of range parameters in brackets, such as `(layers >= 3) >> units_3`. The brackets are needed, since Python reads `layers >= 3 >> units_3` as `layers >= (3 >> units_3)`; hone raises an error saying so. The right is a parameter or a list of them, and each parameter can have one condition. Conditions nest: a parameter whose test uses a parameter that is switched off is off too.
+
+A parameter that is switched off isn't part of the point. The objective isn't passed it, so give it a default, which hone checks before the run starts; results, progress and `best_params` leave it out; and a starting point must leave it out too. Two points that differ only in a parameter switched off are the same point, so they are averaged together with `noise=True` and the genetic optimizer doesn't count one as new.
+
+A constraint applies only while every parameter it uses is switched on, and `test >> constraint` makes a constraint apply only while the test holds:
+
+```python
+depth = RangeParameter("depth", 2, 20, integer=True)
+search_space = SearchSpace(
+    [model, trees, depth],
+    constraints=[model["forest"] >> (trees * depth <= 2000)],
+    conditions=[model["forest"] >> [trees, depth]],
+)
+```
+
+Every optimizer supports conditions; CMA-ES only conditions on range parameters, since it doesn't search choices. Bayesian optimization gains the most: a parameter switched off looks the same to its model whatever value it holds, so values that don't matter add no noise. On the benchmark's conditional problems its error is ×0.0004 that of searching every parameter all the time, at 10 evaluations per dimension. With conditions the genetic optimizer breeds each branch within its own niche by default (`niche_share` of 0.5, below), so a wide, easy branch doesn't crowd out a narrow, better one; see [benchmarks/README.md](benchmarks/README.md#conditional-problems). [examples/choose_a_model.py](examples/choose_a_model.py) chooses a classifier, among an SVM with three kernels, a random forest and logistic regression, together with its settings.
+
 ### Configuration
 
 `GeneticOptimizerConfig` validates its values when created. It can also be loaded from a JSON or YAML file:
@@ -198,7 +241,7 @@ Set `seed` to make a run repeatable. `max_evaluations` sets a budget: the run st
 
 Parents are chosen by tournament: `tournament_size` (default 4) individuals are drawn and the fittest wins.
 
-When a choice parameter's best option is found late, the genetic optimizer can settle on another one: once most of the population uses one option, a child with a different option inherits numbers tuned for the wrong one and loses. `niche_share=0.5` breeds half of each generation's children within niches of parents that share their choices, so every option keeps tuning its own numbers. On material-selection-10d with 1,000 evaluations per dimension it found the right material in 10 of 10 runs, against 6 of 10 without. It costs some progress on small budgets, so it's off by default.
+When a choice parameter's best option is found late, the genetic optimizer can settle on another one: once most of the population uses one option, a child with a different option inherits numbers tuned for the wrong one and loses. `niche_share=0.5` breeds half of each generation's children within niches of parents that share their choices, so every option keeps tuning its own numbers. On material-selection-10d with 1,000 evaluations per dimension it found the right material in 10 of 10 runs, against 6 of 10 without. It costs some progress on small budgets, so it's off by default, except in a search space with conditions: there each branch is a niche, and 0.5 is the default, since a branch with a better optimum is often harder to find.
 
 Each value of a new individual mutates with probability `mutation_rate`: by default 1 over the number of variables, and at least 0.1, so in two variables half of them mutate. A range value moves by a random step whose typical size is a fraction of the width of its range. A choice switches to another option, and a fixed value never changes.
 

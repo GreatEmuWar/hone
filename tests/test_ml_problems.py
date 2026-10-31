@@ -46,6 +46,13 @@ def test_the_iris_example_runs():
     assert output.startswith("accuracy 0.9")
 
 
+def test_the_model_choice_example_runs():
+    example = Path(__file__).parent.parent / "examples" / "choose_a_model.py"
+    output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout
+    accuracy = float(output.split()[1])
+    assert accuracy >= 0.97, output
+
+
 def test_runs_with_every_optimizer():
     runs = run_benchmark(PROBLEMS[:1], seeds=range(1), budgets_per_dimension=[2])
     assert {r.optimizer for r in runs} == {"genetic", "cma-es", "bayesian", "random"}
