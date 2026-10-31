@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from hone import GeneticOptimizer, GeneticOptimizerConfig
+from hone.optimizers.genetic import optimizer as genetic
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from conftest import bounded_parameters, individual, make_optimizer, run, sphere
@@ -108,6 +109,7 @@ def test_niche_children_take_their_niches_options_even_when_mutated():
 
 def test_without_niches_the_weak_options_are_rarely_bred():
     optimizer = make_optimizer(search_space=NICHE_SPACE, population_size=20, mutation_rate=0.0, elitism=False, seed=1)
+    optimizer._new_point = lambda params, step, niche: params  # copies stay copies, so only selection decides
     children = optimizer._next_population(niche_population(), 1)
     assert sum(c.params["material"] == "titanium" for c in children) <= 2
 
@@ -166,10 +168,12 @@ def test_with_noise_the_defaults_behave_as_before():
 
 
 def test_mutation_sizes_shrink_as_the_population_converges():
-    optimizer = make_optimizer(max_evaluations=2000)
-    optimizer.optimize(sphere)
-    steps = list(optimizer._steps.values())
-    assert steps and np.median(steps) < optimizer.config.mutation_scale / 5  # about a tenth, measured
+    medians = []
+    for seed in range(3):
+        optimizer = make_optimizer(max_evaluations=2000, seed=seed)
+        optimizer.optimize(sphere)
+        medians.append(np.median(list(optimizer._steps.values())))
+    assert np.median(medians) < optimizer.config.mutation_scale / 5  # about a tenth, measured
 
 
 def test_adaptive_mutation_reaches_more_precise_answers():
@@ -182,3 +186,49 @@ def test_only_breeding_individuals_keep_a_mutation_size():
     optimizer = make_optimizer(population_size=10, generations=30)
     optimizer.optimize(sphere)
     assert set(optimizer._steps) <= set(optimizer._population)
+
+
+# --- no repeat evaluations ---------------------------------------------------
+
+
+def asked_points(optimizer, objective):
+    """Every point the optimizer asks for, in order, with the generation it was bred in."""
+    points = []
+    while not optimizer.done:
+        for trial in optimizer.ask():
+            points.append((trial.params, optimizer._generation))
+            optimizer.tell(trial, objective(**trial.params))
+    return points
+
+
+def test_children_never_repeat_a_point_already_asked_for():
+    points = asked_points(make_optimizer(max_evaluations=1000), sphere)
+    keys = [tuple(params.values()) for params, _ in points]
+    assert len(set(keys)) == len(keys)
+
+
+def test_children_avoid_most_repeats_in_a_small_integer_space(monkeypatch):
+    # Near the optimum the nearby integer points run out, so some repeats remain.
+    space = [RangeParameter("a", 0, 20, integer=True), RangeParameter("b", 0, 20, integer=True)]
+
+    def repeats():
+        optimizer = GeneticOptimizer(space, GeneticOptimizerConfig(max_evaluations=200, seed=0))
+        points = asked_points(optimizer, lambda a, b: (a - 7) ** 2 + (b - 13) ** 2)
+        return len(points) - len({(p["a"], p["b"]) for p, _ in points})
+
+    avoiding = repeats()
+    monkeypatch.setattr(genetic, "REPEAT_TRIES", 0)
+    assert avoiding < repeats() * 0.75  # about half, measured
+
+
+def test_a_used_up_space_still_finishes():
+    optimizer = GeneticOptimizer([RangeParameter("a", 0, 2, integer=True)], GeneticOptimizerConfig(max_evaluations=60, seed=0))
+    result = optimizer.optimize(lambda a: (a - 1) ** 2)
+    assert result.evaluations == 60 and result.best_params == {"a": 1}
+
+
+def test_with_noise_points_are_evaluated_again():
+    rng = np.random.default_rng(0)
+    points = asked_points(make_optimizer(max_evaluations=500, noise=True), lambda x, y: x**2 + y**2 + rng.normal())
+    keys = [tuple(params.values()) for params, _ in points]
+    assert len(set(keys)) < len(keys)

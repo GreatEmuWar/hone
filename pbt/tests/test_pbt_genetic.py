@@ -1,15 +1,27 @@
 """Property tests for hone.optimizers.genetic, from GeneticOptimizer's docstring and the README."""
 import os
+from contextlib import contextmanager
 
 from hypothesis import HealthCheck, assume, given, settings, strategies as st
 
 from hone import ChoiceParameter, GeneticOptimizer, GeneticOptimizerConfig, RangeParameter, SelectionMethod
 from pbt_runs import Recorder, seeds
 from pbt_strategies import search_spaces
+from hone.optimizers.genetic import optimizer as genetic
 
 EXAMPLES = int(os.environ.get("PBT_EXAMPLES", "25"))
 run_settings = settings(max_examples=EXAMPLES, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 spaces = search_spaces(kinds=("range", "choice", "fixed", "choose_n"))
+
+
+@contextmanager
+def repeats_allowed():
+    """Turn off repeat avoidance, which mutates a child that would repeat a point even with mutation off."""
+    tries, genetic.REPEAT_TRIES = genetic.REPEAT_TRIES, 0
+    try:
+        yield
+    finally:
+        genetic.REPEAT_TRIES = tries
 
 
 @st.composite
@@ -76,6 +88,11 @@ def test_generation_sizes(space, config):
 @run_settings
 @given(spaces, configs(budget=False, generations=4, mutation_rate=0.0), st.data())
 def test_children_inherit_genes_from_successful_parents(space, config, data):
+    with repeats_allowed():
+        _children_inherit_genes_from_successful_parents(space, config, data)
+
+
+def _children_inherit_genes_from_successful_parents(space, config, data):
     failing = {name for name in space.names if data.draw(st.booleans())}
     optimizer = GeneticOptimizer(space, config)
     successful = []  # every successfully evaluated point so far: parents and elites come from these
@@ -100,6 +117,11 @@ def test_children_inherit_genes_from_successful_parents(space, config, data):
 @run_settings
 @given(configs(budget=False, generations=5, mutation_rate=0.0), seeds)
 def test_failed_options_are_not_bred(config, seed):
+    with repeats_allowed():
+        _failed_options_are_not_bred(config, seed)
+
+
+def _failed_options_are_not_bred(config, seed):
     space = [ChoiceParameter("material", ["steel", "glass", "wood"]), RangeParameter("x", 0, 1)]
     optimizer = GeneticOptimizer(space, config)
     first = True

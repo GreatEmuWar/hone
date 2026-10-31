@@ -3,7 +3,7 @@ from functools import partial
 from typing import Callable
 
 from hone.config import GeneticOptimizerConfig, SelectionMethod
-from hone.optimizers.base import Individual, Optimizer, _fitness
+from hone.optimizers.base import Individual, Optimizer, _fitness, _key
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from . import selection
@@ -15,6 +15,8 @@ from .variation import mutate, uniform_crossover
 STEP_SPREAD = 0.5
 MIN_STEP = 1e-9
 MAX_STEP = 0.5
+# A child that repeats a point already asked for is mutated again, one gene at a time, up to this many times.
+REPEAT_TRIES = 10
 
 
 class GeneticOptimizer(Optimizer):
@@ -31,6 +33,11 @@ class GeneticOptimizer(Optimizer):
     With adaptive mutation, each individual carries its own mutation size, as in evolution
     strategies: a child takes the geometric mean of its parents' sizes, varied at random, so
     individuals with sizes that suit the problem's current scale breed more.
+
+    Without noise, a child that repeats a point already asked for, such as a copy of a parent
+    that no mutation touched, has one gene at a time mutated again until it is new, since
+    evaluating it again would only spend the budget. With noise, repeats stay: they refine
+    the point's average.
 
     Args:
         search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
@@ -54,6 +61,13 @@ class GeneticOptimizer(Optimizer):
 
     def reset(self) -> None:
         super().reset()
+        # The parameters a mutation can change.
+        self._movable = [
+            p.name for p in self.search_space.parameters
+            if not isinstance(p, FixedParameter)
+            and not (isinstance(p, RangeParameter) and p.maximum == p.minimum)
+            and not (isinstance(p, ChoiceParameter) and len(p.choices) == 1)
+        ]
         variables = sum(
             not isinstance(p, FixedParameter) and not (isinstance(p, RangeParameter) and p.maximum == p.minimum)
             for p in self.search_space.parameters
@@ -65,6 +79,7 @@ class GeneticOptimizer(Optimizer):
         self._adaptive = self.config.adaptive_mutation if self.config.adaptive_mutation is not None else not self.config.noise
         self._step_spread = STEP_SPREAD / math.sqrt(max(variables, 1))
         self._steps: dict[Individual, float] = {}  # each individual's mutation size, with adaptive mutation
+        self._asked: set[tuple] = set()  # every point put in a population, so children can avoid repeating one
 
     def _select(self, individuals: list[Individual]) -> Individual:
         select: Callable[..., Individual]
@@ -84,10 +99,28 @@ class GeneticOptimizer(Optimizer):
             inherited = math.sqrt(self._step(first) * self._step(second))
             step = min(max(inherited * math.exp(self.rng.normal(0, self._step_spread)), MIN_STEP), MAX_STEP)
         params = mutate(params, self.search_space, self.rng, rate=self._mutation_rate, scale=step)
-        child = Individual(params={**params, **(niche or {})}, generation=generation)
+        params = {**params, **(niche or {})}
+        if not self.config.noise:
+            params = self._new_point(params, step, niche)
+        child = Individual(params=params, generation=generation)
         if self._adaptive:
             self._steps[child] = step
         return child
+
+    def _new_point(self, params: dict, step: float, niche: dict | None) -> dict:
+        """params, mutated again a gene at a time while they repeat a point already asked for.
+
+        Gives up after REPEAT_TRIES, which only happens when the space has few points left.
+        A niche's choices stay fixed.
+        """
+        movable = [name for name in self._movable if not niche or name not in niche]
+        for _ in range(REPEAT_TRIES):
+            if not movable or _key(params) not in self._asked:
+                break
+            name = movable[self.rng.integers(len(movable))]
+            params = {**params, name: self.search_space[name].mutate(params[name], self.rng, step)}
+        self._asked.add(_key(params))
+        return params
 
     def _step(self, individual: Individual) -> float:
         return self._steps.get(individual, self.config.mutation_scale)
@@ -118,11 +151,15 @@ class GeneticOptimizer(Optimizer):
         size = self.config.population_size
         if previous is None:
             initial = self._initial_individuals(generation)
-            return initial + [self._random_individual(generation) for _ in range(size - len(initial))]
+            population = initial + [self._random_individual(generation) for _ in range(size - len(initial))]
+            self._asked.update(_key(individual.params) for individual in population)
+            return population
         parents = [individual for individual in previous if not individual.failed]
         if not parents:
             # Every evaluation of the previous generation failed: start afresh.
-            return [self._random_individual(generation) for _ in range(size)]
+            population = [self._random_individual(generation) for _ in range(size)]
+            self._asked.update(_key(individual.params) for individual in population)
+            return population
 
         if self.config.noise:
             # A point bred again since it was evaluated has more evaluations now; rank by their average.

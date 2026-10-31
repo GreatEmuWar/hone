@@ -169,11 +169,13 @@ Set `seed` to make a run repeatable. `max_evaluations` sets a budget: the run st
 
 Parents are chosen by tournament: `tournament_size` (default 4) individuals are drawn and the fittest wins.
 
-When a choice parameter's best option is found late, the genetic optimizer can settle on another one: once most of the population uses one option, a child with a different option inherits numbers tuned for the wrong one and loses. `niche_share=0.5` breeds half of each generation's children within niches of parents that share their choices, so every option keeps tuning its own numbers. On material-selection-10d with 1,000 evaluations per dimension it found the right material in 10 of 10 runs, against 4 of 10 without. It costs some progress on small budgets, so it's off by default.
+When a choice parameter's best option is found late, the genetic optimizer can settle on another one: once most of the population uses one option, a child with a different option inherits numbers tuned for the wrong one and loses. `niche_share=0.5` breeds half of each generation's children within niches of parents that share their choices, so every option keeps tuning its own numbers. On material-selection-10d with 1,000 evaluations per dimension it found the right material in 10 of 10 runs, against 6 of 10 without. It costs some progress on small budgets, so it's off by default.
 
 Each value of a new individual mutates with probability `mutation_rate`: by default 1 over the number of variables, and at least 0.1, so in two variables half of them mutate. A range value moves by a random step whose typical size is a fraction of the width of its range. A choice switches to another option, and a fixed value never changes.
 
 The step size adapts as the run goes (`adaptive_mutation`, on by default). Each individual carries its own step, starting at `mutation_scale` (default 0.1); a child takes the geometric mean of its parents' steps, varied at random, so individuals whose steps suit the problem's current scale breed more, and steps shrink as the population closes in. Together with the mutation rate, this cut the genetic optimizer's geometric-mean error on the benchmark by half or more at 20 to 1,000 evaluations per dimension (×0.34 to ×0.50), and by 8% at 10. With `noise=True` both stay as before (a rate of 0.1 and a fixed step), because on the noisy problems they helped at small budgets but cost more at large ones; set `adaptive_mutation=True` or a `mutation_rate` to choose otherwise.
+
+A child that would repeat a point already asked for, such as a copy of a parent that no mutation touched, is mutated again, one value at a time, until it is new. About one child in four used to be such a copy, and evaluating it again only spent the budget; avoiding them cut the geometric-mean error on the benchmark by 10% to 18% at 10 to 100 evaluations per dimension, and by 59% at 1,000. In a small integer space, where the points near the best run out, some repeats remain. With `noise=True` repeats are kept, because each one refines the point's average.
 
 ### Results
 
@@ -237,7 +239,7 @@ result = optimizer.optimize(run_simulation)
 | More than 200 | Any choice parameter | `GeneticOptimizer` |
 | More than 200 | Numbers only | `CMAES` |
 
-Other settings, such as `seed`, `maximize`, `noise` or `threshold`, are passed on to the chosen optimizer's config. On the benchmark's 180 problem and budget pairs, its pick had a median error 1.29 times the best optimizer's, on geometric mean, and was the best on 144; always using CMA-ES gives 6.2 times the best, and it can't run the 15 problems with choice parameters. Its biggest misses are plain Rastrigin with 1,000 evaluations per dimension, where the genetic optimizer wins because the variables don't interact, which a rule can't know in advance; on the rotated versions CMA-ES wins.
+Other settings, such as `seed`, `maximize`, `noise` or `threshold`, are passed on to the chosen optimizer's config. On the benchmark's 180 problem and budget pairs, its pick had a median error 1.32 times the best optimizer's, on geometric mean, and was the best on 145; always using CMA-ES gives 6.4 times the best, and it can't run the 15 problems with choice parameters. Its biggest misses are plain Rastrigin with 1,000 evaluations per dimension, where the genetic optimizer wins because the variables don't interact, which a rule can't know in advance; on the rotated versions CMA-ES wins.
 
 All four take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 
