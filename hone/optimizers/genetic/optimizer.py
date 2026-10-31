@@ -124,7 +124,6 @@ class GeneticOptimizer(Optimizer):
         repaired = Individual(params=inside, generation=generation)
         if child in self._steps:
             self._steps[repaired] = self._steps.pop(child)
-        self._asked.add(_key(inside))
         return repaired
 
     def _between(self, inside: dict, outside: dict) -> dict:
