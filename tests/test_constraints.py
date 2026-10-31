@@ -7,17 +7,19 @@ from pydantic import ValidationError
 
 from hone import (
     CMAES,
+    BayesianConfig,
     BayesianOptimizer,
     ChoiceParameter,
+    CMAESConfig,
     Constraint,
     GeneticOptimizer,
+    GeneticOptimizerConfig,
     InfeasibleSearchSpace,
     OptimizerConfig,
     RandomSearch,
     RangeParameter,
     Result,
     SearchSpace,
-    UnsupportedSearchSpace,
 )
 
 WIDTH = RangeParameter("width", 1, 10)
@@ -183,10 +185,33 @@ def test_constraints_that_leave_nothing_fail_before_any_evaluation():
         RandomSearch(space)
 
 
-@pytest.mark.parametrize("optimizer_class", [GeneticOptimizer, CMAES, BayesianOptimizer])
-def test_optimizers_without_support_refuse_constraints(optimizer_class):
-    with pytest.raises(UnsupportedSearchSpace, match="doesn't support constraints yet"):
-        optimizer_class(SearchSpace([WIDTH, HEIGHT], [WIDTH <= HEIGHT]))
+CONFIGS = {RandomSearch: OptimizerConfig, GeneticOptimizer: GeneticOptimizerConfig, CMAES: CMAESConfig, BayesianOptimizer: BayesianConfig}
+
+
+@pytest.mark.parametrize("optimizer_class", list(CONFIGS))
+def test_every_optimizer_only_asks_for_feasible_points(optimizer_class):
+    # A thin wedge, about 5% of the box, whose best point is on its edge.
+    space = SearchSpace(
+        [WIDTH, HEIGHT, ChoiceParameter("finish", ["matte", "gloss"])],
+        [WIDTH * HEIGHT <= 20, WIDTH >= 3 * HEIGHT, Constraint.function(lambda width, finish: width - (6 if finish == "gloss" else 9), name="finish")],
+    )
+    if optimizer_class is CMAES:
+        space = SearchSpace([WIDTH, HEIGHT], space.constraints[:2])
+    optimizer = optimizer_class(space, CONFIGS[optimizer_class](max_evaluations=60, seed=1))
+    while not optimizer.done:
+        for trial in optimizer.ask():
+            assert space.feasible(trial.params), trial.params
+            optimizer.tell(trial, -trial.params["width"] * trial.params["height"])
+    best = optimizer.result().best_params
+    assert best["width"] * best["height"] <= 20 + 1e-9
+
+
+@pytest.mark.parametrize("optimizer_class", list(CONFIGS))
+def test_every_optimizer_checkpoints_with_a_function_constraint(optimizer_class, tmp_path):
+    space = SearchSpace([WIDTH, HEIGHT], [Constraint.function(lambda width, height: width * height - 40, name="area")])
+    optimizer = optimizer_class(space, CONFIGS[optimizer_class](max_evaluations=30, seed=0))
+    optimizer.optimize(area, checkpoint=tmp_path / "run.checkpoint")
+    assert (tmp_path / "run.checkpoint").exists()
 
 
 def test_a_rebuilt_optimizer_repeats_a_constrained_run(tmp_path):

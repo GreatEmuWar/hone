@@ -27,6 +27,7 @@ INTEGER_SPREAD = 0.25  # minimum standard deviation of an integer variable, in i
 MAX_CONDITION = 1e14  # restart when the covariance matrix is this badly conditioned
 MIN_STEP = 1e-12  # restart when every continuous step, in [0, 1] units, falls below this
 FLAT = 1e-12  # restart when recent generations' best values differ by less than this
+RESAMPLES = 100  # draws from the distribution for a feasible candidate before falling back to a random feasible point
 
 
 class CMAES(Optimizer):
@@ -50,6 +51,8 @@ class CMAES(Optimizer):
         initial_points: Points to evaluate first: one dict of parameter values, or a list of them.
     """
     config_class = CMAESConfig
+    supports_constraints = True
+    _constraint_handling = "resample"  # or "rank": chosen on the constrained benchmark
     config: CMAESConfig
 
     def __init__(
@@ -116,6 +119,7 @@ class CMAES(Optimizer):
         self._iteration = 0
         self._recent_bests: list[float] = []
         self._vectors: dict[Individual, np.ndarray] = {}  # each individual of the current generation -> its point in [0, 1]^n
+        self._infeasible: list[tuple[float, np.ndarray]] = []
 
     # --- the generation -------------------------------------------------------
 
@@ -135,19 +139,46 @@ class CMAES(Optimizer):
         minimum = self._minimum_spread()
         # Integer variables are sampled wider when their spread falls below the minimum.
         self._widen = np.where(spread < minimum, minimum / np.maximum(spread, 1e-300), 1.0)
-        return [self._sample(generation) for _ in range(self.population_size)]
+        self._infeasible: list[tuple[float, np.ndarray]] = []  # with "rank": violation and point of each infeasible sample
+        population = []
+        for _ in range(self.population_size):
+            individual = self._sample(generation)
+            if individual is not None:
+                population.append(individual)
+        return population
 
-    def _sample(self, generation: int) -> Individual:
+    def _draw(self) -> np.ndarray:
         z = self.rng.standard_normal(len(self._mean))
-        x = _mirror(self._mean + self._sigma * self._widen * (self._B @ (self._D * z)))
-        individual = Individual(params=self._decode(x), generation=generation)
+        return _mirror(self._mean + self._sigma * self._widen * (self._B @ (self._D * z)))
+
+    def _sample(self, generation: int) -> Individual | None:
+        """A candidate from the search distribution that satisfies every constraint, or None if it's set aside unevaluated."""
+        x = self._draw()
+        params = self._decode(x)
+        constraints = self.search_space.constraints
+        if constraints and not self.search_space.feasible(params):
+            if self._constraint_handling == "rank":
+                self._infeasible.append((sum(c.violation(params) for c in constraints), x))
+                return None
+            for _ in range(RESAMPLES):
+                x = self._draw()
+                params = self._decode(x)
+                if self.search_space.feasible(params):
+                    break
+            else:
+                params = self.search_space.sample(self.rng)
+                x = self._encode(params)
+        individual = Individual(params=params, generation=generation)
         self._vectors[individual] = x
         return individual
 
     def _update(self, previous: list[Individual]) -> None:
         ranked = [ind for ind in self._ranked(previous) if not ind.failed and ind in self._vectors]
+        # With "rank", samples that broke a constraint follow every feasible one, least violation first.
+        vectors = [self._vectors[ind] for ind in ranked] + [x for _, x in sorted(self._infeasible, key=lambda pair: pair[0])]
+        if vectors:
+            self._adapt(np.array(vectors[: len(self._weights)]))
         if ranked:
-            self._adapt(np.array([self._vectors[ind] for ind in ranked[: len(self._weights)]]))
             self._recent_bests.append(_fitness(ranked[0]))
         self._vectors = {}
         if self.config.restarts and self._should_restart():

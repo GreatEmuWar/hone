@@ -17,6 +17,8 @@ MIN_STEP = 1e-9
 MAX_STEP = 0.5
 # A child that repeats a point already asked for is mutated again, one gene at a time, up to this many times.
 REPEAT_TRIES = 10
+# A child that breaks a constraint is bred again from new parents up to this many times.
+BREED_TRIES = 20
 
 
 class GeneticOptimizer(Optimizer):
@@ -57,6 +59,7 @@ class GeneticOptimizer(Optimizer):
         >>> result = optimizer.optimize(objective_function)
     """
     config_class = GeneticOptimizerConfig
+    supports_constraints = True
     config: GeneticOptimizerConfig
 
     def reset(self) -> None:
@@ -91,7 +94,22 @@ class GeneticOptimizer(Optimizer):
         return select(individuals, self.rng, maximize=self.config.maximize)
 
     def _child(self, parents: list[Individual], generation: int, niche: dict | None = None) -> Individual:
-        """A child of two parents selected from parents. A niche fixes the child's choice parameters."""
+        """A child of two parents selected from parents. A niche fixes the child's choice parameters.
+
+        A child that breaks a constraint is bred again from newly selected parents, up to
+        BREED_TRIES times, and then replaced by a random point that satisfies every constraint.
+        """
+        for _ in range(BREED_TRIES):
+            child = self._bred(parents, generation, niche)
+            if self.search_space.feasible(child.params):
+                return child
+            self._steps.pop(child, None)
+        params = self.search_space.sample(self.rng)
+        if niche and self.search_space.feasible({**params, **niche}):
+            params = {**params, **niche}
+        return Individual(params=params, generation=generation)
+
+    def _bred(self, parents: list[Individual], generation: int, niche: dict | None) -> Individual:
         first, second = self._select(parents), self._select(parents)
         params = uniform_crossover(first.params, second.params, self.rng, rate=self.config.crossover_rate)
         step = self.config.mutation_scale

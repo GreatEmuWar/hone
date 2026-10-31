@@ -45,6 +45,7 @@ class BayesianOptimizer(Optimizer):
         initial_points: Points to evaluate first: one dict of parameter values, or a list of them.
     """
     config_class = BayesianConfig
+    supports_constraints = True
     config: BayesianConfig
 
     def __init__(
@@ -73,12 +74,12 @@ class BayesianOptimizer(Optimizer):
             count = self.config.initial_samples or 2 * (self._encoding.variables + 1)
             taken = {tuple(self._encoding.encode(ind.params)) for ind in initial}
             spread = []
-            for x in self._encoding.spread(self.rng, max(count - len(initial), 0)):
+            for x in self._feasible_spread(max(count - len(initial), 0)):
                 # Rounding integers can land two points on the same values; try others instead.
                 for _ in range(100):
                     if tuple(x) not in taken:
                         break
-                    x = self._encoding.spread(self.rng, 1)[0]
+                    x = self._feasible_spread(1)[0]
                 taken.add(tuple(x))
                 spread.append(x)
             return initial + [Individual(params=self._encoding.decode(x), generation=generation) for x in spread]
@@ -98,7 +99,7 @@ class BayesianOptimizer(Optimizer):
     def _propose(self, count: int) -> list[np.ndarray]:
         succeeded = [y for y in self._y if y is not None]
         if len(succeeded) < 2:
-            return list(self._encoding.spread(self.rng, count))
+            return list(self._feasible_spread(count))
         worst = max(succeeded)
         X = np.array(self._X)
         model = GaussianProcess(X, np.array([worst if y is None else y for y in self._y]), self._theta)
@@ -129,20 +130,40 @@ class BayesianOptimizer(Optimizer):
         scales = self.rng.choice([0.01, 0.05, 0.2], size=(LOCAL_CANDIDATES, 1))
         local = encoding.perturb(self.rng, local, scales)
         candidates = encoding.snap(np.vstack([encoding.spread(self.rng, GLOBAL_CANDIDATES), local]))
-        scores = _log_expected_improvement(model, candidates, best)
+        scores = self._only_feasible(candidates, _log_expected_improvement(model, candidates, best))
 
         columns = encoding.numeric
         if columns.size:
             starts = candidates[np.argsort(-scores)[:REFINED]]
             refined = encoding.snap(_refine(model, starts, columns, best))
             candidates = np.vstack([candidates, refined])
-            scores = np.append(scores, _log_expected_improvement(model, refined, best))
+            scores = np.append(scores, self._only_feasible(refined, _log_expected_improvement(model, refined, best)))
 
         seen = model.X
         for index in np.argsort(-scores):
+            if scores[index] == -np.inf and self.search_space.constraints:
+                break  # the rest break a constraint
             if not np.any(np.all(np.abs(seen - candidates[index]) < 1e-9, axis=1)):
                 return candidates[index]
-        return encoding.spread(self.rng, 1)[0]  # every candidate was already evaluated
+        return self._feasible_spread(1)[0]  # every feasible candidate was already evaluated
+
+    # --- constraints --------------------------------------------------------------
+
+    def _feasible_spread(self, count: int) -> np.ndarray:
+        """count points spread over the space, any that break a constraint replaced by random feasible points."""
+        X = self._encoding.spread(self.rng, count)
+        if self.search_space.constraints:
+            for i, x in enumerate(X):
+                if not self.search_space.feasible(self._encoding.decode(x)):
+                    X[i] = self._encoding.encode(self.search_space.sample(self.rng))
+        return X
+
+    def _only_feasible(self, X: np.ndarray, scores: np.ndarray) -> np.ndarray:
+        """scores, with those of points that break a constraint set to minus infinity."""
+        if not self.search_space.constraints:
+            return scores
+        feasible = np.array([self.search_space.feasible(self._encoding.decode(x)) for x in X], dtype=bool)
+        return np.where(feasible, scores, -np.inf)
 
 
 def _refine(model: GaussianProcess, starts: np.ndarray, columns: np.ndarray, best: float) -> np.ndarray:
@@ -187,7 +208,7 @@ class _Encoding:
     """Between parameter values and points in [0, 1]^columns, where the model works."""
 
     def __init__(self, search_space: SearchSpace) -> None:
-        self.search_space = search_space
+        self.names = search_space.names  # not the search space itself, whose function constraints may not pickle
         self._blocks: list[tuple[RangeParameter | ChoiceParameter, slice]] = []
         self._constant: dict[str, Any] = {}
         column = 0
@@ -228,7 +249,7 @@ class _Encoding:
                 values[p.name] = p.from_unit(float(x[block][0]))
             else:
                 values[p.name] = p.choices[int(np.argmax(x[block]))]
-        return {name: values[name] for name in self.search_space.names}
+        return {name: values[name] for name in self.names}
 
     def snap(self, X: np.ndarray) -> np.ndarray:
         """Each row moved to the nearest point that parameter values can take: whole integers and one choice per block."""
