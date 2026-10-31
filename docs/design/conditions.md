@@ -1,6 +1,6 @@
 # Conditional parameters: design
 
-Status: signed off. Part 1, the notation, the search space and random search, is in; the other optimizers and the benchmark follow.
+Status: signed off. Parts 1 and 2 are in: the notation, the search space, every optimizer and the conditional benchmark. Documentation and an example follow.
 
 ## What users get
 
@@ -62,9 +62,11 @@ Every individual an optimizer breeds holds a value for every parameter, includin
 | Optimizer | Conditional parameters |
 | --- | --- |
 | Random search | Draws every parameter; the ones switched off are left out of the trial |
-| Genetic optimizer | Keeps a value for every gene, switched off or not, so a child that switches a branch back on inherits its old settings. Mutation, and the no-repeat re-mutation, only pick genes switched on, so none is wasted. Niches already group parents by their choice values, so a branch breeds within itself |
+| Genetic optimizer | Keeps a value for every gene, switched off or not, so a child that switches a branch back on inherits its old settings. A gene switched off in one parent and on in the other comes from the parent it is on in, so crossover passes on values that were in use. Mutation, and the no-repeat re-mutation, only pick genes switched on, so none is wasted. Niches group parents by the choice values they have switched on, so each branch breeds within itself, and with conditions they are on by default (below) |
 | Bayesian optimization | One Gaussian process over every column, with switched-off columns set to a fixed value, so the values they happen to hold add no noise. Heavier approaches, such as a model per branch, only if the benchmark calls for them |
 | CMA-ES | Refuses choice parameters already, so it only meets conditions on ranges. It keeps those dimensions and ignores them while they are switched off |
+
+**Niches by default.** Without niches, the genetic optimizer settled in a decoy branch on most conditional problems: a wide, shallow branch fills the population before the narrow best one is tuned. So with conditions, `niche_share` defaults to 0.5, half of each generation's children bred within their branch; without conditions it stays 0, and results don't change. On the conditional suite at 1,000 evaluations per dimension this took the geometric-mean error from 9e-5 to 1e-8, and at 50 from 0.20 to 0.029; at 10 it cost a little (0.74 to 0.77). Grouping niches by which parameters are switched on, so a layer count's values are niches too, was also tried: it helped layers-7 at some budgets and hurt it at others, and was no better overall.
 
 `choose_optimizer` already sends spaces with choice parameters to Bayesian optimization at 200 evaluations or fewer and to the genetic optimizer above, and the benchmark checks that still holds.
 
