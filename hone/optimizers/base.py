@@ -74,10 +74,15 @@ class Optimizer(ABC):
         config: The optimizer's configuration. Defaults are used if omitted.
         initial_points: Points to evaluate first, such as a known good design or the best
             parameters of an earlier run: one dict of parameter values, or a list of them.
-            Fixed parameters may be left out.
+            Fixed parameters may be left out, and so must parameters a condition switches off.
+
+    Every individual an optimizer breeds holds a value for every parameter, including those
+    the conditions switch off at its point, so an optimizer can keep them to use again. The
+    base class leaves them out of what it hands out and reports: trials, results and progress.
     """
     config_class: ClassVar[type[OptimizerConfig]] = OptimizerConfig
     supports_constraints: ClassVar[bool] = False  # whether it keeps to a search space's constraints
+    supports_conditions: ClassVar[bool] = False  # whether it handles parameters that conditions switch on and off
 
     def __init__(
         self,
@@ -94,6 +99,8 @@ class Optimizer(ABC):
             raise TypeError(f"{type(self).__name__} needs a {self.config_class.__name__}, got {type(self.config).__name__}")
         if search_space.constraints and not self.supports_constraints:
             raise UnsupportedSearchSpace(f"{type(self).__name__} doesn't support constraints yet; RandomSearch does")
+        if search_space.conditions and not self.supports_conditions:
+            raise UnsupportedSearchSpace(f"{type(self).__name__} doesn't support conditional parameters yet; RandomSearch does")
         if isinstance(initial_points, dict):
             initial_points = [initial_points]
         self.initial_points = [search_space.check(point) for point in initial_points or []]
@@ -177,13 +184,20 @@ class Optimizer(ABC):
         reissued = [outstanding[i] for i in self._reissue if i in outstanding][:n]
         self._reissue = [i for i in self._reissue if i in outstanding and i not in {ind.id for ind in reissued}]
         if self._done:
-            return [Trial(id=ind.id, params=dict(ind.params), generation=ind.generation) for ind in reissued]
+            return [self._trial(ind) for ind in reissued]
         ready = [ind for ind_id, ind in self._waiting.items() if ind_id not in self._handed_out]
         limits = [None if n is None else n - len(reissued), self._budget_left()]
         ready = ready[: min((limit for limit in limits if limit is not None), default=len(ready))]
         self._handed_out.update(ind.id for ind in ready)
         self._handed_out_total += len(ready)
-        return [Trial(id=ind.id, params=dict(ind.params), generation=ind.generation) for ind in reissued + ready]
+        return [self._trial(ind) for ind in reissued + ready]
+
+    def _trial(self, individual: Individual) -> Trial:
+        return Trial(id=individual.id, params=self.search_space.active(individual.params), generation=individual.generation)
+
+    def _key(self, params: dict[str, Any]) -> tuple:
+        """A hashable form of the point params are at: two that differ only where conditions switch parameters off share it."""
+        return _key(self.search_space.active(params))
 
     def tell(self, trial: Trial | int, value: float | None = None, *, failed: bool = False) -> None:
         """Report the outcome of a trial from ask(), by the trial or its id.
@@ -215,7 +229,7 @@ class Optimizer(ABC):
             individual.fitness = float(value)
             if self.config.noise:
                 # Average every evaluation of the same point, so a lucky value regresses toward its mean.
-                key = _key(individual.params)
+                key = self._key(individual.params)
                 self._observations.setdefault(key, []).append(float(value))
                 self._points.setdefault(key, dict(individual.params))
                 individual.fitness = float(np.mean(self._observations[key]))
@@ -271,8 +285,8 @@ class Optimizer(ABC):
             # Once the finalists have been re-evaluated, the one with the best average; before
             # that, the most promising point by the optimizer's best estimate.
             key = self._ranked_keys(self._finalists)[0] if self._finalists else self._finalist_order()[0]
-            return self._average(key), self._points[key]
-        return _fitness(self._best), self._best.params
+            return self._average(key), self.search_space.active(self._points[key])
+        return _fitness(self._best), self.search_space.active(self._best.params)
 
     def _run_info(self) -> RunInfo:
         return RunInfo(
@@ -538,7 +552,7 @@ class Optimizer(ABC):
         """Set each successful individual's fitness to the current average of every evaluation of its point."""
         for individual in individuals:
             if not individual.failed and individual.fitness is not None:
-                individual.fitness = self._average(_key(individual.params))
+                individual.fitness = self._average(self._key(individual.params))
 
     def _final_population(self, generation: int) -> list[Individual]:
         """The final round with noise: the most promising points, each evaluated again.
@@ -561,7 +575,14 @@ class Optimizer(ABC):
         return list(self._late.values())
 
     def _initial_individuals(self, generation: int) -> list[Individual]:
-        return [Individual(params=dict(point), generation=generation) for point in self.initial_points]
+        """The initial points as individuals, with a random value for each parameter a condition switches off."""
+        return [
+            Individual(
+                params={p.name: point[p.name] if p.name in point else p.sample(self.rng) for p in self.search_space.parameters},
+                generation=generation,
+            )
+            for point in self.initial_points
+        ]
 
     def _random_individual(self, generation: int) -> Individual:
         return Individual(params=self.search_space.sample(self.rng), generation=generation)
@@ -592,7 +613,7 @@ class Optimizer(ABC):
             evaluations=evaluations,
             failures=failures,
             best_fitness=succeeded[0].fitness,
-            best_params=dict(succeeded[0].params),
+            best_params=self.search_space.active(succeeded[0].params),
             worst_fitness=succeeded[-1].fitness,
             mean=float(np.mean(fitnesses)),
             median=float(np.median(fitnesses)),

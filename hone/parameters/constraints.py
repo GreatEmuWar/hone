@@ -7,6 +7,7 @@ it with <= or >= makes a constraint:
 
 Expressions are pydantic models, so a search space with constraints saves and loads like any other.
 Constraint.function covers what an expression can't say, at the cost of not being saved.
+A constraint that only applies while a condition holds is written with >>; see conditions.py.
 """
 import inspect
 import math
@@ -213,6 +214,10 @@ class Constraint(BaseModel):
         """The parameters the constraint uses."""
         raise NotImplementedError
 
+    def applies(self, params: dict[str, Any]) -> bool:
+        """Whether the constraint applies at params: not when a parameter it needs is switched off by a condition."""
+        return self.names() <= params.keys()
+
     def __bool__(self) -> bool:
         raise TypeError(
             f"the constraint `{self}` has no truth value. A chained comparison such as `0 <= x + y <= 10` "
@@ -259,6 +264,12 @@ class ExpressionConstraint(Constraint):
     def __str__(self) -> str:
         return f"{self.left} {self.op} {self.right}"
 
+    def __rshift__(self, other: Any) -> Any:
+        # As the test of a condition: (layers >= 3) >> units_3.
+        from .conditions import _gate
+
+        return _gate(self, other)
+
 
 class FunctionConstraint(Constraint):
     """A constraint computed by a function of the parameters: satisfied when it returns zero or less."""
@@ -292,6 +303,9 @@ class FunctionConstraint(Constraint):
             if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
         }
 
+    def applies(self, params: dict[str, Any]) -> bool:
+        return self.required() <= params.keys()
+
     def required(self) -> set[str]:
         """The parameters the function can't be called without."""
         if self.func is None:
@@ -305,9 +319,6 @@ class FunctionConstraint(Constraint):
 
     def __str__(self) -> str:
         return self.name
-
-
-type AnyConstraint = Annotated[ExpressionConstraint | FunctionConstraint, Field(discriminator="kind")]
 
 
 class InfeasibleSearchSpace(ValueError):

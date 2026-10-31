@@ -8,6 +8,7 @@ class RandomSearch(Optimizer):
     Any initial points take the place of random points in the first generation.
     """
     supports_constraints = True
+    supports_conditions = True
 
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         initial = self._initial_individuals(generation) if previous is None else []

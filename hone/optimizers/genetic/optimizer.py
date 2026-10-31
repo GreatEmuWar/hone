@@ -3,7 +3,7 @@ from functools import partial
 from typing import Callable
 
 from hone.config import GeneticOptimizerConfig, SelectionMethod
-from hone.optimizers.base import Individual, Optimizer, _fitness, _key
+from hone.optimizers.base import Individual, Optimizer, _fitness
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from . import selection
@@ -166,11 +166,11 @@ class GeneticOptimizer(Optimizer):
         """
         movable = [name for name in self._movable if not niche or name not in niche]
         for _ in range(REPEAT_TRIES):
-            if not movable or _key(params) not in self._asked:
+            if not movable or self._key(params) not in self._asked:
                 break
             name = movable[self.rng.integers(len(movable))]
             params = {**params, name: self.search_space[name].mutate(params[name], self.rng, step)}
-        self._asked.add(_key(params))
+        self._asked.add(self._key(params))
         return params
 
     def _step(self, individual: Individual) -> float:
@@ -203,13 +203,13 @@ class GeneticOptimizer(Optimizer):
         if previous is None:
             initial = self._initial_individuals(generation)
             population = initial + [self._random_individual(generation) for _ in range(size - len(initial))]
-            self._asked.update(_key(individual.params) for individual in population)
+            self._asked.update(self._key(individual.params) for individual in population)
             return population
         parents = [individual for individual in previous if not individual.failed]
         if not parents:
             # Every evaluation of the previous generation failed: start afresh.
             population = [self._random_individual(generation) for _ in range(size)]
-            self._asked.update(_key(individual.params) for individual in population)
+            self._asked.update(self._key(individual.params) for individual in population)
             return population
 
         if self.config.noise:

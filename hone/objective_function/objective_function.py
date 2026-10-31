@@ -43,5 +43,20 @@ class ObjectiveFunction(BaseModel):
         )
         if unknown:
             raise ValueError(f"{self.name}() does not accept parameters: {', '.join(unknown)}")
+        # A parameter a condition switches off isn't passed, so the function needs a default for it.
+        no_default = sorted(
+            name
+            for name in names
+            if self.search_space.is_conditional(name)
+            and name in accepted
+            and accepted[name].default is inspect.Parameter.empty
+            and accepted[name].kind is not inspect.Parameter.VAR_KEYWORD
+        )
+        if no_default:
+            raise ValueError(
+                f"{self.name}() isn't passed {', '.join(no_default)} at points where a condition switches "
+                f"{'it' if len(no_default) == 1 else 'them'} off, so give {'it' if len(no_default) == 1 else 'each'} a default, "
+                f"such as {no_default[0]}=None"
+            )
         if missing:
             raise ValueError(f"{self.name}() requires parameters missing from the search space: {', '.join(missing)}")

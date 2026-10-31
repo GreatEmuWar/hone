@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Conditional parameters.** `SearchSpace(parameters, conditions=[model["svm"] >> [kernel, C], kernel["rbf"] >> gamma])` switches parameters on only while a test holds: a choice parameter's values, such as `model["svm"]`, or a comparison of range parameters in brackets, such as `(layers >= 3) >> units_3`. A parameter that is switched off isn't passed to the objective, which gives it a default, and results and initial points leave it out. Constraints on it apply only while it is switched on, and `test >> constraint` makes a constraint apply only while the test holds. Random search supports them so far; the other optimizers refuse them until they do. See [docs/design/conditions.md](docs/design/conditions.md).
+
 ## 0.10.0 (2026-10-31)
 
 Constraints: limits across parameters, written with the parameters themselves, which every optimizer keeps to. A README section explains them, two examples work through a standard engineering design and a maintenance schedule, and the benchmark has a constrained suite. See [benchmarks/README.md](benchmarks/README.md#constrained-problems).

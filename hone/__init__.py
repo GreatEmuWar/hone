@@ -10,7 +10,7 @@ from hone.optimizers import (
     UnsupportedSearchSpace,
     choose_optimizer,
 )
-from hone.parameters import ChoiceParameter, Constraint, FixedParameter, InfeasibleSearchSpace, RangeParameter, SearchSpace
+from hone.parameters import ChoiceParameter, Condition, Constraint, FixedParameter, InfeasibleSearchSpace, RangeParameter, SearchSpace
 from hone.result import GenerationStats, Progress, Result, RunInfo, print_progress
 
 __all__ = [
@@ -19,6 +19,7 @@ __all__ = [
     "CMAES",
     "CMAESConfig",
     "ChoiceParameter",
+    "Condition",
     "Constraint",
     "EvaluationFailed",
     "FixedParameter",
