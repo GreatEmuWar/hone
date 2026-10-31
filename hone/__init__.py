@@ -1,5 +1,15 @@
 from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, OptimizerConfig, SelectionMethod
-from hone.optimizers import CMAES, BayesianOptimizer, EvaluationFailed, GeneticOptimizer, Optimizer, RandomSearch, Trial, UnsupportedSearchSpace
+from hone.optimizers import (
+    CMAES,
+    BayesianOptimizer,
+    EvaluationFailed,
+    GeneticOptimizer,
+    Optimizer,
+    RandomSearch,
+    Trial,
+    UnsupportedSearchSpace,
+    choose_optimizer,
+)
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter, SearchSpace
 from hone.result import GenerationStats, Progress, Result, RunInfo, print_progress
 
@@ -25,5 +35,6 @@ __all__ = [
     "SelectionMethod",
     "Trial",
     "UnsupportedSearchSpace",
+    "choose_optimizer",
     "print_progress",
 ]

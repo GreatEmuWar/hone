@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 (2026-10-31)
+
+### Added
+
+- **Choosing an optimizer automatically.** `choose_optimizer(search_space, max_evaluations, ...)` returns the optimizer the benchmark suggests: Bayesian optimization for 200 evaluations or fewer, then the genetic optimizer if there are choice parameters, and CMA-ES otherwise. On the benchmark, its pick's median error is 1.24 times the best optimizer's on geometric mean, against 5.9 times for always using CMA-ES.
+
 ## 0.7.1 (2026-10-30)
 
 ### Added
