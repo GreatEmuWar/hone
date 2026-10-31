@@ -1,5 +1,8 @@
 """Constraints: building them from parameters, checking points against them, and keeping optimizers to them."""
 import math
+import subprocess
+import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -249,3 +252,22 @@ def test_a_checkpoint_resumes_a_run_with_a_function_constraint(tmp_path):
         for trial in resumed.ask():
             resumed.tell(trial, area(**trial.params))
     assert resumed.result() == whole
+
+
+def test_the_pressure_vessel_example_finds_the_published_design():
+    example = Path(__file__).parent.parent / "examples" / "pressure_vessel.py"
+    output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout
+    best = next(line for line in output.splitlines() if line.startswith("best: cost"))
+    assert float(best.split()[2].rstrip(",")) < 6059.714 * 1.01
+
+
+def test_the_maintenance_example_beats_a_schedule_chosen_by_hand():
+    sys.path.insert(0, str(Path(__file__).parent.parent / "examples"))
+    try:
+        import maintenance_schedule as example
+    finally:
+        sys.path.pop(0)
+    optimizer, result = example.plan(max_evaluations=40)
+    assert example.search_space.feasible(result.best_params)
+    by_hand = {"press_days": 30, "oven_days": 30, "packer_days": 30, "service_shift": "night", "spare_kits": 2}
+    assert example.expected_cost(result.best_params, years=100) < example.expected_cost(by_hand, years=100)

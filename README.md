@@ -157,6 +157,35 @@ RangeParameter("n_estimators", 10, 1000, integer=True, log=True)
 
 Every parameter the objective function requires must be in the search space. The optimizer checks this before it starts.
 
+### Constraints
+
+Limits across parameters are written with the parameters themselves and passed to `SearchSpace`. Every optimizer then only asks for points that satisfy every constraint, so the objective is never evaluated outside them:
+
+```python
+from hone import RangeParameter, SearchSpace
+
+width = RangeParameter("width", 1, 10)
+height = RangeParameter("height", 1, 10)
+search_space = SearchSpace([width, height], constraints=[width * height <= 40, width >= 2 * height])
+```
+
+Range parameters and numbers combine with `+`, `-`, `*`, `/`, `**` and `abs()`, and `<=` or `>=` makes the result a constraint; `<` and `>` mean the same. A point where a constraint can't be computed, such as one that divides by zero, counts as breaking it. There are no equality constraints: an equality leaves nothing to sample, so remove a variable instead and compute it inside the objective. Write a range as two constraints, since Python reads `0 <= width - height <= 5` as two comparisons joined by `and`, and hone raises an error rather than keep one half.
+
+For anything an expression can't say, such as a square root or a choice parameter, use a function, which takes parameters by name and is satisfied when it returns zero or less:
+
+```python
+from hone import Constraint
+
+def stress(width, height, material):
+    return bending_stress(width, height) - ALLOWED[material]
+
+search_space = SearchSpace([width, height, material], constraints=[Constraint.function(stress)])
+```
+
+Constraints should be quick to check: hone checks them for every candidate it considers, which can be many times the number of evaluations. Expression constraints are saved with a result; a function constraint saves only its name, so after `Result.load` pass the function again with `rebuild_optimizer(functions={"stress": stress})`.
+
+Starting points must satisfy the constraints. If the constraints leave nothing to search, or a region too small to find in 100,000 random draws, the optimizer raises `InfeasibleSearchSpace` when it's created, before any evaluation. Each optimizer keeps to constraints in its own way: random search and Bayesian optimization only consider points that satisfy them, CMA-ES draws a candidate again while it breaks one, and the genetic optimizer moves such a child back toward its fitter parent until it is feasible, which tends to land it near the boundary, where constrained optima usually are. On the benchmark's constrained problems the choice between optimizers follows the same pattern as without constraints; see [benchmarks/README.md](benchmarks/README.md#constrained-problems). [examples/pressure_vessel.py](examples/pressure_vessel.py) designs a pressure vessel of least cost under three constraints and finds the best published design. [examples/maintenance_schedule.py](examples/maintenance_schedule.py) chooses a maintenance schedule for a production line, scored by a noisy simulation of a year, with a constraint on technician hours and a function constraint that depends on the chosen shift; it halves the expected yearly cost of a sensible schedule chosen by hand.
+
 ### Configuration
 
 `GeneticOptimizerConfig` validates its values when created. It can also be loaded from a JSON or YAML file:

@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 (2026-10-31)
+
+Constraints: limits across parameters, written with the parameters themselves, which every optimizer keeps to. A README section explains them, two examples work through a standard engineering design and a maintenance schedule, and the benchmark has a constrained suite. See [benchmarks/README.md](benchmarks/README.md#constrained-problems).
 
 ### Added
 
 - **Constraints.** `SearchSpace(parameters, constraints=[width * height <= 40, width >= 2 * height])` limits the search to points that satisfy every constraint, and the objective is never evaluated outside them. Constraints are written with range parameters and numbers, using `+`, `-`, `*`, `/`, `**` and `abs()`, compared with `<=` or `>=`. `Constraint.function(...)` covers anything else, such as choice parameters; it isn't saved with a result, so `rebuild_optimizer(functions=...)` takes it again. Initial points must satisfy the constraints, and constraints that leave nothing to search raise `InfeasibleSearchSpace` before any evaluation. Every optimizer supports them: random search and Bayesian optimization only consider feasible points, CMA-ES draws a candidate again while it breaks a constraint, and the genetic optimizer moves an infeasible child back toward its fitter parent until it is feasible, near the boundary. `python -m hone.benchmarks --constrained` runs ten constrained problems, among them the pressure vessel, tension spring and welded beam design problems.
+- **Two worked examples.** `examples/pressure_vessel.py` designs a pressure vessel of least cost under three constraints, with integer plate thicknesses, and finds the best published design. `examples/maintenance_schedule.py` chooses a production line's maintenance schedule, scored by a noisy simulation of a year, under a limit on technician hours and one on planned stops that depends on the chosen shift.
 
 ### Changed
 
