@@ -17,8 +17,8 @@ MIN_STEP = 1e-9
 MAX_STEP = 0.5
 # A child that repeats a point already asked for is mutated again, one gene at a time, up to this many times.
 REPEAT_TRIES = 10
-# A child that breaks a constraint is bred again from new parents up to this many times.
-BREED_TRIES = 20
+# A child that breaks a constraint is moved halfway back toward its fitter parent this many times.
+REPAIR_STEPS = 10
 
 
 class GeneticOptimizer(Optimizer):
@@ -100,20 +100,45 @@ class GeneticOptimizer(Optimizer):
     def _child(self, parents: list[Individual], generation: int, niche: dict | None = None) -> Individual:
         """A child of two parents selected from parents. A niche fixes the child's choice parameters.
 
-        A child that breaks a constraint is bred again from newly selected parents, up to
-        BREED_TRIES times, and then replaced by a random point that satisfies every constraint.
+        A child that breaks a constraint is repaired: moved toward the fitter of its parents,
+        which satisfies every constraint, by halving the gap REPAIR_STEPS times and keeping the
+        last point inside. Its numbers end up near the constraint's boundary, where optima
+        under constraints usually are.
         """
-        for _ in range(BREED_TRIES):
-            child = self._bred(parents, generation, niche)
-            if self.search_space.feasible(child.params):
-                return child
-            self._steps.pop(child, None)
-        params = self.search_space.sample(self.rng)
-        if niche and self.search_space.feasible({**params, **niche}):
-            params = {**params, **niche}
-        return Individual(params=params, generation=generation)
+        child, first, second = self._bred(parents, generation, niche)
+        if self.search_space.feasible(child.params):
+            return child
+        fitter = first if (_fitness(first) > _fitness(second)) == self.config.maximize else second
+        return self._repaired(child, fitter, generation)
 
-    def _bred(self, parents: list[Individual], generation: int, niche: dict | None) -> Individual:
+    def _repaired(self, child: Individual, anchor: Individual, generation: int) -> Individual:
+        inside, outside = dict(anchor.params), dict(child.params)
+        if not self.search_space.feasible(inside):
+            inside = self.search_space.sample(self.rng)  # can't happen: every evaluated point is feasible
+        for _ in range(REPAIR_STEPS):
+            middle = self._between(inside, outside)
+            if self.search_space.feasible(middle):
+                inside = middle
+            else:
+                outside = middle
+        repaired = Individual(params=inside, generation=generation)
+        if child in self._steps:
+            self._steps[repaired] = self._steps.pop(child)
+        self._asked.add(_key(inside))
+        return repaired
+
+    def _between(self, inside: dict, outside: dict) -> dict:
+        """The midpoint of two points, in each range's unit scale; other values are taken from inside."""
+        middle = dict(inside)
+        for parameter in self.search_space.parameters:
+            if isinstance(parameter, RangeParameter) and parameter.maximum > parameter.minimum:
+                unit = (float(parameter.to_unit(inside[parameter.name])) + float(parameter.to_unit(outside[parameter.name]))) / 2
+                value = parameter.from_unit(unit)
+                middle[parameter.name] = int(value) if parameter.integer else float(value)
+        return middle
+
+    def _bred(self, parents: list[Individual], generation: int, niche: dict | None) -> tuple[Individual, Individual, Individual]:
+        """A child bred from two parents selected from parents, and the parents."""
         first, second = self._select(parents), self._select(parents)
         if self.config.blend_crossover:
             params = blend_crossover(
@@ -132,7 +157,7 @@ class GeneticOptimizer(Optimizer):
         child = Individual(params=params, generation=generation)
         if self._adaptive:
             self._steps[child] = step
-        return child
+        return child, first, second
 
     def _new_point(self, params: dict, step: float, niche: dict | None) -> dict:
         """params, mutated again a gene at a time while they repeat a point already asked for.

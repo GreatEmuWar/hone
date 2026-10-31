@@ -36,7 +36,10 @@ def _boundary(name: str, dimensions: int, weights: np.ndarray) -> Problem:
     parameters = [RangeParameter(n, -BOUND, BOUND) for n in names]
     centre, w = _shift(name, dimensions), _normal(name, dimensions)
     limit = float(w @ centre) - 1.0
-    plane = sum(float(wi) * p for wi, p in zip(w, parameters))
+    terms = [float(wi) * p for wi, p in zip(w, parameters)]
+    plane = terms[0]
+    for term in terms[1:]:
+        plane = plane + term
     inverse = 1.0 / weights
     best = centre - inverse * w / float(w @ (inverse * w))
     assert np.all(np.abs(best) <= BOUND), f"{name}: the constrained optimum must lie inside the bounds"
