@@ -8,7 +8,7 @@
 
 ### Added
 
-- **Property-based tests.** `pbt/tests/` checks the properties hone's documentation claims, using Hypothesis on generated search spaces and settings. `pbt/SUMMARY.md` lists them.
+- **Property-based tests.** `pbt/tests/` checks the properties hone's documentation claims, using Hypothesis on generated search spaces and settings, and runs with the rest of the tests. `pbt/SUMMARY.md` lists them. Hypothesis is a new dev dependency.
 
 ## 0.8.0 (2026-10-31)
 

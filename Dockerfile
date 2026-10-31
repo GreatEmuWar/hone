@@ -11,6 +11,7 @@ RUN poetry install --no-root --no-interaction --no-ansi
 
 COPY ./hone /src/hone
 COPY ./tests /src/tests
+COPY ./pbt/tests /src/pbt/tests
 COPY ./examples /src/examples
 # The saved benchmark results, which test that choose_optimizer's rule is still backed by them.
 COPY ./benchmarks/*-summaries.json /src/benchmarks/

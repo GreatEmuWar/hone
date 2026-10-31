@@ -12,12 +12,11 @@ This was an independent bug hunt on hone 0.8.0. It followed the procedure in [ag
 
 **Tests**: 93 property tests in `pbt/tests/`. All pass with the default settings. `test_noisy_threshold_consistent` covers the bug above, now fixed, and keeps its failing example as a regression check.
 
-How to run them:
+`make test` runs them along with `tests/`, since `pbt/tests` is in `testpaths` and Hypothesis is a dev dependency. To run them alone:
 
 ```
-poetry run pip install hypothesis
-poetry run pytest -o addopts="" pbt/tests                    # about 30 seconds; 25 examples per property
-PBT_EXAMPLES=300 poetry run pytest -o addopts="" pbt/tests   # a deeper search
+poetry run pytest pbt/tests                    # about 30 seconds; 25 examples per property
+PBT_EXAMPLES=300 poetry run pytest pbt/tests   # a deeper search
 ```
 
 During the hunt, every property was also run at 150 to 300 examples. `pbt_strategies.py` generates any valid parameter or search space. `pbt_runs.py` builds any optimizer on a generated problem, with an objective that records every call.
