@@ -22,7 +22,9 @@ NAMES = {BayesianOptimizer: "bayesian", CMAES: "cma-es", GeneticOptimizer: "gene
     [
         (NUMBERS, 50, BayesianOptimizer),
         (NUMBERS, 200, BayesianOptimizer),
-        (NUMBERS, 201, CMAES),
+        (NUMBERS, 201, GeneticOptimizer),
+        (NUMBERS[:1], 201, CMAES),
+        ([RangeParameter("x", -5, 5), RangeParameter("n", 3, 3, integer=True)], 201, CMAES),
         (WITH_CHOICE, 100, BayesianOptimizer),
         (WITH_CHOICE, 5000, GeneticOptimizer),
         (NUMBERS + [ChoiceParameter("tags", ["a", "b", "c"], choose_n=2)], 50, GeneticOptimizer),

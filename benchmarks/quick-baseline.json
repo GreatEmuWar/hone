@@ -4,9 +4,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 6.025259718277141,
-    "lower_quartile": 5.074116851237359,
-    "upper_quartile": 6.603668948039148,
+    "median_error": 3.19698563946373,
+    "lower_quartile": 2.717720735342364,
+    "upper_quartile": 7.240226483349661,
     "solved": 0.0
   },
   {
@@ -14,9 +14,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 0.15782935694089503,
-    "lower_quartile": 0.12079239862588959,
-    "upper_quartile": 0.2118536032195128,
+    "median_error": 0.030933018578854207,
+    "lower_quartile": 0.018627668964773938,
+    "upper_quartile": 0.05884056226563863,
     "solved": 0.0
   },
   {
@@ -24,9 +24,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 0.013405544455768543,
-    "lower_quartile": 0.00540902134003092,
-    "upper_quartile": 0.013837775818267754,
+    "median_error": 0.0011925572186153852,
+    "lower_quartile": 0.0004123729366674194,
+    "upper_quartile": 0.001867409013539378,
     "solved": 0.0
   },
   {
@@ -104,9 +104,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 120201.98588802367,
-    "lower_quartile": 38220.214156809016,
-    "upper_quartile": 307265.00668981683,
+    "median_error": 60230.06526603027,
+    "lower_quartile": 6349.836649963352,
+    "upper_quartile": 72074.32730252741,
     "solved": 0.0
   },
   {
@@ -114,9 +114,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 555.8588392302937,
-    "lower_quartile": 486.8190271030581,
-    "upper_quartile": 3102.2151802995136,
+    "median_error": 83.87536324092156,
+    "lower_quartile": 63.26182875324943,
+    "upper_quartile": 125.9994777548741,
     "solved": 0.0
   },
   {
@@ -124,9 +124,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 232.77442722339316,
-    "lower_quartile": 170.52247391496857,
-    "upper_quartile": 234.25459347099695,
+    "median_error": 0.43697875911143125,
+    "lower_quartile": 0.2957402872392704,
+    "upper_quartile": 4.464668664656065,
     "solved": 0.0
   },
   {
@@ -204,9 +204,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 33.768093562324864,
-    "lower_quartile": 29.79965283057895,
-    "upper_quartile": 37.86467997640731,
+    "median_error": 32.19140736004693,
+    "lower_quartile": 31.19765210937376,
+    "upper_quartile": 34.66682398639254,
     "solved": 0.0
   },
   {
@@ -214,9 +214,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 6.638183734406148,
-    "lower_quartile": 6.008473297181965,
-    "upper_quartile": 7.401961468628052,
+    "median_error": 9.578268953916002,
+    "lower_quartile": 8.78927094171381,
+    "upper_quartile": 9.845955919051583,
     "solved": 0.0
   },
   {
@@ -224,9 +224,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 1.7713010402958247,
-    "lower_quartile": 1.3870149945299985,
-    "upper_quartile": 2.198510334784757,
+    "median_error": 1.3720230014959185,
+    "lower_quartile": 1.2837411575691249,
+    "upper_quartile": 1.5778595442786525,
     "solved": 0.0
   },
   {
@@ -304,9 +304,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 29.516442691416504,
-    "lower_quartile": 29.491194999059402,
-    "upper_quartile": 42.252523205963364,
+    "median_error": 31.66659120685781,
+    "lower_quartile": 25.334563255113178,
+    "upper_quartile": 32.45828790143881,
     "solved": 0.0
   },
   {
@@ -314,9 +314,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 15.62877566427013,
-    "lower_quartile": 15.52958396461451,
-    "upper_quartile": 19.07622296989838,
+    "median_error": 8.272469807419071,
+    "lower_quartile": 6.105213473467238,
+    "upper_quartile": 9.553972543747172,
     "solved": 0.0
   },
   {
@@ -324,9 +324,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 8.163898372572334,
-    "lower_quartile": 3.8556468269380133,
-    "upper_quartile": 10.788486233842825,
+    "median_error": 4.144584892122083,
+    "lower_quartile": 3.5650632944280716,
+    "upper_quartile": 5.049974768028612,
     "solved": 0.0
   },
   {
@@ -404,9 +404,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 5.0,
-    "lower_quartile": 4.0,
-    "upper_quartile": 9.0,
+    "median_error": 4.0,
+    "lower_quartile": 2.0,
+    "upper_quartile": 5.0,
     "solved": 0.0
   },
   {
@@ -417,7 +417,7 @@
     "median_error": 0.0,
     "lower_quartile": 0.0,
     "upper_quartile": 0.0,
-    "solved": 0.8
+    "solved": 1.0
   },
   {
     "problem": "integer-sphere-5d",
@@ -504,9 +504,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 10,
     "runs": 5,
-    "median_error": 10.64976165827544,
-    "lower_quartile": 6.3068315591428235,
-    "upper_quartile": 12.518768003302073,
+    "median_error": 3.3366957973680242,
+    "lower_quartile": 2.783728604520501,
+    "upper_quartile": 6.458013849965923,
     "solved": 0.0
   },
   {
@@ -514,9 +514,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 50,
     "runs": 5,
-    "median_error": 1.0514666910591086,
-    "lower_quartile": 0.1440983049029335,
-    "upper_quartile": 1.788524669236731,
+    "median_error": 1.4311295520020106,
+    "lower_quartile": 0.10413376099724596,
+    "upper_quartile": 1.4856082815629252,
     "solved": 0.0
   },
   {
@@ -524,9 +524,9 @@
     "optimizer": "genetic",
     "budget_per_dimension": 200,
     "runs": 5,
-    "median_error": 1.0084206065588066,
-    "lower_quartile": 1.0055951733043251,
-    "upper_quartile": 1.012883940133561,
+    "median_error": 1.000283742074258,
+    "lower_quartile": 0.0021121609567173647,
+    "upper_quartile": 1.0009899619698843,
     "solved": 0.0
   },
   {

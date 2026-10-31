@@ -153,7 +153,7 @@ Roulette selection, niches, tournament settings and maximization are all covered
 
 | Property | Source |
 | --- | --- |
-| The chosen optimizer follows the README table (Bayesian up to 200 without `choose_n`; genetic with choices; CMA-ES otherwise), including at the 200/201 boundary | `choose_optimizer` docstring; README table; CHANGELOG 0.8.0 |
+| The chosen optimizer follows the README table (Bayesian up to 200 without `choose_n`; genetic with choice or integer parameters; CMA-ES otherwise), including at the 200/201 boundary | `choose_optimizer` docstring; README table; CHANGELOG 0.8.0 |
 | `max_evaluations`, `seed`, `maximize`, `noise` and `threshold` are passed on to the config | Docstring: "Other settings ... are passed on" |
 | Initial points are passed on, after checking | Signature; README |
 | The chosen optimizer runs and spends its budget | Implied by the README example |
