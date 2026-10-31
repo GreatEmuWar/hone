@@ -36,6 +36,8 @@ def configs(draw, budget=True, **fixed):
         tournament_size=draw(st.integers(min_value=2, max_value=6)),
         tournament_p=draw(st.floats(min_value=0, max_value=1)),
         niche_share=draw(st.floats(min_value=0, max_value=0.99)),
+        blend_crossover=draw(st.booleans()),
+        blend_alpha=draw(st.floats(min_value=0, max_value=1)),
         maximize=draw(st.booleans()),
     )
     if budget:
@@ -83,10 +85,11 @@ def test_generation_sizes(space, config):
     assert all(len(g) == config.population_size - elites for g in generations[1:])
 
 
-# Docstring: children are made by crossover and mutation; with no mutation every gene of a child comes from a parent,
+# Docstring: children are made by crossover and mutation; with uniform crossover and no mutation every gene of a child
+# comes from a parent,
 # and "Failed evaluations are never elites or parents".
 @run_settings
-@given(spaces, configs(budget=False, generations=4, mutation_rate=0.0), st.data())
+@given(spaces, configs(budget=False, generations=4, mutation_rate=0.0, blend_crossover=False), st.data())
 def test_children_inherit_genes_from_successful_parents(space, config, data):
     with repeats_allowed():
         _children_inherit_genes_from_successful_parents(space, config, data)

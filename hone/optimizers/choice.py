@@ -2,7 +2,7 @@
 from typing import Any
 
 from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig
-from hone.parameters import ChoiceParameter, Parameter, SearchSpace
+from hone.parameters import ChoiceParameter, Parameter, RangeParameter, SearchSpace
 
 from .base import Optimizer
 from .bayesian import BayesianOptimizer
@@ -25,7 +25,9 @@ def choose_optimizer(
 
     - Up to 200 evaluations: Bayesian optimization, unless a choice parameter has choose_n.
     - More, with choice parameters: the genetic optimizer, since CMA-ES searches numbers only.
-    - More, with numbers only: CMA-ES.
+    - More, with integer parameters: the genetic optimizer, which did better on the benchmark's
+      integer and mixed problems.
+    - More, with continuous numbers only: CMA-ES.
 
     Other settings, such as seed, maximize, noise or threshold, are passed on to the chosen
     optimizer's config. The optimizer's class and config show what was chosen.
@@ -36,6 +38,7 @@ def choose_optimizer(
     settings = dict(config, max_evaluations=max_evaluations)
     if max_evaluations <= BAYESIAN_UP_TO and not any(p.choose_n is not None for p in choices):
         return BayesianOptimizer(search_space, BayesianConfig(**settings), initial_points=initial_points)
-    if choices:
+    integers = [p for p in search_space.parameters if isinstance(p, RangeParameter) and p.integer and p.maximum > p.minimum]
+    if choices or integers:
         return GeneticOptimizer(search_space, GeneticOptimizerConfig(**settings), initial_points=initial_points)
     return CMAES(search_space, CMAESConfig(**settings), initial_points=initial_points)
