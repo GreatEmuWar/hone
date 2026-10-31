@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2 (2026-10-31)
+
+### Fixed
+
+- **Elites could fill the whole population.** An `elitism_rate` below 1 could round to every individual, leaving nothing to evaluate, so the genetic optimizer stopped long before its budget was spent. At least one child is now bred each generation.
+
 ## 0.8.1 (2026-10-31)
 
 ### Fixed

@@ -52,9 +52,8 @@ def generations_of(optimizer, objective):
 @run_settings
 @given(spaces, configs())
 def test_runs_until_the_budget_is_spent(space, config):
-    # An elitism_rate that rounds to the whole population makes every later generation all elites, with nothing left
-    # to evaluate; tests/test_ask_tell.py expects that, so it is excluded here (see pbt/SUMMARY.md).
-    assume(not config.elitism or round(config.population_size * config.elitism_rate) < config.population_size)
+    # An elitism_rate that rounded to the whole population once left nothing to evaluate; now at least one child is
+    # bred each generation (see pbt/SUMMARY.md).
     objective = Recorder(space, sign=-1.0 if config.maximize else 1.0)
     result = GeneticOptimizer(space, config).optimize(objective)
     assert result.evaluations == config.max_evaluations
@@ -65,10 +64,8 @@ def test_runs_until_the_budget_is_spent(space, config):
 @run_settings
 @given(spaces, configs(budget=False, generations=4))
 def test_generation_sizes(space, config):
-    # Excluded as in test_runs_until_the_budget_is_spent: a generation of nothing but elites is skipped.
-    assume(not config.elitism or round(config.population_size * config.elitism_rate) < config.population_size)
     generations = generations_of(GeneticOptimizer(space, config), Recorder(space))
-    elites = round(config.population_size * config.elitism_rate) if config.elitism else 0
+    elites = min(round(config.population_size * config.elitism_rate), config.population_size - 1) if config.elitism else 0
     assert len(generations) == 4
     assert len(generations[0]) == config.population_size
     assert all(len(g) == config.population_size - elites for g in generations[1:])
