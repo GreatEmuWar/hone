@@ -55,7 +55,7 @@ The function takes parameters by name, like an objective, and the point is feasi
 
 Initial points must be feasible, or the optimizer raises `ValueError` when created, naming the constraint they break.
 
-If a region is so small that 1,000 draws in a row find nothing feasible, the optimizer raises an error saying so, rather than looping. At the start of a run hone draws feasible points from the whole space; if it can't find any, the error comes before a single evaluation, which also catches contradictory constraints. Samplers made for very thin regions, such as hit-and-run, are out of scope until a real problem needs one.
+If a region is so small that 100,000 draws in a row find nothing feasible, the optimizer raises an error saying so, rather than looping. (1,000 was too few: the tension spring below is 0.8% feasible, so a streak of 1,000 misses turns up within a few runs.) At the start of a run hone draws feasible points from the whole space; if it can't find any, the error comes before a single evaluation, which also catches contradictory constraints. Samplers made for very thin regions, such as hit-and-run, are out of scope until a real problem needs one.
 
 ### 5. Measured like everything else
 

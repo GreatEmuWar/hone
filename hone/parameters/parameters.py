@@ -190,7 +190,7 @@ class ChoiceParameter(_Parameter):
 type Parameter = Annotated[RangeParameter | FixedParameter | ChoiceParameter, Field(discriminator="kind")]
 
 
-MAX_DRAWS = 1000  # draws in a row without a feasible point before a search space counts as infeasible
+MAX_DRAWS = 100_000  # draws in a row without a feasible point before a search space counts as infeasible
 
 
 class SearchSpace(BaseModel):
@@ -249,7 +249,7 @@ class SearchSpace(BaseModel):
             if self.feasible(point):
                 return point
         raise InfeasibleSearchSpace(
-            f"no point satisfying every constraint was found in {MAX_DRAWS} random draws: the constraints may "
+            f"no point satisfying every constraint was found in {MAX_DRAWS:,} random draws: the constraints may "
             "contradict each other, or leave too small a region to sample"
         )
 
