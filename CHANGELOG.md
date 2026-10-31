@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.1 (2026-10-31)
+
+### Fixed
+
+- **Noisy runs stopped early at the threshold on a lucky value.** With `noise=True`, the threshold was checked against the best point's average as it stood when that point was first reported, not its current average. One lucky evaluation could end the run with `reached_threshold` set while the reported `best_fitness` had not reached `threshold`. The check now uses the reported best.
+
+### Added
+
+- **Property-based tests.** `pbt/tests/` checks the properties hone's documentation claims, using Hypothesis on generated search spaces and settings. `pbt/SUMMARY.md` lists them.
+
 ## 0.8.0 (2026-10-31)
 
 ### Added
