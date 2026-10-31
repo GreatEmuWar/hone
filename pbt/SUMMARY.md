@@ -165,4 +165,4 @@ Roulette selection, niches, tournament settings and maximization are all covered
 | An expression of range parameters and numbers evaluates to what the same arithmetic gives on plain numbers | `constraints` module docstring: "ordinary arithmetic" |
 | A constraint saved to JSON and loaded again is equal to the original and judges every point the same | docs/design/constraints.md: "Expressions are pydantic models, so a search space with constraints still saves to JSON" |
 | A violation is never negative, and a point satisfies a constraint exactly when its violation is 0 | `Constraint.violation` docstring |
-| Random search only asks for points that satisfy every constraint, for generated linear constraints | `SearchSpace` docstring: "Every point an optimizer asks for satisfies every constraint" |
+| Every optimizer only asks for points that satisfy every constraint, for generated linear constraints | `SearchSpace` docstring: "Every point an optimizer asks for satisfies every constraint" |
