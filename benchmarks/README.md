@@ -73,6 +73,7 @@ Since 0.5.0 every optimizer gets exactly the same number of evaluations. Before,
 | Standard, 36 problems × 5 budgets | ×1.37 | 146 of 180 | ×7.9, and 15 it can't run | ×39 |
 | Noisy, 6 × 3 | ×1.07 | 12 of 18 | ×1.69, and 3 it can't run | ×1.58 |
 | Machine learning, 3 × 3 | ×1.05 | 8 of 9 | ×1.14, and 6 it can't run | ×23 |
+| Constrained, 10 × 5 | ×1.04 | 45 of 50 | ×21 | ×202 |
 
 A test (`tests/test_choose_optimizer.py`) recomputes this from the saved summaries, so the rule stays backed by the results whenever they are regenerated. A rule that also limited Bayesian optimization to 50 evaluations per variable did worse (×1.36 on the standard suite), so the simpler one stays.
 
@@ -88,6 +89,25 @@ What the results show:
 - **The differences are smaller than on the test functions.** Most settings of a well-chosen model score within a percentage point or two of the best, so random search is a fair tuner, as the hyperparameter tuning literature also finds. The extra value of a better optimizer shows in the last fraction of a point, and in how few evaluations it takes to get there.
 - **Scores move in steps.** Accuracy changes in multiples of one sample, so several optimizers often stop at exactly the same score: the random forest's median error is 0.0057 for every optimizer at 10 evaluations per dimension.
 - **The genetic optimizer is better than random search here, but not by much.** It wins on kernel ridge at 10 and 20 evaluations per dimension and on the SVM at 20 and 50, ties on the SVM at 10 and on the random forest, and loses narrowly on kernel ridge at 50. Adaptive mutation cut its median error to ×0.74 to ×0.84; avoiding repeats changed it by ×1.15, ×0.84 and ×0.83, and blend crossover by ×0.91, ×0.97 and ×1.47, at 10, 20 and 50 evaluations per dimension. Both losses are on kernel ridge. With budgets of 20 to 200 evaluations it runs only a few generations.
+
+## Constrained problems
+
+`python -m hone.benchmarks --constrained` runs ten problems whose optimum lies on a constraint's boundary, as it usually does in engineering, at the same five budgets:
+
+| Problem | What it tests |
+| --- | --- |
+| boundary-sphere and boundary-ellipsoid, in 2, 5 and 10 dimensions | A linear constraint that cuts off the unconstrained optimum, so the answer is on the cutting plane; the optimum is known exactly |
+| rosenbrock-disk-2d | Rosenbrock's curved valley inside the disk x² + y² ≤ 2, with the optimum (1, 1) on the disk's edge |
+| pressure-vessel | A vessel of least cost holding at least 1,296,000 cubic inches, with plate thicknesses in sixteenths of an inch: integers and three constraints |
+| tension-spring | A spring of least weight under four limits; only 0.8% of the box satisfies them all |
+| welded-beam | A welded beam of least cost under six limits, two of them functions with square roots; 2.9% of the box is feasible |
+
+The engineering problems are scored against the best designs published for them. Every optimizer only ever asks for feasible points, so each evaluation counts.
+
+- **Bayesian optimization is the best at small budgets**, more clearly than without constraints: it has the lowest median error on all ten problems at 10 and 20 evaluations per dimension, and all six it runs on at 50. On the pressure vessel with 40 evaluations its median cost is 266 above the best known design, against 10,010 for CMA-ES and 19,140 for random search.
+- **CMA-ES is the best at 1,000 evaluations per dimension**, on all ten problems. It finds the best known design of nine of them in every run, and of the pressure vessel in three of ten. When a candidate breaks a constraint, it draws again from the same distribution. Ranking such candidates below every feasible one without evaluating them was also tried, and did worse at every budget (×1.17 to ×1.59).
+- **The genetic optimizer is behind CMA-ES under constraints**, but it is the optimizer for constrained problems with choice or integer parameters, which CMA-ES can't search or handles less well. A child that breaks a constraint is moved back toward its fitter parent, halving the gap ten times, so it lands near the boundary. Against breeding a new child instead, this cut its geometric-mean error to ×0.84, ×0.68, ×0.74, ×0.46 and ×0.44 at 10 to 1,000 evaluations per dimension; on the welded beam at 1,000 it went from 0.080 to 0.0058. It beats random search on every problem at 50 and 1,000 evaluations per dimension, and on nine of ten at 100, losing on rosenbrock-disk-2d.
+- **`choose_optimizer`'s rule holds without change.** Its pick is 1.04 times the best optimizer's error on geometric mean, and the best on 45 of the 50 problem and budget pairs.
 
 ## Noisy problems
 
