@@ -9,40 +9,40 @@ Problems on which each optimizer has the lowest median error, at each budget. Ti
 | Evaluations per dimension | genetic | cma-es | bayesian | random |
 | ---: | ---: | ---: | ---: | ---: |
 | 10 | 0 | 0 | 6 | 0 |
-| 40 | 2 | 1 | 3 | 0 |
-| 200 | 4 | 2 | 0 | 0 |
+| 40 | 3 | 1 | 2 | 0 |
+| 200 | 5 | 1 | 0 | 0 |
 
 ## 10 evaluations per dimension
 
 | Problem | genetic median | genetic solved | cma-es median | cma-es solved | bayesian median | bayesian solved | random median | random solved |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| noisy-sphere-5d | 4.7 | 0% | 3.33 | 0% | 0.436 | 0% | 8.06 | 0% |
-| noisy-rosenbrock-5d | 1.05e+03 | 0% | 471 | 0% | 366 | 0% | 2.55e+03 | 0% |
-| noisy-rastrigin-5d | 41.7 | 0% | 34.1 | 0% | 26.1 | 0% | 50.8 | 0% |
-| noisy-rotated-ackley-5d | 6.13 | 0% | 5.59 | 0% | 4.04 | 0% | 6.66 | 0% |
-| noisy-mixed-rastrigin-5d | 28.5 | 0% | 16.2 | 0% | 15.3 | 0% | 32.6 | 0% |
-| noisy-material-selection-5d | 6.74 | 0% | n/a | n/a | 1.22 | 0% | 9.24 | 0% |
+| noisy-sphere-5d | 2.89 | 0% | 3.33 | 0% | 0.436 | 0% | 8.06 | 0% |
+| noisy-rosenbrock-5d | 575 | 0% | 471 | 0% | 366 | 0% | 2.55e+03 | 0% |
+| noisy-rastrigin-5d | 29.8 | 0% | 34.1 | 0% | 26.1 | 0% | 50.8 | 0% |
+| noisy-rotated-ackley-5d | 4.94 | 0% | 5.59 | 0% | 4.04 | 0% | 6.66 | 0% |
+| noisy-mixed-rastrigin-5d | 18.6 | 0% | 16.2 | 0% | 15.3 | 0% | 32.6 | 0% |
+| noisy-material-selection-5d | 4.8 | 0% | n/a | n/a | 1.22 | 0% | 9.24 | 0% |
 
 ## 40 evaluations per dimension
 
 | Problem | genetic median | genetic solved | cma-es median | cma-es solved | bayesian median | bayesian solved | random median | random solved |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| noisy-sphere-5d | 0.952 | 0% | 0.435 | 0% | 0.193 | 0% | 5.38 | 0% |
-| noisy-rosenbrock-5d | 51.8 | 0% | 13.4 | 0% | 3.26 | 0% | 623 | 0% |
-| noisy-rastrigin-5d | 12 | 0% | 17.3 | 0% | 9.31 | 0% | 36.3 | 0% |
-| noisy-rotated-ackley-5d | 3.65 | 0% | 3.06 | 0% | 3.06 | 0% | 5.91 | 0% |
-| noisy-mixed-rastrigin-5d | 5.99 | 0% | 8.2 | 0% | 8.37 | 0% | 17 | 0% |
-| noisy-material-selection-5d | 2.45 | 0% | n/a | n/a | n/a | n/a | 5.49 | 0% |
+| noisy-sphere-5d | 0.654 | 0% | 0.435 | 0% | 0.193 | 0% | 5.38 | 0% |
+| noisy-rosenbrock-5d | 45 | 0% | 13.4 | 0% | 3.26 | 0% | 623 | 0% |
+| noisy-rastrigin-5d | 7.95 | 0% | 17.3 | 0% | 9.31 | 0% | 36.3 | 0% |
+| noisy-rotated-ackley-5d | 3.54 | 0% | 3.06 | 0% | 3.06 | 0% | 5.91 | 0% |
+| noisy-mixed-rastrigin-5d | 6.84 | 0% | 8.2 | 0% | 8.37 | 0% | 17 | 0% |
+| noisy-material-selection-5d | 2 | 0% | n/a | n/a | n/a | n/a | 5.49 | 0% |
 
 ## 200 evaluations per dimension
 
 | Problem | genetic median | genetic solved | cma-es median | cma-es solved | bayesian median | bayesian solved | random median | random solved |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| noisy-sphere-5d | 0.347 | 0% | 0.323 | 0% | n/a | n/a | 3.3 | 0% |
-| noisy-rosenbrock-5d | 3.86 | 0% | 4.45 | 0% | n/a | n/a | 424 | 0% |
-| noisy-rastrigin-5d | 3.06 | 0% | 3.17 | 0% | n/a | n/a | 28.8 | 0% |
-| noisy-rotated-ackley-5d | 2.01 | 0% | 0.839 | 0% | n/a | n/a | 4.73 | 0% |
-| noisy-mixed-rastrigin-5d | 0.602 | 0% | 2.9 | 0% | n/a | n/a | 15.3 | 0% |
-| noisy-material-selection-5d | 0.521 | 0% | n/a | n/a | n/a | n/a | 3.37 | 0% |
+| noisy-sphere-5d | 0.186 | 0% | 0.323 | 0% | n/a | n/a | 3.3 | 0% |
+| noisy-rosenbrock-5d | 3.82 | 0% | 4.45 | 0% | n/a | n/a | 424 | 0% |
+| noisy-rastrigin-5d | 3.23 | 0% | 3.17 | 0% | n/a | n/a | 28.8 | 0% |
+| noisy-rotated-ackley-5d | 0.752 | 0% | 0.839 | 0% | n/a | n/a | 4.73 | 0% |
+| noisy-mixed-rastrigin-5d | 1.14 | 0% | 2.9 | 0% | n/a | n/a | 15.3 | 0% |
+| noisy-material-selection-5d | 1.21 | 0% | n/a | n/a | n/a | n/a | 3.37 | 0% |
 
 Median error over the runs (best value found minus the optimum); solved means error ≤ 0.0001. n/a: the optimizer does not support the problem's parameters, or isn't run at this budget.

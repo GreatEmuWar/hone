@@ -168,9 +168,10 @@ def test_with_noise_the_defaults_behave_as_before():
 
 
 def test_mutation_sizes_shrink_as_the_population_converges():
+    # With blend crossover, which narrows the population by itself, steps stay larger.
     medians = []
     for seed in range(3):
-        optimizer = make_optimizer(max_evaluations=2000, seed=seed)
+        optimizer = make_optimizer(max_evaluations=2000, seed=seed, blend_crossover=False)
         optimizer.optimize(sphere)
         medians.append(np.median(list(optimizer._steps.values())))
     assert np.median(medians) < optimizer.config.mutation_scale / 5  # about a tenth, measured
@@ -232,3 +233,38 @@ def test_with_noise_points_are_evaluated_again():
     points = asked_points(make_optimizer(max_evaluations=500, noise=True), lambda x, y: x**2 + y**2 + rng.normal())
     keys = [tuple(params.values()) for params, _ in points]
     assert len(set(keys)) < len(keys)
+
+
+# --- blend crossover ---------------------------------------------------------
+
+
+def test_blend_crossover_draws_ranges_between_the_parents():
+    from hone.optimizers.genetic.variation import blend_crossover
+    from hone.parameters import SearchSpace
+
+    space = SearchSpace([RangeParameter("x", 0, 10), RangeParameter("n", 0, 100, integer=True), ChoiceParameter("m", ["a", "b"])])
+    first, second = {"x": 2.0, "n": 40, "m": "a"}, {"x": 6.0, "n": 40, "m": "b"}
+    rng = np.random.default_rng(0)
+    children = [blend_crossover(first, second, space, rng, rate=0.5, alpha=0.1) for _ in range(500)]
+    xs = [c["x"] for c in children]
+    assert 1.6 <= min(xs) < 2.0 and 6.0 < max(xs) <= 6.4, "within the parents' span, widened by a tenth on each side"
+    assert len(set(xs)) == 500, "new values, not copies of a parent"
+    assert all(c["n"] == 40 for c in children), "parents that agree pass their value on"
+    assert {c["m"] for c in children} == {"a", "b"} and all(type(c["n"]) is int for c in children)
+
+
+def test_blend_crossover_stays_within_the_bounds():
+    from hone.optimizers.genetic.variation import blend_crossover
+    from hone.parameters import SearchSpace
+
+    space = SearchSpace([RangeParameter("x", 0, 1), RangeParameter("lr", 1e-5, 1, log=True)])
+    rng = np.random.default_rng(1)
+    for _ in range(300):
+        child = blend_crossover({"x": 0.0, "lr": 1e-5}, {"x": 1.0, "lr": 1.0}, space, rng, rate=0.5, alpha=0.5)
+        assert 0 <= child["x"] <= 1 and 1e-5 <= child["lr"] <= 1
+
+
+def test_blend_crossover_reaches_more_precise_answers():
+    blend = [make_optimizer(max_evaluations=1000, seed=seed).optimize(sphere).best_fitness for seed in range(5)]
+    uniform = [make_optimizer(max_evaluations=1000, seed=seed, blend_crossover=False).optimize(sphere).best_fitness for seed in range(5)]
+    assert np.median(blend) < np.median(uniform)  # about half, measured

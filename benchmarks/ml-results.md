@@ -9,31 +9,31 @@ Problems on which each optimizer has the lowest median error, at each budget. Ti
 | Evaluations per dimension | genetic | cma-es | bayesian | random |
 | ---: | ---: | ---: | ---: | ---: |
 | 10 | 1 | 1 | 2 | 1 |
-| 20 | 1 | 0 | 3 | 1 |
+| 20 | 2 | 0 | 3 | 1 |
 | 50 | 1 | 1 | 3 | 0 |
 
 ## 10 evaluations per dimension
 
 | Problem | genetic median | genetic solved | cma-es median | cma-es solved | bayesian median | bayesian solved | random median | random solved |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| svm-breast-cancer | 0.00614 | 0% | 0.00351 | 0% | 0.00526 | 0% | 0.00526 | 0% |
-| kernel-ridge-diabetes | 0.00375 | 0% | n/a | n/a | 0.00113 | 0% | 0.00375 | 0% |
+| svm-breast-cancer | 0.00526 | 0% | 0.00351 | 0% | 0.00526 | 0% | 0.00526 | 0% |
+| kernel-ridge-diabetes | 0.00327 | 0% | n/a | n/a | 0.00113 | 0% | 0.00375 | 0% |
 | random-forest-wine | 0.00571 | 10% | n/a | n/a | 0.00571 | 20% | 0.00571 | 10% |
 
 ## 20 evaluations per dimension
 
 | Problem | genetic median | genetic solved | cma-es median | cma-es solved | bayesian median | bayesian solved | random median | random solved |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| svm-breast-cancer | 0.00351 | 0% | 0.00262 | 0% | 0.00175 | 0% | 0.00438 | 0% |
-| kernel-ridge-diabetes | 0.000769 | 30% | n/a | n/a | 2.92e-05 | 60% | 0.00228 | 0% |
+| svm-breast-cancer | 0.00175 | 0% | 0.00262 | 0% | 0.00175 | 0% | 0.00438 | 0% |
+| kernel-ridge-diabetes | 0.00143 | 0% | n/a | n/a | 2.92e-05 | 60% | 0.00228 | 0% |
 | random-forest-wine | 0.00571 | 10% | n/a | n/a | 0.00571 | 30% | 0.00571 | 10% |
 
 ## 50 evaluations per dimension
 
 | Problem | genetic median | genetic solved | cma-es median | cma-es solved | bayesian median | bayesian solved | random median | random solved |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| svm-breast-cancer | 0.00175 | 10% | 0.00175 | 10% | 0.00175 | 20% | 0.00351 | 0% |
-| kernel-ridge-diabetes | 0.000289 | 40% | n/a | n/a | 4.62e-08 | 100% | 0.000849 | 0% |
-| random-forest-wine | 0.00571 | 20% | n/a | n/a | 0 | 60% | 0.00571 | 20% |
+| svm-breast-cancer | 0.00175 | 30% | 0.00175 | 10% | 0.00175 | 20% | 0.00351 | 0% |
+| kernel-ridge-diabetes | 0.000914 | 0% | n/a | n/a | 4.62e-08 | 100% | 0.000849 | 0% |
+| random-forest-wine | 0.00571 | 10% | n/a | n/a | 0 | 60% | 0.00571 | 20% |
 
 Median error over the runs (best value found minus the optimum); solved means error ≤ 0.0001. n/a: the optimizer does not support the problem's parameters, or isn't run at this budget.

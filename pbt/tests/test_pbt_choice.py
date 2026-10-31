@@ -14,11 +14,12 @@ def expected(space, budget):
     choices = [p for p in space.parameters if isinstance(p, ChoiceParameter)]
     if budget <= 200 and not any(p.choose_n is not None for p in choices):
         return BayesianOptimizer
-    return GeneticOptimizer if choices else CMAES
+    integers = [p for p in space.parameters if isinstance(p, RangeParameter) and p.integer and p.maximum > p.minimum]
+    return GeneticOptimizer if choices or integers else CMAES
 
 
 # README table: 200 evaluations or fewer, unless a choice parameter has choose_n: BayesianOptimizer; more than 200,
-# any choice parameter: GeneticOptimizer; numbers only: CMAES.
+# any choice or integer parameter: GeneticOptimizer; continuous numbers only: CMAES.
 @given(spaces, budgets)
 def test_follows_the_table(space, budget):
     try:
