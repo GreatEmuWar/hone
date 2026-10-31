@@ -69,7 +69,7 @@ Since 0.5.0 every optimizer gets exactly the same number of evaluations. Before,
 | --- | ---: | ---: | ---: | ---: |
 | Standard, 36 problems × 5 budgets | ×1.32 | 145 of 180 | ×6.4, and 15 it can't run | ×78 |
 | Noisy, 6 × 3 | ×1.12 | 13 of 18 | ×1.69, and 3 it can't run | ×1.99 |
-| Machine learning, 3 × 3 | ×1.05 | 8 of 9 | ×1.14, and 6 it can't run | ×23 |
+| Machine learning, 3 × 3 | ×1.05 | 8 of 9 | ×1.14, and 6 it can't run | ×21 |
 
 A test (`tests/test_choose_optimizer.py`) recomputes this from the saved summaries, so the rule stays backed by the results whenever they are regenerated. A rule that also limited Bayesian optimization to 50 evaluations per variable did worse (×1.36 on the standard suite), so the simpler one stays.
 
@@ -84,7 +84,7 @@ What the results show:
 - **Bayesian optimization is the best tuner.** At 20 and 50 evaluations per dimension it has the lowest median error on all three problems. On the kernel ridge problem it finds the reference R² in 60% of runs with 60 evaluations and in every run with 150, where no other optimizer gets within 0.0005 in its median run.
 - **The differences are smaller than on the test functions.** Most settings of a well-chosen model score within a percentage point or two of the best, so random search is a fair tuner, as the hyperparameter tuning literature also finds. The extra value of a better optimizer shows in the last fraction of a point, and in how few evaluations it takes to get there.
 - **Scores move in steps.** Accuracy changes in multiples of one sample, so several optimizers often stop at exactly the same score: the random forest's median error is 0.0057 for every optimizer at 10 evaluations per dimension.
-- **The genetic optimizer is better than random search here, but not by much.** With adaptive mutation it wins on kernel ridge at every budget and on the SVM at 20 and 50 evaluations per dimension, and ties on the random forest; its median error is ×0.74 to ×0.84 what it was. With budgets of 20 to 200 evaluations it runs only a few generations.
+- **The genetic optimizer is better than random search here, but not by much.** It wins on kernel ridge and the SVM at 20 and 50 evaluations per dimension, ties on kernel ridge at 10, and ties on the random forest. Adaptive mutation cut its median error to ×0.74 to ×0.84; avoiding repeats changed it by ×1.15, ×0.84 and ×0.83 at 10, 20 and 50 evaluations per dimension, the loss at 10 being kernel ridge falling back to random search's score. With budgets of 20 to 200 evaluations it runs only a few generations.
 
 ## Noisy problems
 
