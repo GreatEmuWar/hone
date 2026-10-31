@@ -166,3 +166,15 @@ Roulette selection, niches, tournament settings and maximization are all covered
 | A constraint saved to JSON and loaded again is equal to the original and judges every point the same | docs/design/constraints.md: "Expressions are pydantic models, so a search space with constraints still saves to JSON" |
 | A violation is never negative, and a point satisfies a constraint exactly when its violation is 0 | `Constraint.violation` docstring |
 | Every optimizer only asks for points that satisfy every constraint, for generated linear constraints | `SearchSpace` docstring: "Every point an optimizer asks for satisfies every constraint" |
+
+### `hone.parameters.conditions` (`test_pbt_conditions.py`)
+
+Search spaces are generated with up to six parameters, each possibly switched on by a test of an earlier one (a choice's values, or a range compared with a number), and listed in any order.
+
+| Property | Source |
+| --- | --- |
+| The active point of a sample passes `check` unchanged, `active` leaves it as it is, and it keeps parameter order | `SearchSpace.active` and `check` docstrings |
+| A parameter is switched on exactly when it has no condition or its test holds at the point, so a parameter whose parent is switched off is off too | `conditions` module docstring; docs/design/conditions.md |
+| `check` refuses a value for a parameter that is switched off, and a point missing one that is switched on | `SearchSpace.check` docstring |
+| A search space with conditions saved to JSON and loaded again is equal to the original and switches the same parameters on | `conditions` module docstring: "a search space with conditions saves and loads like any other" |
+| Random search only hands out points without switched-off parameters, and its best point is one too | `Optimizer` docstring |

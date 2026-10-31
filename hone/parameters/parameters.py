@@ -4,9 +4,10 @@ from collections.abc import Sequence
 from typing import Annotated, Any, Literal
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
-from .constraints import AnyConstraint, ExpressionConstraint, FunctionConstraint, InfeasibleSearchSpace, Variable, _Arithmetic
+from .conditions import AnyConstraint, ChoiceTest, Condition, ConditionalConstraint, describe, gate_error, holds
+from .constraints import Constraint, ExpressionConstraint, FunctionConstraint, InfeasibleSearchSpace, Variable, _Arithmetic
 
 type Value = float | int | str
 
@@ -20,6 +21,12 @@ class _Parameter(BaseModel):
     def __init__(self, **data: Any) -> None:
         # Each kind takes its own fields positionally and passes them all here as keywords.
         super().__init__(**data)
+
+    def __rshift__(self, other: Any) -> Any:
+        raise TypeError(f"{self.name} can't switch parameters on by itself: the left of >> must be a test of it")
+
+    def __rrshift__(self, other: Any) -> Any:
+        raise gate_error(self, other)
 
 
 class RangeParameter(_Arithmetic, _Parameter):
@@ -41,6 +48,11 @@ class RangeParameter(_Arithmetic, _Parameter):
 
     def _as_term(self) -> Variable:
         return Variable(name=self.name)
+
+    def __rshift__(self, other: Any) -> Any:
+        raise TypeError(
+            f"{self.name} can't switch parameters on by itself: compare it in brackets, such as ({self.name} >= ...) >> ..."
+        )
 
     @model_validator(mode="after")
     def _check_bounds(self):
@@ -158,6 +170,21 @@ class ChoiceParameter(_Parameter):
             raise ValueError(f"{self.name}: choose_n {self.choose_n} exceeds the {len(self.choices)} choices")
         return self
 
+    def __getitem__(self, values: Value | tuple[Value, ...]) -> ChoiceTest:
+        """A test that this parameter takes one of values, for the left of >>: model["svm"] >> C."""
+        tested = list(values) if isinstance(values, tuple) else [values]
+        if self.choose_n is not None:
+            raise TypeError(f"{self.name} picks {self.choose_n} choices at once, so conditions can't test it")
+        unknown = [value for value in tested if value not in self.choices]
+        if unknown:
+            raise ValueError(f"{', '.join(map(repr, unknown))} isn't one of {self.name}'s choices, {self.choices}")
+        return ChoiceTest(name=self.name, values=tested)
+
+    def __rshift__(self, other: Any) -> Any:
+        raise TypeError(
+            f"{self.name} can't switch parameters on by itself: pick the values that do, such as {self.name}[{self.choices[0]!r}] >> ..."
+        )
+
     def sample(self, rng: np.random.Generator) -> Value | list[Value]:
         if self.choose_n is None:
             return self.choices[rng.integers(len(self.choices))]
@@ -194,18 +221,38 @@ MAX_DRAWS = 100_000  # draws in a row without a feasible point before a search s
 
 
 class SearchSpace(BaseModel):
-    """The set of parameters an objective function is optimized over, and any constraints on them.
+    """The set of parameters an objective function is optimized over, and any constraints and conditions on them.
 
     Every point an optimizer asks for satisfies every constraint, so the objective is never
-    evaluated where a constraint rules it out.
+    evaluated where a constraint rules it out. A condition, written `test >> parameters`,
+    switches parameters on only while the test holds, such as `model["svm"] >> [kernel, C]`;
+    a parameter that is switched off isn't part of the point.
     """
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     parameters: list[Parameter] = Field(min_length=1)
     constraints: list[AnyConstraint] = Field(default_factory=list)
+    conditions: list[Condition] = Field(default_factory=list)
 
-    def __init__(self, parameters: Sequence[Parameter], constraints: Sequence[AnyConstraint] = (), **data: Any) -> None:
-        super().__init__(parameters=list(parameters), constraints=list(constraints), **data)
+    # Worked out from the conditions: each conditional parameter's test, and every parameter in
+    # an order that puts each parameter after those its test uses.
+    _tests: dict[str, ChoiceTest | ExpressionConstraint] = PrivateAttr(default_factory=dict)
+    _order: list[Parameter] = PrivateAttr(default_factory=list)
+
+    def __init__(
+        self,
+        parameters: Sequence[Parameter],
+        constraints: Sequence[AnyConstraint] = (),
+        conditions: Sequence[Condition] = (),
+        **data: Any,
+    ) -> None:
+        for constraint in constraints:
+            if isinstance(constraint, Condition):
+                raise TypeError(f"`{constraint}` switches parameters on, so it goes in conditions=, not constraints=")
+        for condition in conditions:
+            if isinstance(condition, Constraint):
+                raise TypeError(f"`{condition}` is a constraint, so it goes in constraints=, not conditions=")
+        super().__init__(parameters=list(parameters), constraints=list(constraints), conditions=list(conditions), **data)
 
     @model_validator(mode="after")
     def _check_unique_names(self):
@@ -219,30 +266,61 @@ class SearchSpace(BaseModel):
     def _check_constraints(self):
         by_name = {parameter.name: parameter for parameter in self.parameters}
         for constraint in self.constraints:
-            if isinstance(constraint, ExpressionConstraint):
-                for name in sorted(constraint.names()):
-                    if name not in by_name:
-                        raise ValueError(f"the constraint `{constraint}` uses {name!r}, which isn't a parameter of this search space")
-                    if not isinstance(by_name[name], RangeParameter):
-                        raise ValueError(
-                            f"the constraint `{constraint}` uses {name!r}, which isn't a range parameter; "
-                            "use Constraint.function for constraints on other kinds"
-                        )
-            elif isinstance(constraint, FunctionConstraint):
-                missing = sorted(constraint.required() - set(by_name))
-                if missing:
-                    raise ValueError(f"the constraint {constraint.name!r} needs parameters missing from the search space: {', '.join(missing)}")
+            _check_constraint(constraint, by_name)
+        return self
+
+    @model_validator(mode="after")
+    def _check_conditions(self):
+        by_name = {parameter.name: parameter for parameter in self.parameters}
+        tests: dict[str, ChoiceTest | ExpressionConstraint] = {}
+        for condition in self.conditions:
+            _check_test(condition.when, by_name, f"the condition `{condition}`")
+            for name in condition.parameters:
+                if name not in by_name:
+                    raise ValueError(f"the condition `{condition}` switches on {name!r}, which isn't a parameter of this search space")
+                if name in tests:
+                    earlier = next(c for c in self.conditions if name in c.parameters)
+                    hint = ""
+                    if isinstance(earlier.when, ChoiceTest) and isinstance(condition.when, ChoiceTest) and earlier.when.name == condition.when.name:
+                        merged = ChoiceTest(name=earlier.when.name, values=[*earlier.when.values, *condition.when.values])
+                        hint = f": to switch it on for any of those values, write `{merged} >> {name}`"
+                    raise ValueError(f"{name} is switched on by two conditions, `{earlier}` and `{condition}`, but can have only one{hint}")
+                if name in condition.when.names():
+                    raise ValueError(f"the condition `{condition}` makes {name} depend on itself")
+                tests[name] = condition.when
+        self._tests = tests
+        self._order = _dependency_order(self.parameters, tests)
         return self
 
     @property
     def names(self) -> list[str]:
         return [parameter.name for parameter in self.parameters]
 
+    def is_conditional(self, name: str) -> bool:
+        """Whether a condition switches the parameter on and off."""
+        return name in self._tests
+
+    def active(self, params: dict[str, Any]) -> dict[str, Any]:
+        """params without the parameters the conditions switch off, in parameter order.
+
+        This is the point an objective is called with. params may hold a value for every
+        parameter, or only for those switched on.
+        """
+        if not self._tests:
+            return dict(params)
+        kept: dict[str, Any] = {}
+        for parameter in self._order:
+            test = self._tests.get(parameter.name)
+            if parameter.name in params and (test is None or holds(test, kept)):
+                kept[parameter.name] = params[parameter.name]
+        return {name: kept[name] for name in self.names if name in kept}
+
     def sample(self, rng: np.random.Generator) -> dict[str, Any]:
         """Draw one value for every parameter, at a point that satisfies every constraint.
 
-        Points are drawn until one is feasible. Raises InfeasibleSearchSpace after MAX_DRAWS
-        draws in a row without one.
+        Parameters the conditions switch off get a value too, which active() leaves out. Points
+        are drawn until one is feasible. Raises InfeasibleSearchSpace after MAX_DRAWS draws in
+        a row without one.
         """
         for _ in range(MAX_DRAWS if self.constraints else 1):
             point = {parameter.name: parameter.sample(rng) for parameter in self.parameters}
@@ -258,48 +336,131 @@ class SearchSpace(BaseModel):
 
         Raises ValueError if a function constraint is left without one.
         """
-        constraints: list[AnyConstraint] = []
-        for constraint in self.constraints:
-            if isinstance(constraint, FunctionConstraint) and constraint.name in functions:
-                constraint = constraint.model_copy(update={"func": functions[constraint.name]})
-            if isinstance(constraint, FunctionConstraint) and constraint.func is None:
-                raise ValueError(f"the constraint {constraint.name!r} needs its function, which isn't saved; pass it in functions")
-            constraints.append(constraint)
-        unknown = sorted(set(functions) - {c.name for c in self.constraints if isinstance(c, FunctionConstraint)})
+        constraints = [_with_function(constraint, functions) for constraint in self.constraints]
+        named = {c.name for constraint in self.constraints for c in _function_constraints(constraint)}
+        unknown = sorted(set(functions) - named)
         if unknown:
             raise ValueError(f"no function constraint is named {', '.join(map(repr, unknown))}")
-        return SearchSpace(self.parameters, constraints)
+        return SearchSpace(self.parameters, constraints, self.conditions)
 
     def feasible(self, params: dict[str, Any]) -> bool:
-        """Whether params satisfy every constraint."""
-        return all(constraint.satisfied(params) for constraint in self.constraints)
+        """Whether params satisfy every constraint that applies to the parameters switched on."""
+        point = self.active(params)
+        return all(not constraint.applies(point) or constraint.satisfied(point) for constraint in self.constraints)
 
     def broken(self, params: dict[str, Any]) -> list[AnyConstraint]:
         """The constraints params don't satisfy."""
-        return [constraint for constraint in self.constraints if not constraint.satisfied(params)]
+        point = self.active(params)
+        return [c for c in self.constraints if c.applies(point) and not c.satisfied(point)]
 
     def check(self, params: dict[str, Any]) -> dict[str, Any]:
         """params as a complete point of this space, in parameter order, or ValueError if they aren't one.
 
-        Fixed parameters may be left out; every other parameter needs a value.
+        Fixed parameters may be left out; every other parameter needs a value, unless the
+        conditions switch it off at this point, when it must be left out.
         """
         unknown = sorted(set(params) - set(self.names))
         if unknown:
             raise ValueError(f"unknown parameters: {', '.join(unknown)}")
-        missing = [p.name for p in self.parameters if p.name not in params and not isinstance(p, FixedParameter)]
-        if missing:
-            raise ValueError(f"missing values for: {', '.join(missing)}")
-        checked = {}
-        for p in self.parameters:
+        checked: dict[str, Any] = {}
+        missing = []
+        for p in self._order:
+            test = self._tests.get(p.name)
+            if test is not None and not holds(test, checked):
+                if p.name in params:
+                    raise ValueError(f"{p.name} isn't used at this point, since it's only used when {describe(test)}: leave it out")
+                continue
             if p.name in params:
                 checked[p.name] = p.check(params[p.name])
-            else:
-                assert isinstance(p, FixedParameter)  # every other kind was found missing above
+            elif isinstance(p, FixedParameter):
                 checked[p.name] = p.value
-        return checked
+            else:
+                missing.append(p.name)
+        if missing:
+            raise ValueError(f"missing values for: {', '.join(name for name in self.names if name in missing)}")
+        return {name: checked[name] for name in self.names if name in checked}
 
     def __getitem__(self, name: str) -> Parameter:
         for parameter in self.parameters:
             if parameter.name == name:
                 return parameter
         raise KeyError(name)
+
+
+def _check_test(test: ChoiceTest | ExpressionConstraint, by_name: dict[str, Parameter], where: str) -> None:
+    if isinstance(test, ChoiceTest):
+        parameter = by_name.get(test.name)
+        if parameter is None:
+            raise ValueError(f"{where} tests {test.name!r}, which isn't a parameter of this search space")
+        if not isinstance(parameter, ChoiceParameter):
+            raise ValueError(f"{where} tests {test.name!r} by its values, which needs a choice parameter")
+        if parameter.choose_n is not None:
+            raise ValueError(f"{where} tests {test.name!r}, which picks {parameter.choose_n} choices at once")
+        unknown = [value for value in test.values if value not in parameter.choices]
+        if unknown:
+            raise ValueError(f"{where} tests {', '.join(map(repr, unknown))}, which isn't one of {test.name}'s choices")
+    else:
+        _check_expression(test, by_name, where)
+
+
+def _check_expression(constraint: ExpressionConstraint, by_name: dict[str, Parameter], where: str) -> None:
+    for name in sorted(constraint.names()):
+        if name not in by_name:
+            raise ValueError(f"{where} uses {name!r}, which isn't a parameter of this search space")
+        if not isinstance(by_name[name], RangeParameter):
+            raise ValueError(f"{where} uses {name!r}, which isn't a range parameter; use Constraint.function for constraints on other kinds")
+
+
+def _check_constraint(constraint: AnyConstraint, by_name: dict[str, Parameter]) -> None:
+    if isinstance(constraint, ExpressionConstraint):
+        _check_expression(constraint, by_name, f"the constraint `{constraint}`")
+    elif isinstance(constraint, FunctionConstraint):
+        missing = sorted(constraint.required() - set(by_name))
+        if missing:
+            raise ValueError(f"the constraint {constraint.name!r} needs parameters missing from the search space: {', '.join(missing)}")
+    elif isinstance(constraint, ConditionalConstraint):
+        _check_test(constraint.when, by_name, f"the constraint `{constraint}`")
+        _check_constraint(constraint.constraint, by_name)
+
+
+def _function_constraints(constraint: AnyConstraint) -> list[FunctionConstraint]:
+    """The function constraints in constraint, including inside conditional constraints."""
+    if isinstance(constraint, FunctionConstraint):
+        return [constraint]
+    if isinstance(constraint, ConditionalConstraint):
+        return _function_constraints(constraint.constraint)
+    return []
+
+
+def _with_function(constraint: AnyConstraint, functions: dict[str, Any]) -> AnyConstraint:
+    if isinstance(constraint, ConditionalConstraint):
+        return constraint.model_copy(update={"constraint": _with_function(constraint.constraint, functions)})
+    if isinstance(constraint, FunctionConstraint) and constraint.name in functions:
+        constraint = constraint.model_copy(update={"func": functions[constraint.name]})
+    if isinstance(constraint, FunctionConstraint) and constraint.func is None:
+        raise ValueError(f"the constraint {constraint.name!r} needs its function, which isn't saved; pass it in functions")
+    return constraint
+
+
+def _dependency_order(parameters: list[Parameter], tests: dict[str, ChoiceTest | ExpressionConstraint]) -> list[Parameter]:
+    """parameters ordered so each comes after every parameter its test uses, or ValueError if they form a loop."""
+    by_name = {parameter.name: parameter for parameter in parameters}
+    order: list[Parameter] = []
+    state: dict[str, str] = {}  # "visiting" while its dependencies are placed, then "placed"
+
+    def place(name: str, path: list[str]) -> None:
+        if state.get(name) == "placed":
+            return
+        if state.get(name) == "visiting":
+            loop = path[path.index(name):] + [name]
+            raise ValueError(f"the conditions form a loop: {' needs '.join(loop)}")
+        state[name] = "visiting"
+        test = tests.get(name)
+        for needed in sorted(test.names()) if test is not None else []:
+            place(needed, path + [name])
+        state[name] = "placed"
+        order.append(by_name[name])
+
+    for parameter in parameters:
+        place(parameter.name, [])
+    return order
