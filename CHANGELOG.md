@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Constraints.** `SearchSpace(parameters, constraints=[width * height <= 40, width >= 2 * height])` limits the search to points that satisfy every constraint, and the objective is never evaluated outside them. Constraints are written with range parameters and numbers, using `+`, `-`, `*`, `/`, `**` and `abs()`, compared with `<=` or `>=`. `Constraint.function(...)` covers anything else, such as choice parameters; it isn't saved with a result, so `rebuild_optimizer(functions=...)` takes it again. Initial points must satisfy the constraints, and constraints that leave nothing to search raise `InfeasibleSearchSpace` before any evaluation. Random search supports them so far; the other optimizers raise `UnsupportedSearchSpace` until they do.
+
+### Changed
+
+- Checkpoints no longer store the search space, which the optimizer loading one already has.
+
 ## 0.9.0 (2026-10-31)
 
 The genetic optimizer, retuned: adaptive mutation, no repeat evaluations and blend crossover. Against 0.8.2, its geometric-mean error on the benchmark's 36 problems falls to ×0.58, ×0.23, ×0.16, ×0.17 and ×0.012 at 10, 20, 50, 100 and 1,000 evaluations per dimension. Results of existing genetic optimizer runs change. Benchmark results are in [benchmarks/README.md](benchmarks/README.md).
