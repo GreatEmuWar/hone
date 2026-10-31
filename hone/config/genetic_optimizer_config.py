@@ -38,8 +38,8 @@ class GeneticOptimizerConfig(OptimizerConfig):
     adaptive_mutation: bool | None = None
     crossover_rate: float = Field(default=0.8, ge=0, le=1)  # chance each gene of a child comes from its first parent
     # Draw each range value of a child from between its parents' values, widened by blend_alpha
-    # times their distance on each side, rather than copying one. None: on, except with noise.
-    blend_crossover: bool | None = None
+    # times their distance on each side, rather than copying one.
+    blend_crossover: bool = True
     blend_alpha: float = Field(default=0.1, ge=0)
     elitism: bool = True
     elitism_rate: float = Field(default=0.1, ge=0, lt=1)  # share of each generation carried over unchanged

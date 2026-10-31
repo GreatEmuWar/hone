@@ -264,11 +264,6 @@ def test_blend_crossover_stays_within_the_bounds():
         assert 0 <= child["x"] <= 1 and 1e-5 <= child["lr"] <= 1
 
 
-def test_blend_crossover_is_on_unless_there_is_noise():
-    assert make_optimizer()._blend and not make_optimizer(noise=True)._blend
-    assert not make_optimizer(blend_crossover=False)._blend and make_optimizer(noise=True, blend_crossover=True)._blend
-
-
 def test_blend_crossover_reaches_more_precise_answers():
     blend = [make_optimizer(max_evaluations=1000, seed=seed).optimize(sphere).best_fitness for seed in range(5)]
     uniform = [make_optimizer(max_evaluations=1000, seed=seed, blend_crossover=False).optimize(sphere).best_fitness for seed in range(5)]

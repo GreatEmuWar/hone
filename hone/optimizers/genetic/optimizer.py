@@ -81,7 +81,6 @@ class GeneticOptimizer(Optimizer):
         else:
             self._mutation_rate = 0.1 if self.config.noise else max(0.1, 1 / max(variables, 1))
         self._adaptive = self.config.adaptive_mutation if self.config.adaptive_mutation is not None else not self.config.noise
-        self._blend = self.config.blend_crossover if self.config.blend_crossover is not None else not self.config.noise
         self._step_spread = STEP_SPREAD / math.sqrt(max(variables, 1))
         self._steps: dict[Individual, float] = {}  # each individual's mutation size, with adaptive mutation
         self._asked: set[tuple] = set()  # every point put in a population, so children can avoid repeating one
@@ -98,7 +97,7 @@ class GeneticOptimizer(Optimizer):
     def _child(self, parents: list[Individual], generation: int, niche: dict | None = None) -> Individual:
         """A child of two parents selected from parents. A niche fixes the child's choice parameters."""
         first, second = self._select(parents), self._select(parents)
-        if self._blend:
+        if self.config.blend_crossover:
             params = blend_crossover(
                 first.params, second.params, self.search_space, self.rng, rate=self.config.crossover_rate, alpha=self.config.blend_alpha
             )
