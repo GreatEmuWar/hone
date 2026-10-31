@@ -19,7 +19,10 @@ MAX_STEP = 0.5
 REPEAT_TRIES = 10
 # A child that breaks a constraint is moved halfway back toward its fitter parent this many times.
 REPAIR_STEPS = 10
-NICHE_BY_ACTIVE = True
+# The share of children bred within niches when niche_share isn't set and the search space has
+# conditions: on the conditional benchmark it keeps every branch tuning its own numbers, so a
+# narrow best branch isn't outbred by a wide decoy.
+CONDITIONAL_NICHE_SHARE = 0.5
 
 
 class GeneticOptimizer(Optimizer):
@@ -94,6 +97,10 @@ class GeneticOptimizer(Optimizer):
         self._step_spread = STEP_SPREAD / math.sqrt(max(variables, 1))
         self._steps: dict[Individual, float] = {}  # each individual's mutation size, with adaptive mutation
         self._asked: set[tuple] = set()  # every point put in a population, so children can avoid repeating one
+        if self.config.niche_share is not None:
+            self._niche_share = self.config.niche_share
+        else:
+            self._niche_share = CONDITIONAL_NICHE_SHARE if self.search_space.conditions else 0.0
 
     def _select(self, individuals: list[Individual]) -> Individual:
         select: Callable[..., Individual]
@@ -208,16 +215,12 @@ class GeneticOptimizer(Optimizer):
         switched off by a condition don't count, so each branch is a niche.
         """
         choices = [p.name for p in self.search_space.parameters if isinstance(p, ChoiceParameter) and len(p.choices) > 1]
-        by_structure = NICHE_BY_ACTIVE and bool(self.search_space.conditions)
-        if not (choices or by_structure) or count == 0:
+        if not choices or count == 0:
             return []
         niches: dict[tuple, list[Individual]] = {}
         for parent in parents:
             on = self.search_space.active(parent.params)
-            key = tuple(repr(on[name]) if name in on else "off" for name in choices)
-            if by_structure:
-                key += tuple(name in on for name in self.search_space.names)
-            niches.setdefault(key, []).append(parent)
+            niches.setdefault(tuple(repr(on[name]) if name in on else "off" for name in choices), []).append(parent)
         # With more niches than children, the niches with the fittest members breed.
         ranked = sorted(niches.values(), key=lambda members: _fitness(self._ranked(members)[0]), reverse=self.config.maximize)
         per_niche = max(1, count // len(ranked))
@@ -248,7 +251,7 @@ class GeneticOptimizer(Optimizer):
             self._refresh_averages(parents)
         # At least one child per generation, however the share rounds, so the search keeps moving.
         elites = self._ranked(parents)[: min(round(size * self.config.elitism_rate), size - 1)] if self.config.elitism else []
-        niched = self._niche_children(parents, int(self.config.niche_share * (size - len(elites))), generation)
+        niched = self._niche_children(parents, int(self._niche_share * (size - len(elites))), generation)
         population = elites + niched + [self._child(parents, generation) for _ in range(size - len(elites) - len(niched))]
         if self._adaptive:
             # Keep the sizes of individuals that can still breed: this generation, and any still being evaluated.

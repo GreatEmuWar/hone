@@ -16,7 +16,7 @@ from typing import Callable
 
 from threadpoolctl import threadpool_limits
 
-from hone.parameters import ChoiceParameter, Condition, RangeParameter, SearchSpace
+from hone.parameters import ChoiceParameter, Condition, Parameter, RangeParameter, SearchSpace
 
 from .problems import Problem
 
@@ -131,8 +131,8 @@ _FOREST = [
     RangeParameter("min_samples_leaf", 1, 20, integer=True),
     RangeParameter("max_features", 0.05, 1.0),
 ]
-_KNN = [RangeParameter("n_neighbors", 1, 50, integer=True), ChoiceParameter("weights", ["uniform", "distance"])]
-MODEL_SELECTION = [_MODEL, *_SVM, *_FOREST, *_KNN]
+_KNN: list[Parameter] = [RangeParameter("n_neighbors", 1, 50, integer=True), ChoiceParameter("weights", ["uniform", "distance"])]
+MODEL_SELECTION: list[Parameter] = [_MODEL, *_SVM, *_FOREST, *_KNN]
 MODEL_CONDITIONS: list[Condition] = [_MODEL["svm"] >> _SVM, _MODEL["forest"] >> _FOREST, _MODEL["knn"] >> _KNN]
 
 # The best value of each problem found by REFERENCE_SEARCH.
@@ -140,7 +140,8 @@ OPTIMA = {
     "svm-breast-cancer": 0.014066138798323302,  # accuracy 98.6%, found by CMA-ES
     "kernel-ridge-diabetes": 0.4961748264794844,  # R² 0.504, found by Bayesian optimization
     "random-forest-wine": 0.005555555555555536,  # accuracy 99.4%, found by Bayesian optimization
-    "model-selection-breast-cancer": 0.014066138798323302,  # PLACEHOLDER
+    # Every reference run chose the support vector classifier, and the best matched svm-breast-cancer's.
+    "model-selection-breast-cancer": 0.014066138798323302,
 }
 
 SPACES: dict[str, tuple[Callable[..., float], list]] = {

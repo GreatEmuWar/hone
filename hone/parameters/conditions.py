@@ -19,7 +19,7 @@ Conditions and tests are pydantic models, so a search space with conditions save
 like any other.
 """
 import numbers
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal, Union, overload
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -47,6 +47,10 @@ class ChoiceTest(BaseModel):
     def __str__(self) -> str:
         return f"{self.name}[{', '.join(map(repr, self.values))}]"
 
+    @overload
+    def __rshift__(self, other: Constraint) -> "ConditionalConstraint": ...
+    @overload
+    def __rshift__(self, other: Any) -> "Condition": ...
     def __rshift__(self, other: Any) -> "Condition | ConditionalConstraint":
         return _gate(self, other)
 
