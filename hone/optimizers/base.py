@@ -495,7 +495,6 @@ class Optimizer(ABC):
     def _finish_generation(self, final: bool = False) -> None:
         assert self._population is not None
         self._history.append(self._summarize(self._generation, self._evaluations, self._population))
-        # With noise, the best point's average moves as it is evaluated again, so check the current one.
         best = self._best_point()
         if best is not None and self._reached(best[0]):
             self._reached_threshold = True

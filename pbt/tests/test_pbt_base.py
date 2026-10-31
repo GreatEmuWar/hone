@@ -471,7 +471,7 @@ def test_final_evaluations(problem, final):
 
 
 # With noise, reached_threshold still means the reported best reached the threshold. The example is the case from
-# bug_reports/bug_report_hone_optimizers_base_*.md, where the check once used a stale average.
+# pbt/bug_reports/bug_report_hone_optimizers_base_*.md, where the check once used a stale average.
 @run_settings
 @example(
     problem=("genetic", SearchSpace([RangeParameter("n", 0, 10, integer=True)]), 10, 200),

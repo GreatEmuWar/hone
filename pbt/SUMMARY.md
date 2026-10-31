@@ -1,35 +1,31 @@
-# Property tests
+# Property-based testing round: summary
 
-These tests check hone against what its docstrings, README and changelog promise, using [Hypothesis](https://hypothesis.readthedocs.io) to generate search spaces, configs and objectives. They came from an independent bug hunt, summarized below, and run with the rest of the tests.
-
-## The bug hunt
-
-This was an independent bug hunt on hone 0.8.0. It followed the procedure in [agentic-pbt's `hypo.md`](https://github.com/mmaaz-git/agentic-pbt/blob/main/hypo.md): read the target, propose only properties that the code, its docstrings, README.md or CHANGELOG.md claim, test them with Hypothesis, triage every failure, and report only reproduced bugs that violate a claimed property.
+This was an independent bug hunt on hone 0.8.0. It followed the procedure in [agentic-pbt's `hypo.md`](https://github.com/mmaaz-git/agentic-pbt/blob/main/hypo.md): read the target, propose only properties that the code, its docstrings, README.md or CHANGELOG.md claim, test them with Hypothesis, triage every failure, and report only reproduced bugs that violate a claimed property. Nothing under `hone/` or `tests/` was changed.
 
 ## Results
 
-**1 bug report**, in `bug_reports/`:
+**1 bug report**, in `pbt/bug_reports/`:
 
 | Report | Target | Severity | Type | Summary |
 | --- | --- | --- | --- | --- |
-| [bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md](bug_reports/bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md) | `hone.optimizers.base` | Medium | Logic | With `noise=True`, the threshold is checked against a stale average of the best point. A lucky single evaluation can stop the run early with `reached_threshold=True` while the reported `best_fitness`, the current average, misses the threshold. In one realistic example, the run spent 30 of 200 evaluations. The report includes a two-line fix, which passes all 492 existing tests. **Fixed**: the threshold is now checked against the reported best. |
+| [bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md](bug_reports/bug_report_hone_optimizers_base_2026-10-31_00-50_x440.md) | `hone.optimizers.base` | Medium | Logic | With `noise=True`, the threshold is checked against a stale average of the best point. A lucky single evaluation can stop the run early with `reached_threshold=True` while the reported `best_fitness`, the current average, misses the threshold. In one realistic example, the run spent 30 of 200 evaluations. The report includes a two-line fix, which passes all 492 existing tests. **Fixed** in `hone/optimizers/base.py`. |
 
-**Tests**: 93 property tests in this folder. All pass with the default settings. `test_noisy_threshold_consistent` covers the bug above, now fixed, and keeps its failing example as a regression check.
+**Tests**: 93 property tests in `pbt/tests/`. All pass with the default settings. `test_noisy_threshold_consistent` covers the bug above, now fixed, and keeps its failing example as a regression check.
 
-How to run them:
+`make test` runs them along with `tests/`, since `pbt/tests` is in `testpaths` and Hypothesis is a dev dependency. To run them alone:
 
 ```
-poetry run pytest tests/properties                    # about a minute and a half; 25 examples per property
-PBT_EXAMPLES=300 poetry run pytest tests/properties   # a deeper search
+poetry run pytest pbt/tests                    # about 30 seconds; 25 examples per property
+PBT_EXAMPLES=300 poetry run pytest pbt/tests   # a deeper search
 ```
 
 During the hunt, every property was also run at 150 to 300 examples. `pbt_strategies.py` generates any valid parameter or search space. `pbt_runs.py` builds any optimizer on a generated problem, with an objective that records every call.
 
-## Other findings
+## Findings not reported as bugs
 
-These failures were triaged separately from the bug report: the first was fixed after triage, the rest are not bugs. They are listed so that a later round doesn't repeat the work.
+These failures were triaged and turned out not to be bugs, or not bugs that can be shown to break a claim. They are listed so that a later round doesn't repeat the work.
 
-- **Elitism could round up to the whole population.** Elites were `round(population_size * elitism_rate)`, so a valid `elitism_rate` below 1 could make every individual an elite: `GeneticOptimizerConfig(max_evaluations=200, elitism_rate=0.97)` gave 16 elites in a population of 16, and the run ended after 16 of its 200 evaluations. The hunt didn't report it, because an existing test seemed to expect it; on triage that test turned out to be exercising the base class's skipping of empty generations, not elitism, so this was **fixed** too: at most `population_size - 1` individuals are elites, and the skipping test now uses an optimizer that repeats its population.
+- **Elitism could round up to the whole population.** Elites were `round(population_size * elitism_rate)`, so a valid `elitism_rate` below 1 could make every individual an elite: `GeneticOptimizerConfig(max_evaluations=200, elitism_rate=0.97)` gave 16 elites in a population of 16, and the run ended after 16 of its 200 evaluations. It wasn't reported, because an existing test seemed to expect it; on triage that test turned out to be exercising the base class's skipping of empty generations, not elitism, so this was **fixed** afterwards: at most `population_size - 1` individuals are elites, and the skipping test now uses an optimizer that repeats its population.
 - **Ties in the best value.** With different points tied for the best value, which one `best_params` names depends on the order of `tell()` calls: the first one told is kept. That is reasonable, and `test_tell_order_does_not_matter` compares `best_params` only when the best is untied.
 - **Test-strategy artefacts**, not bugs: ranges one float ulp wide, the last generation cut short by the budget, and a parent set that left out carried-over elites. All were fixed in the tests.
 

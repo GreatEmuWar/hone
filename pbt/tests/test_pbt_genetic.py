@@ -53,7 +53,7 @@ def generations_of(optimizer, objective):
 @given(spaces, configs())
 def test_runs_until_the_budget_is_spent(space, config):
     # An elitism_rate that rounded to the whole population once left nothing to evaluate; now at least one child is
-    # bred each generation (see README.md, "Findings not reported as bugs").
+    # bred each generation (see pbt/SUMMARY.md).
     objective = Recorder(space, sign=-1.0 if config.maximize else 1.0)
     result = GeneticOptimizer(space, config).optimize(objective)
     assert result.evaluations == config.max_evaluations

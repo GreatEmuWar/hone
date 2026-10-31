@@ -1,15 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.8.2 (2026-10-31)
 
 ### Fixed
 
-- **With `noise=True`, a threshold could stop the run too early.** The threshold was checked against the best point's average as it was when that point was first told, not its current average, so one lucky evaluation could end the run with `reached_threshold` set while the reported `best_fitness` missed the threshold. It is now checked against the reported best.
 - **Elites could fill the whole population.** An `elitism_rate` below 1 could round to every individual, leaving nothing to evaluate, so the genetic optimizer stopped long before its budget was spent. At least one child is now bred each generation.
+
+## 0.8.1 (2026-10-31)
+
+### Fixed
+
+- **Noisy runs stopped early at the threshold on a lucky value.** With `noise=True`, the threshold was checked against the best point's average as it stood when that point was first reported, not its current average. One lucky evaluation could end the run with `reached_threshold` set while the reported `best_fitness` had not reached `threshold`. The check now uses the reported best.
 
 ### Added
 
-- **Property tests** in `tests/properties/`, from an independent bug hunt that found both fixes above: 93 properties that the documentation promises, checked with Hypothesis.
+- **Property-based tests.** `pbt/tests/` checks the properties hone's documentation claims, using Hypothesis on generated search spaces and settings, and runs with the rest of the tests. `pbt/SUMMARY.md` lists them. Hypothesis is a new dev dependency.
 
 ## 0.8.0 (2026-10-31)
 
