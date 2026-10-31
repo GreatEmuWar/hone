@@ -7,7 +7,7 @@ from hone.optimizers.base import Individual, Optimizer, _fitness, _key
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from . import selection
-from .variation import mutate, uniform_crossover
+from .variation import blend_crossover, mutate, uniform_crossover
 
 
 # Adaptive mutation: how much a child's mutation size varies from its parents', divided by the
@@ -31,6 +31,10 @@ class GeneticOptimizer(Optimizer):
     keeps the previous one's elites unchanged, then fills the rest of the population with
     children: two parents are selected, crossed over, and mutated. Failed evaluations are
     never elites or parents.
+
+    With blend crossover, each range value of a child is drawn from between its parents' values,
+    and a little beyond, rather than copied from one of them; choices and fixed values are
+    still copied.
 
     With adaptive mutation, each individual carries its own mutation size, as in evolution
     strategies: a child takes the geometric mean of its parents' sizes, varied at random, so
@@ -111,7 +115,12 @@ class GeneticOptimizer(Optimizer):
 
     def _bred(self, parents: list[Individual], generation: int, niche: dict | None) -> Individual:
         first, second = self._select(parents), self._select(parents)
-        params = uniform_crossover(first.params, second.params, self.rng, rate=self.config.crossover_rate)
+        if self.config.blend_crossover:
+            params = blend_crossover(
+                first.params, second.params, self.search_space, self.rng, rate=self.config.crossover_rate, alpha=self.config.blend_alpha
+            )
+        else:
+            params = uniform_crossover(first.params, second.params, self.rng, rate=self.config.crossover_rate)
         step = self.config.mutation_scale
         if self._adaptive:
             inherited = math.sqrt(self._step(first) * self._step(second))

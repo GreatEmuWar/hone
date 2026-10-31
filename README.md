@@ -177,6 +177,8 @@ The step size adapts as the run goes (`adaptive_mutation`, on by default). Each 
 
 A child that would repeat a point already asked for, such as a copy of a parent that no mutation touched, is mutated again, one value at a time, until it is new. About one child in four used to be such a copy, and evaluating it again only spent the budget; avoiding them cut the geometric-mean error on the benchmark by 10% to 18% at 10 to 100 evaluations per dimension, and by 59% at 1,000. In a small integer space, where the points near the best run out, some repeats remain. With `noise=True` repeats are kept, because each one refines the point's average.
 
+A child's numbers come from blend crossover (`blend_crossover`, on by default): each range value is drawn from between its two parents' values, and up to `blend_alpha` (default 0.1) times their distance beyond either, rather than copied from one parent. Choices and fixed values are still copied, each from the first parent with probability `crossover_rate`. On the benchmark this cut the genetic optimizer's geometric-mean error to ×0.69, ×0.62, ×0.51, ×0.38 and ×0.08 at 10 to 1,000 evaluations per dimension, and from 50 evaluations per dimension up it now beats random search on every problem. It helps with noise too (×0.67 and ×0.84 at 10 and 40 evaluations per dimension on the noisy problems, unchanged at 200), so it stays on with `noise=True`.
+
 ### Results
 
 `optimize()` and `result()` return a `Result`:
@@ -236,10 +238,10 @@ result = optimizer.optimize(run_simulation)
 | Budget | Parameters | Chosen |
 | --- | --- | --- |
 | 200 evaluations or fewer | Any, unless a choice parameter has `choose_n` | `BayesianOptimizer` |
-| More than 200 | Any choice parameter | `GeneticOptimizer` |
-| More than 200 | Numbers only | `CMAES` |
+| More than 200 | Any choice or integer parameter | `GeneticOptimizer` |
+| More than 200 | Continuous numbers only | `CMAES` |
 
-Other settings, such as `seed`, `maximize`, `noise` or `threshold`, are passed on to the chosen optimizer's config. On the benchmark's 180 problem and budget pairs, its pick had a median error 1.32 times the best optimizer's, on geometric mean, and was the best on 145; always using CMA-ES gives 6.4 times the best, and it can't run the 15 problems with choice parameters. Its biggest misses are plain Rastrigin with 1,000 evaluations per dimension, where the genetic optimizer wins because the variables don't interact, which a rule can't know in advance; on the rotated versions CMA-ES wins.
+Other settings, such as `seed`, `maximize`, `noise` or `threshold`, are passed on to the chosen optimizer's config. On the benchmark's 180 problem and budget pairs, its pick had a median error 1.37 times the best optimizer's, on geometric mean, and was the best on 146; always using CMA-ES gives 7.9 times the best, and it can't run the 15 problems with choice parameters. Its biggest misses are plain Rastrigin with 1,000 evaluations per dimension and plain ellipsoid with 50 to 100, where the genetic optimizer wins because the variables don't interact, which a rule can't know in advance; on the rotated versions CMA-ES wins.
 
 All four take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 
