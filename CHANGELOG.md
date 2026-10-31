@@ -10,10 +10,20 @@
 
 - Checkpoints no longer store the search space, which the optimizer loading one already has.
 
+## 0.9.0 (2026-10-31)
+
+The genetic optimizer, retuned: adaptive mutation, no repeat evaluations and blend crossover. Against 0.8.2, its geometric-mean error on the benchmark's 36 problems falls to ×0.58, ×0.23, ×0.16, ×0.17 and ×0.012 at 10, 20, 50, 100 and 1,000 evaluations per dimension. Results of existing genetic optimizer runs change. Benchmark results are in [benchmarks/README.md](benchmarks/README.md).
+
+### Changed
+
 - **The genetic optimizer adapts its mutation.** Each individual carries its own mutation size, which its children inherit and vary, so selection tunes it as the run goes (`adaptive_mutation`, on by default). The default `mutation_rate` is now 1 over the number of variables, at least 0.1, rather than 0.1. On the benchmark's 36 problems the genetic optimizer's geometric-mean error falls to ×0.92, ×0.44, ×0.34, ×0.50 and ×0.33 at 10 to 1,000 evaluations per dimension, and it loses to random search on 14 problem and budget pairs rather than 37. With `noise=True` both stay as before, where they didn't help at large budgets. Results of existing runs change.
 - **The genetic optimizer doesn't repeat evaluations.** Without noise, a child that would repeat a point already asked for, such as a copy of a parent that no mutation touched, is mutated again until it is new. About one child in four used to be such a copy. The geometric-mean error falls to ×0.90, ×0.82, ×0.91, ×0.89 and ×0.41 at 10 to 1,000 evaluations per dimension. This happens even with `mutation_rate=0`. With `noise=True` repeats stay, since they refine a point's average. Results of existing runs change.
 - **The genetic optimizer blends its children's numbers.** Each range value of a child is drawn from between its parents' values, and up to `blend_alpha` (default 0.1) times their distance beyond, rather than copied from one parent (`blend_crossover`, on by default, with noise too). The geometric-mean error falls to ×0.69, ×0.62, ×0.51, ×0.38 and ×0.08 at 10 to 1,000 evaluations per dimension, and it loses to random search on 3 problem and budget pairs rather than 14. Results of existing runs change.
 - **`choose_optimizer` sends problems with integer parameters to the genetic optimizer** above 200 evaluations, rather than CMA-ES, since with blend crossover it does better on them. Its pick's error on the benchmark is ×1.37 the best optimizer's, against ×1.62 had integers stayed with CMA-ES.
+
+### Packaging
+
+- **Releases go to PyPI.** Each new version is published as `hone-python` when it is released on GitHub, so `pip install hone-python` installs the latest release. This is the first.
 
 ## 0.8.2 (2026-10-31)
 
