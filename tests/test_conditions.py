@@ -7,19 +7,22 @@ from pydantic import ValidationError
 
 from hone import (
     CMAES,
+    BayesianConfig,
     BayesianOptimizer,
     ChoiceParameter,
+    CMAESConfig,
     Condition,
     Constraint,
     FixedParameter,
     GeneticOptimizer,
+    GeneticOptimizerConfig,
     OptimizerConfig,
     RandomSearch,
     RangeParameter,
     Result,
     SearchSpace,
-    UnsupportedSearchSpace,
 )
+from hone.optimizers.genetic.variation import mutate
 
 MODEL = ChoiceParameter("model", ["svm", "forest"])
 KERNEL = ChoiceParameter("kernel", ["linear", "rbf"])
@@ -281,11 +284,83 @@ def test_a_checkpointed_run_with_conditions_resumes(tmp_path):
     assert resumed.result() == whole
 
 
-@pytest.mark.parametrize("optimizer_class", [GeneticOptimizer, CMAES, BayesianOptimizer])
-def test_other_optimizers_refuse_conditions_for_now(optimizer_class):
-    space = SearchSpace([LAYERS, UNITS], conditions=[(LAYERS >= 3) >> UNITS])
-    with pytest.raises(UnsupportedSearchSpace, match="doesn't support conditional parameters yet"):
-        optimizer_class(space)
+OPTIMIZERS = [
+    (RandomSearch, OptimizerConfig),
+    (GeneticOptimizer, GeneticOptimizerConfig),
+    (BayesianOptimizer, BayesianConfig),
+]
+
+
+@pytest.mark.parametrize("optimizer_class, config_class", OPTIMIZERS)
+def test_every_optimizer_only_passes_switched_on_parameters(optimizer_class, config_class):
+    seen = []
+
+    def recording(model, **rest):
+        seen.append({"model": model, **rest})
+        return score(model, **rest)
+
+    budget = 40 if optimizer_class is BayesianOptimizer else 300
+    result = optimizer_class(SPACE, config_class(max_evaluations=budget, seed=0)).optimize(recording)
+    assert len(seen) == budget and all(SPACE.check(point) == point for point in seen)
+    assert SPACE.check(result.best_params) == result.best_params
+    assert result.best_params["model"] == "svm" and result.best_params["kernel"] == "rbf"
+
+
+def test_cma_es_searches_ranges_that_conditions_switch_on():
+    space = SearchSpace([LAYERS, UNITS, C], conditions=[(LAYERS >= 3) >> UNITS])
+
+    def objective(layers, C, units_3=None):
+        return (layers - 3) ** 2 + abs(np.log10(C)) + (abs(units_3 - 20) / 10 if units_3 is not None else 1)
+
+    seen = []
+    result = CMAES(space, CMAESConfig(max_evaluations=300, seed=0)).optimize(lambda **p: seen.append(p) or objective(**p))
+    assert all(("units_3" in point) == (point["layers"] >= 3) for point in seen)
+    assert result.best_params["layers"] == 3 and abs(result.best_params["units_3"] - 20) <= 2
+
+
+def test_the_genetic_optimizer_mutates_only_genes_switched_on():
+    optimizer = GeneticOptimizer(SPACE, GeneticOptimizerConfig(max_evaluations=100, seed=0, mutation_rate=1.0, crossover_rate=1.0))
+    parent = {"model": "forest", "kernel": "rbf", "C": 1.0, "gamma": 0.01, "trees": 100}
+    for _ in range(20):
+        child = mutate(parent, SPACE, optimizer.rng, rate=1.0, scale=0.1, only=set(SPACE.active(parent)))
+        assert {name: child[name] for name in ("kernel", "C", "gamma")} == {"kernel": "rbf", "C": 1.0, "gamma": 0.01}
+
+
+def test_crossover_takes_a_gene_from_the_parent_it_is_switched_on_in():
+    optimizer = GeneticOptimizer(SPACE, GeneticOptimizerConfig(max_evaluations=100, seed=0))
+    svm = {"model": "svm", "kernel": "rbf", "C": 1.0, "gamma": 0.01, "trees": 400}
+    forest = {"model": "forest", "kernel": "linear", "C": 50.0, "gamma": 0.5, "trees": 100}
+    mother, father = optimizer._aligned(svm, forest)
+    assert mother == {**svm, "trees": 100} and father == {**forest, "kernel": "rbf", "C": 1.0, "gamma": 0.01}
+
+
+def test_the_genetic_optimizer_breeds_each_branch_in_its_own_niche():
+    config = GeneticOptimizerConfig(max_evaluations=600, seed=1, niche_share=0.5)
+    result = GeneticOptimizer(SPACE, config).optimize(score)
+    assert result.best_fitness < 0.05
+
+
+def test_bayesian_optimization_sees_points_that_differ_only_where_switched_off_as_one():
+    encoding = BayesianOptimizer(SPACE, BayesianConfig(seed=0))._encoding
+    forest = {"model": "forest", "kernel": "rbf", "C": 1.0, "gamma": 0.01, "trees": 100}
+    assert np.array_equal(encoding.encode(forest), encoding.encode({**forest, "kernel": "linear", "C": 50.0}))
+    # A candidate holding a value in a column its point switches off is snapped to the same encoding.
+    linear = encoding.encode({**forest, "model": "svm", "kernel": "linear"})
+    candidate = linear.copy()
+    candidate[encoding.columns - 1] = 0.9  # the trees column, which an svm switches off
+    assert np.array_equal(encoding.snap(candidate[None, :])[0], linear)
+
+
+@pytest.mark.parametrize("optimizer_class, config_class", [*OPTIMIZERS, (CMAES, CMAESConfig)])
+def test_without_conditions_every_optimizer_runs_as_before(optimizer_class, config_class):
+    space = SearchSpace([C, GAMMA])
+
+    def objective(C, gamma):
+        return abs(np.log10(C)) + abs(np.log10(gamma) + 2)
+
+    budget = 30 if optimizer_class is BayesianOptimizer else 100
+    first = optimizer_class(space, config_class(max_evaluations=budget, seed=0)).optimize(objective)
+    assert first == optimizer_class(space, config_class(max_evaluations=budget, seed=0)).optimize(objective)
 
 
 def test_without_conditions_runs_are_unchanged():

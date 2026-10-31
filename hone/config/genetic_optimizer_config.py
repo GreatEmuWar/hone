@@ -48,8 +48,9 @@ class GeneticOptimizerConfig(OptimizerConfig):
     tournament_p: float = Field(default=1.0, ge=0, le=1)  # chance a tournament picks its best rather than its worst
     # Share of children bred within niches of parents with the same choice parameter values, so
     # each option keeps tuning its own numbers. Helps problems where the best choice is found
-    # late, on large budgets; costs on small ones. 0 turns niches off.
-    niche_share: float = Field(default=0.0, ge=0, lt=1)
+    # late, on large budgets; costs on small ones. 0 turns niches off. None, the default, means
+    # 0.5 for a search space with conditions, where each branch is a niche, and 0 otherwise.
+    niche_share: float | None = Field(default=None, ge=0, lt=1)
 
     @model_validator(mode="before")
     @classmethod

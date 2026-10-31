@@ -39,7 +39,8 @@ class CMAES(Optimizer):
     interact, which makes it strong on smooth continuous problems.
 
     Range parameters, continuous or integer, are searched; fixed parameters are passed
-    through. Choice parameters are not supported: use GeneticOptimizer for those.
+    through. Choice parameters are not supported: use GeneticOptimizer for those. A range a
+    condition switches off keeps its place in the distribution; its value is ignored.
 
     The search starts at the centre of every range. With initial points, it evaluates them
     first and starts at the best one instead; a smaller initial_step then keeps the search
@@ -52,6 +53,7 @@ class CMAES(Optimizer):
     """
     config_class = CMAESConfig
     supports_constraints = True
+    supports_conditions = True
     config: CMAESConfig
 
     def __init__(

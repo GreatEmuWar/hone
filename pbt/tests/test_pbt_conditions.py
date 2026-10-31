@@ -4,7 +4,20 @@ import os
 import numpy as np
 from hypothesis import HealthCheck, given, settings, strategies as st
 
-from hone import ChoiceParameter, OptimizerConfig, RandomSearch, RangeParameter, SearchSpace
+from hone import (
+    CMAES,
+    BayesianConfig,
+    BayesianOptimizer,
+    ChoiceParameter,
+    CMAESConfig,
+    GeneticOptimizer,
+    GeneticOptimizerConfig,
+    OptimizerConfig,
+    RandomSearch,
+    RangeParameter,
+    SearchSpace,
+    UnsupportedSearchSpace,
+)
 from hone.parameters.conditions import holds
 
 EXAMPLES = int(os.environ.get("PBT_EXAMPLES", "25"))
@@ -87,11 +100,21 @@ def test_a_conditional_space_saves_and_loads(space, seed):
     assert loaded.active(full) == space.active(full)
 
 
-# Random search only hands out points without switched-off parameters, and its result is one too.
+# Every optimizer only hands out points without switched-off parameters, and its result is one too.
 @run_settings
-@given(conditional_spaces(), st.integers(0, 2**32 - 1))
-def test_random_search_hands_out_active_points(space, seed):
-    optimizer = RandomSearch(space, OptimizerConfig(seed=seed, max_evaluations=30, population_size=10))
+@given(conditional_spaces(), st.integers(0, 2**32 - 1), st.sampled_from(["random", "genetic", "bayesian", "cma-es"]))
+def test_every_optimizer_hands_out_active_points(space, seed, kind):
+    budget = 12 if kind == "bayesian" else 40
+    builders = {
+        "random": lambda: RandomSearch(space, OptimizerConfig(seed=seed, max_evaluations=budget, population_size=10)),
+        "genetic": lambda: GeneticOptimizer(space, GeneticOptimizerConfig(seed=seed, max_evaluations=budget)),
+        "bayesian": lambda: BayesianOptimizer(space, BayesianConfig(seed=seed, max_evaluations=budget)),
+        "cma-es": lambda: CMAES(space, CMAESConfig(seed=seed, max_evaluations=budget)),
+    }
+    try:
+        optimizer = builders[kind]()
+    except UnsupportedSearchSpace:
+        return  # CMA-ES without choices only, Bayesian optimization with something to search
     while not optimizer.done:
         for trial in optimizer.ask():
             assert space.check(trial.params) == trial.params

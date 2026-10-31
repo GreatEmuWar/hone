@@ -12,9 +12,12 @@ A constraint that only applies while a condition holds is written with >>; see c
 import inspect
 import math
 import numbers
-from typing import Annotated, Any, Callable, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Callable, Literal, overload
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from .conditions import Condition, ConditionalConstraint
 
 TOLERANCE = 1e-9  # a point this close to a limit, relative to the limit's size, satisfies it
 
@@ -264,7 +267,11 @@ class ExpressionConstraint(Constraint):
     def __str__(self) -> str:
         return f"{self.left} {self.op} {self.right}"
 
-    def __rshift__(self, other: Any) -> Any:
+    @overload
+    def __rshift__(self, other: "Constraint") -> "ConditionalConstraint": ...
+    @overload
+    def __rshift__(self, other: Any) -> "Condition": ...
+    def __rshift__(self, other: Any) -> "Condition | ConditionalConstraint":
         # As the test of a condition: (layers >= 3) >> units_3.
         from .conditions import _gate
 

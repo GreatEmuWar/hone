@@ -16,7 +16,7 @@ PROBLEMS = ml_problems()
 
 
 def test_every_problem_has_a_reference_optimum():
-    assert {p.name for p in PROBLEMS} == set(OPTIMA)
+    assert {p.name.removesuffix("-flat") for p in PROBLEMS} == set(OPTIMA)
     assert all(0 <= p.optimum < 1 for p in PROBLEMS)
 
 
@@ -37,7 +37,7 @@ def test_cli_runs_the_ml_suite(tmp_path, capsys):
     results = tmp_path / "ml.md"
     assert main(["--ml", "--seeds", "1", "--budgets", "1", "--markdown", str(results)]) == 0
     text = results.read_text()
-    assert "3 problems, 1 seeds" in text and "| svm-breast-cancer |" in text
+    assert "5 problems, 1 seeds" in text and "| svm-breast-cancer |" in text
 
 
 def test_the_iris_example_runs():

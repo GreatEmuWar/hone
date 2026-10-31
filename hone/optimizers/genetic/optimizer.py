@@ -19,6 +19,10 @@ MAX_STEP = 0.5
 REPEAT_TRIES = 10
 # A child that breaks a constraint is moved halfway back toward its fitter parent this many times.
 REPAIR_STEPS = 10
+# The share of children bred within niches when niche_share isn't set and the search space has
+# conditions: on the conditional benchmark it keeps every branch tuning its own numbers, so a
+# narrow best branch isn't outbred by a wide decoy.
+CONDITIONAL_NICHE_SHARE = 0.5
 
 
 class GeneticOptimizer(Optimizer):
@@ -45,6 +49,11 @@ class GeneticOptimizer(Optimizer):
     evaluating it again would only spend the budget. With noise, repeats stay: they refine
     the point's average.
 
+    With conditional parameters, every individual keeps a value for each parameter, even one
+    switched off at its point, so a child that switches a branch back on inherits settings
+    that once did well there. A gene switched off in one parent but on in the other comes
+    from the parent it is on in, and only genes switched on are mutated.
+
     Args:
         search_space: The parameters to optimize over, as a SearchSpace or a list of parameters.
         config: A GeneticOptimizerConfig. Defaults are used if omitted.
@@ -64,6 +73,7 @@ class GeneticOptimizer(Optimizer):
     """
     config_class = GeneticOptimizerConfig
     supports_constraints = True
+    supports_conditions = True
     config: GeneticOptimizerConfig
 
     def reset(self) -> None:
@@ -87,6 +97,10 @@ class GeneticOptimizer(Optimizer):
         self._step_spread = STEP_SPREAD / math.sqrt(max(variables, 1))
         self._steps: dict[Individual, float] = {}  # each individual's mutation size, with adaptive mutation
         self._asked: set[tuple] = set()  # every point put in a population, so children can avoid repeating one
+        if self.config.niche_share is not None:
+            self._niche_share = self.config.niche_share
+        else:
+            self._niche_share = CONDITIONAL_NICHE_SHARE if self.search_space.conditions else 0.0
 
     def _select(self, individuals: list[Individual]) -> Individual:
         select: Callable[..., Individual]
@@ -139,17 +153,19 @@ class GeneticOptimizer(Optimizer):
     def _bred(self, parents: list[Individual], generation: int, niche: dict | None) -> tuple[Individual, Individual, Individual]:
         """A child bred from two parents selected from parents, and the parents."""
         first, second = self._select(parents), self._select(parents)
+        mother, father = self._aligned(first.params, second.params)
         if self.config.blend_crossover:
             params = blend_crossover(
-                first.params, second.params, self.search_space, self.rng, rate=self.config.crossover_rate, alpha=self.config.blend_alpha
+                mother, father, self.search_space, self.rng, rate=self.config.crossover_rate, alpha=self.config.blend_alpha
             )
         else:
-            params = uniform_crossover(first.params, second.params, self.rng, rate=self.config.crossover_rate)
+            params = uniform_crossover(mother, father, self.rng, rate=self.config.crossover_rate)
         step = self.config.mutation_scale
         if self._adaptive:
             inherited = math.sqrt(self._step(first) * self._step(second))
             step = min(max(inherited * math.exp(self.rng.normal(0, self._step_spread)), MIN_STEP), MAX_STEP)
-        params = mutate(params, self.search_space, self.rng, rate=self._mutation_rate, scale=step)
+        only = set(self.search_space.active(params)) if self.search_space.conditions else None
+        params = mutate(params, self.search_space, self.rng, rate=self._mutation_rate, scale=step, only=only)
         params = {**params, **(niche or {})}
         if not self.config.noise:
             params = self._new_point(params, step, niche)
@@ -158,14 +174,29 @@ class GeneticOptimizer(Optimizer):
             self._steps[child] = step
         return child, first, second
 
+    def _aligned(self, first: dict, second: dict) -> tuple[dict, dict]:
+        """The parents' values, each gene switched off in one parent but on in the other taken from the other.
+
+        So crossover passes on a gene's value from a parent it was in use in, rather than one
+        that no evaluation has judged.
+        """
+        if not self.search_space.conditions:
+            return first, second
+        on_first, on_second = self.search_space.active(first), self.search_space.active(second)
+        mother = {name: on_second[name] if name not in on_first and name in on_second else value for name, value in first.items()}
+        father = {name: on_first[name] if name not in on_second and name in on_first else value for name, value in second.items()}
+        return mother, father
+
     def _new_point(self, params: dict, step: float, niche: dict | None) -> dict:
         """params, mutated again a gene at a time while they repeat a point already asked for.
 
         Gives up after REPEAT_TRIES, which only happens when the space has few points left.
         A niche's choices stay fixed.
         """
-        movable = [name for name in self._movable if not niche or name not in niche]
         for _ in range(REPEAT_TRIES):
+            # Only a gene switched on changes the point.
+            on = self.search_space.active(params)
+            movable = [name for name in self._movable if name in on and (not niche or name not in niche)]
             if not movable or self._key(params) not in self._asked:
                 break
             name = movable[self.rng.integers(len(movable))]
@@ -180,20 +211,23 @@ class GeneticOptimizer(Optimizer):
         """Up to count children bred within niches: parents sharing every choice parameter's value.
 
         Each niche gets an equal share, so every combination of choices still in the
-        population keeps tuning its own numbers instead of being outbred by the leader.
+        population keeps tuning its own numbers instead of being outbred by the leader. Choices
+        switched off by a condition don't count, so each branch is a niche.
         """
         choices = [p.name for p in self.search_space.parameters if isinstance(p, ChoiceParameter) and len(p.choices) > 1]
         if not choices or count == 0:
             return []
         niches: dict[tuple, list[Individual]] = {}
         for parent in parents:
-            niches.setdefault(tuple(repr(parent.params[name]) for name in choices), []).append(parent)
+            on = self.search_space.active(parent.params)
+            niches.setdefault(tuple(repr(on[name]) if name in on else "off" for name in choices), []).append(parent)
         # With more niches than children, the niches with the fittest members breed.
         ranked = sorted(niches.values(), key=lambda members: _fitness(self._ranked(members)[0]), reverse=self.config.maximize)
         per_niche = max(1, count // len(ranked))
         children: list[Individual] = []
         for members in ranked:
-            niche = {name: members[0].params[name] for name in choices}
+            on = self.search_space.active(members[0].params)
+            niche = {name: on[name] for name in choices if name in on}
             for _ in range(min(per_niche, count - len(children))):
                 children.append(self._child(members, generation, niche))
         return children
@@ -217,7 +251,7 @@ class GeneticOptimizer(Optimizer):
             self._refresh_averages(parents)
         # At least one child per generation, however the share rounds, so the search keeps moving.
         elites = self._ranked(parents)[: min(round(size * self.config.elitism_rate), size - 1)] if self.config.elitism else []
-        niched = self._niche_children(parents, int(self.config.niche_share * (size - len(elites))), generation)
+        niched = self._niche_children(parents, int(self._niche_share * (size - len(elites))), generation)
         population = elites + niched + [self._child(parents, generation) for _ in range(size - len(elites) - len(niched))]
         if self._adaptive:
             # Keep the sizes of individuals that can still breed: this generation, and any still being evaluated.

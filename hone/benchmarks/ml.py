@@ -16,7 +16,7 @@ from typing import Callable
 
 from threadpoolctl import threadpool_limits
 
-from hone.parameters import ChoiceParameter, RangeParameter, SearchSpace
+from hone.parameters import ChoiceParameter, Condition, Parameter, RangeParameter, SearchSpace
 
 from .problems import Problem
 
@@ -92,11 +92,56 @@ def random_forest_wine(max_depth: int, min_samples_leaf: int, max_features: floa
     return _cross_validate(model, "wine", classification=True)
 
 
+def model_selection_breast_cancer(
+    model: str,
+    C: float | None = None,
+    gamma: float | None = None,
+    max_depth: int | None = None,
+    min_samples_leaf: int | None = None,
+    max_features: float | None = None,
+    n_neighbors: int | None = None,
+    weights: str | None = None,
+) -> float:
+    """One of three classifiers, and its settings, on the 569 breast tumour samples svm-breast-cancer uses.
+
+    A support vector classifier with an RBF kernel, a 20-tree random forest, or k nearest
+    neighbours. With conditions, only the chosen model's settings are searched.
+    """
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.svm import SVC
+
+    if model == "svm":
+        estimator = make_pipeline(StandardScaler(), SVC(C=C, gamma=gamma))
+    elif model == "forest":
+        estimator = RandomForestClassifier(
+            n_estimators=20, max_depth=max_depth, min_samples_leaf=min_samples_leaf, max_features=max_features, random_state=0, n_jobs=1
+        )
+    else:
+        estimator = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=n_neighbors, weights=weights))
+    return _cross_validate(estimator, "breast_cancer", classification=True)
+
+
+_MODEL = ChoiceParameter("model", ["svm", "forest", "knn"])
+_SVM = [RangeParameter("C", 1e-3, 1e3, log=True), RangeParameter("gamma", 1e-5, 10, log=True)]
+_FOREST = [
+    RangeParameter("max_depth", 1, 12, integer=True),
+    RangeParameter("min_samples_leaf", 1, 20, integer=True),
+    RangeParameter("max_features", 0.05, 1.0),
+]
+_KNN: list[Parameter] = [RangeParameter("n_neighbors", 1, 50, integer=True), ChoiceParameter("weights", ["uniform", "distance"])]
+MODEL_SELECTION: list[Parameter] = [_MODEL, *_SVM, *_FOREST, *_KNN]
+MODEL_CONDITIONS: list[Condition] = [_MODEL["svm"] >> _SVM, _MODEL["forest"] >> _FOREST, _MODEL["knn"] >> _KNN]
+
 # The best value of each problem found by REFERENCE_SEARCH.
 OPTIMA = {
     "svm-breast-cancer": 0.014066138798323302,  # accuracy 98.6%, found by CMA-ES
     "kernel-ridge-diabetes": 0.4961748264794844,  # R² 0.504, found by Bayesian optimization
     "random-forest-wine": 0.005555555555555536,  # accuracy 99.4%, found by Bayesian optimization
+    # Every reference run chose the support vector classifier, and the best matched svm-breast-cancer's.
+    "model-selection-breast-cancer": 0.014066138798323302,
 }
 
 SPACES: dict[str, tuple[Callable[..., float], list]] = {
@@ -125,9 +170,30 @@ SPACES: dict[str, tuple[Callable[..., float], list]] = {
 
 
 def ml_problems() -> list[Problem]:
-    """The machine learning tuning problems. Needs scikit-learn."""
+    """The machine learning tuning problems. Needs scikit-learn.
+
+    model-selection-breast-cancer comes twice: with conditions, and as model-selection-breast-cancer-flat
+    with every setting always searched, as before conditions, to show what they are worth.
+    """
     _require_sklearn()
-    return [
+    problems = [
         Problem(name=name, function=function, search_space=SearchSpace(parameters), optimum=OPTIMA[name], tags=frozenset({"ml"}))
         for name, (function, parameters) in SPACES.items()
+    ]
+    optimum = OPTIMA["model-selection-breast-cancer"]
+    return problems + [
+        Problem(
+            name="model-selection-breast-cancer",
+            function=model_selection_breast_cancer,
+            search_space=SearchSpace(MODEL_SELECTION, conditions=MODEL_CONDITIONS),
+            optimum=optimum,
+            tags=frozenset({"ml", "conditional"}),
+        ),
+        Problem(
+            name="model-selection-breast-cancer-flat",
+            function=model_selection_breast_cancer,
+            search_space=SearchSpace(MODEL_SELECTION),
+            optimum=optimum,
+            tags=frozenset({"ml", "conditional", "flat"}),
+        ),
     ]

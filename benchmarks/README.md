@@ -12,6 +12,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `ml-summaries.json` | The same results as data |
 | [constrained-results.md](constrained-results.md) | The constrained problems' results, from `make benchmark-constrained` |
 | `constrained-summaries.json` | The same results as data |
+| [conditional-results.md](conditional-results.md) | The conditional problems' results, from `make benchmark-conditional` |
+| `conditional-summaries.json` | The same results as data |
 | `quick-baseline.json` | The quick suite's results, which CI compares every change against |
 
 ## What the suite measures
@@ -79,16 +81,43 @@ A test (`tests/test_choose_optimizer.py`) recomputes this from the saved summari
 
 ## Machine learning tuning
 
-`python -m hone.benchmarks --ml` tunes three scikit-learn models by 5-fold cross-validation, at 10, 20 and 50 evaluations per dimension: a support vector classifier on breast cancer data (C and gamma), kernel ridge regression on diabetes data (alpha, gamma and the kernel), and a random forest on wine data (depth, leaf size, features per split and split criterion). Each problem minimizes 1 − accuracy or 1 − R², so an error of 0.0035 on the breast cancer problem is 0.35 percentage points of accuracy, about 2 of its 569 samples.
+`python -m hone.benchmarks --ml` tunes three scikit-learn models by 5-fold cross-validation, at 10, 20 and 50 evaluations per dimension: a support vector classifier on breast cancer data (C and gamma), kernel ridge regression on diabetes data (alpha, gamma and the kernel), and a random forest on wine data (depth, leaf size, features per split and split criterion). A fourth, model-selection-breast-cancer, chooses one of three classifiers for the breast cancer data, a support vector classifier, a random forest or k nearest neighbours, and that model's settings, with conditions; model-selection-breast-cancer-flat is the same with every model's settings always searched. Each problem minimizes 1 − accuracy or 1 − R², so an error of 0.0035 on the breast cancer problem is 0.35 percentage points of accuracy, about 2 of its 569 samples.
 
 The optimum of a real model is unknown, so error is measured from the best score of a reference search: Bayesian optimization with 200 evaluations, and CMA-ES (where it applies), the genetic optimizer and random search with 1,000 each, three seeds of each.
 
 What the results show:
 
-- **Bayesian optimization is the best tuner.** At 20 and 50 evaluations per dimension it has the lowest median error on all three problems. On the kernel ridge problem it finds the reference R² in 60% of runs with 60 evaluations and in every run with 150, where no other optimizer gets within 0.0005 in its median run.
+- **Bayesian optimization is the best tuner.** At 20 and 50 evaluations per dimension it has the lowest median error on the three single-model problems, and at 20 on all five. On the kernel ridge problem it finds the reference R² in 60% of runs with 60 evaluations and in every run with 150, where no other optimizer gets within 0.0005 in its median run.
+- **Conditions help model selection.** With conditions, Bayesian optimization's median error is 0.0018, one sample of 569, at both 10 and 20 evaluations per dimension (90 and 180 evaluations), and it finds the reference score in 30% of runs; with every setting always searched it is 0.0053 and 0.0026, and it never finds it. The genetic optimizer's is 0.0026 against 0.0035 at 20 evaluations per dimension, and the same at 10 and 50. Every reference run chose the support vector classifier.
 - **The differences are smaller than on the test functions.** Most settings of a well-chosen model score within a percentage point or two of the best, so random search is a fair tuner, as the hyperparameter tuning literature also finds. The extra value of a better optimizer shows in the last fraction of a point, and in how few evaluations it takes to get there.
 - **Scores move in steps.** Accuracy changes in multiples of one sample, so several optimizers often stop at exactly the same score: the random forest's median error is 0.0057 for every optimizer at 10 evaluations per dimension.
 - **The genetic optimizer is better than random search here, but not by much.** It wins on kernel ridge at 10 and 20 evaluations per dimension and on the SVM at 20 and 50, ties on the SVM at 10 and on the random forest, and loses narrowly on kernel ridge at 50. Adaptive mutation cut its median error to ×0.74 to ×0.84; avoiding repeats changed it by ×1.15, ×0.84 and ×0.83, and blend crossover by ×0.91, ×0.97 and ×1.47, at 10, 20 and 50 evaluations per dimension. Both losses are on kernel ridge. With budgets of 20 to 200 evaluations it runs only a few generations.
+
+## Conditional problems
+
+`python -m hone.benchmarks --conditional` runs four problems with conditional parameters, at the same five budgets, each twice: with its conditions, and as a `-flat` version with every parameter always on and the function ignoring those it doesn't use. The flat version is how such a space was searched before conditions, so the pair shows what conditions are worth.
+
+| Problem | What it tests |
+| --- | --- |
+| branches-3x2d and branches-3x5d | A choice of three branches, each with its own 2 or 5 numbers. The best is a steep, narrow bowl reaching 0; the decoys are a wide, shallow bowl with a floor of 1 and a shallow Rastrigin grid with a floor of 0.5, where random points score better |
+| nested-9 | A choice of model, one with a choice of kernel, one kernel with numbers of its own: the best point is two conditions deep, past a wide decoy with a floor of 0.25 |
+| layers-7 | A layer count from 1 to 5 whose larger values switch on more numbers; 3 layers is best. Its conditions test a range, so CMA-ES can search it |
+
+Geometric-mean error over the four problems, with conditions over the flat versions:
+
+| Optimizer | 10 / dim | 20 / dim | 50 / dim | 100 / dim | 1,000 / dim |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Bayesian optimization | ×0.0004 | ×0.0003 | not run | not run | not run |
+| Genetic optimizer | ×1.04 | ×0.86 | ×0.05 | ×0.08 | ×0.00004 |
+| CMA-ES (layers-7 only) | ×1 | ×1 | ×1 | ×1 | ×1 |
+| Random search | ×1 | ×1 | ×1 | ×1 | ×1 |
+
+- **Bayesian optimization gains the most.** Points that differ only in a parameter switched off are the same point to its model, so the values those parameters happen to hold add no noise. On branches-3x2d at 10 evaluations per dimension its median error is 0.00001 with conditions, against 0.87 flat; on nested-9, 0.0006 against 0.48. It is the best optimizer on most problems at 10 and 20 evaluations per dimension.
+- **The genetic optimizer gains from niches, which conditions turn on.** Without niches it settled in a decoy branch on most problems, flat or not: a wide branch fills the population before the narrow best one is tuned. With conditions, `niche_share` defaults to 0.5, so each branch breeds within itself, and at 1,000 evaluations per dimension it solves every run of the three branch problems. With niches set on the flat versions too, conditions still help at 50 and 1,000 evaluations per dimension (×0.09 and ×0.23) but not at 100 (×3.1), where layers-7 decides it: its runs either find three layers or settle on two or four, which costs 0.5, so its median flips between budgets.
+- **CMA-ES and random search come out the same** with conditions as without: they draw the same points, and an objective that ignores the parameters switched off sees the same values.
+- **`choose_optimizer`'s rule holds without change.** Its pick is 1.15 times the best optimizer's error on geometric mean over all eight problems, and 1.07 times over the four with conditions.
+
+The machine learning suite has a conditional problem too: model-selection-breast-cancer, choosing a support vector classifier, a random forest or k nearest neighbours and that model's settings (see [Machine learning tuning](#machine-learning-tuning)).
 
 ## Constrained problems
 
