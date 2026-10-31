@@ -2,7 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **Constraints.** `SearchSpace(parameters, constraints=[width * height <= 40, width >= 2 * height])` limits the search to points that satisfy every constraint, and the objective is never evaluated outside them. Constraints are written with range parameters and numbers, using `+`, `-`, `*`, `/`, `**` and `abs()`, compared with `<=` or `>=`. `Constraint.function(...)` covers anything else, such as choice parameters; it isn't saved with a result, so `rebuild_optimizer(functions=...)` takes it again. Initial points must satisfy the constraints, and constraints that leave nothing to search raise `InfeasibleSearchSpace` before any evaluation. Random search supports them so far; the other optimizers raise `UnsupportedSearchSpace` until they do.
+
 ### Changed
+
+- Checkpoints no longer store the search space, which the optimizer loading one already has.
 
 - **The genetic optimizer adapts its mutation.** Each individual carries its own mutation size, which its children inherit and vary, so selection tunes it as the run goes (`adaptive_mutation`, on by default). The default `mutation_rate` is now 1 over the number of variables, at least 0.1, rather than 0.1. On the benchmark's 36 problems the genetic optimizer's geometric-mean error falls to ×0.92, ×0.44, ×0.34, ×0.50 and ×0.33 at 10 to 1,000 evaluations per dimension, and it loses to random search on 14 problem and budget pairs rather than 37. With `noise=True` both stay as before, where they didn't help at large budgets. Results of existing runs change.
 - **The genetic optimizer doesn't repeat evaluations.** Without noise, a child that would repeat a point already asked for, such as a copy of a parent that no mutation touched, is mutated again until it is new. About one child in four used to be such a copy. The geometric-mean error falls to ×0.90, ×0.82, ×0.91, ×0.89 and ×0.41 at 10 to 1,000 evaluations per dimension. This happens even with `mutation_rate=0`. With `noise=True` repeats stay, since they refine a point's average. Results of existing runs change.
