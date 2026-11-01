@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1 (2026-10-31)
+
+### Added
+
+- **A security policy**, [SECURITY.md](SECURITY.md): how to report a vulnerability privately through GitHub, which versions get fixes (the latest minor release), and what counts. Running your own objective and constraint functions and loading pickled checkpoints are by design; running code or touching files when loading a result or a config is a vulnerability. The README links to it.
+
 ## 0.12.0 (2026-10-31)
 
 Several objectives at once: a run returns the front of best trade-offs rather than one answer to a weighted score, and the choice between them is made after seeing what each costs. NSGA2 searches for the front on larger budgets and multi-objective Bayesian optimization on small ones, `choose_pareto_optimizer` picks between them, and a multi-objective benchmark suite backs the choice. A README section explains them, and an example designs a beam that is light, cheap and stiff. See [benchmarks/README.md](benchmarks/README.md#multi-objective-problems).
