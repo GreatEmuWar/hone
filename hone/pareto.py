@@ -212,26 +212,28 @@ def dominates_or_ties(a: np.ndarray, b: np.ndarray) -> bool:
 def non_dominated(values: np.ndarray) -> list[int]:
     """The rows of values, to minimize, that no other row dominates, in order of the first column.
 
-    Rows equal within the tolerance count once: the one that comes first in the order, by
-    value and then by row, is kept. So with rows in the order points were evaluated, the
-    earliest of tied points stays.
+    Rows equal within the tolerance count once, and the earliest of them stays: so with rows
+    in the order points were evaluated, a point tied with an earlier one adds nothing.
     """
-    n = len(values)
-    if n == 0:
-        return []
-    order = np.lexsort([np.arange(n), *values.T[::-1]])  # by the first column, then the next, then by row
     front: list[int] = []
-    for i in order:
-        point = values[i]
-        if front:
-            kept = values[front]
-            if np.any(np.all(kept <= point + _tolerance(point), axis=1)):
-                continue  # dominated by, or tied with, a point already on the front
-            # Keep only the points this one doesn't dominate.
-            beaten = np.all(point <= kept + _tolerance(kept), axis=1)
-            front = [j for j, gone in zip(front, beaten) if not gone]
-        front.append(int(i))
+    for i in range(len(values)):
+        joins, stays = _joining(values[front], values[i])
+        if joins:
+            front = [j for j, kept in zip(front, stays) if kept] + [i]
     return sorted(front, key=lambda j: (tuple(values[j]), j))
+
+
+def _joining(front: np.ndarray, point: np.ndarray) -> tuple[bool, np.ndarray]:
+    """Whether point joins the front, given as rows to minimize, and which of the front's points stay if it does.
+
+    It doesn't join when a point on the front dominates or ties with it; if it joins, the
+    points it dominates leave.
+    """
+    if len(front) == 0:
+        return True, np.zeros(0, dtype=bool)
+    if np.any(np.all(front <= point + _tolerance(point), axis=1)):
+        return False, np.ones(len(front), dtype=bool)
+    return True, ~np.all(point <= front + _tolerance(front), axis=1)
 
 
 def hypervolume(points: np.ndarray, reference: np.ndarray) -> float:

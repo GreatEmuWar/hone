@@ -1,4 +1,4 @@
-from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, MultiObjectiveConfig, OptimizerConfig, SelectionMethod
+from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, MultiObjectiveConfig, NSGA2Config, OptimizerConfig, SelectionMethod
 from hone.optimizers import (
     CMAES,
     BayesianOptimizer,
@@ -6,6 +6,7 @@ from hone.optimizers import (
     GeneticOptimizer,
     MultiObjectiveOptimizer,
     MultiObjectiveRandomSearch,
+    NSGA2,
     Optimizer,
     RandomSearch,
     Trial,
@@ -35,6 +36,8 @@ __all__ = [
     "MultiObjectiveConfig",
     "MultiObjectiveOptimizer",
     "MultiObjectiveRandomSearch",
+    "NSGA2",
+    "NSGA2Config",
     "Optimizer",
     "OptimizerConfig",
     "ParetoGenerationStats",

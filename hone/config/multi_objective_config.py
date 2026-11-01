@@ -1,6 +1,8 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, model_validator
+
+from .genetic_optimizer_config import GENERATIONS_PER_BUDGET, MAX_POPULATION, MIN_POPULATION
 
 from .optimizer_config import OptimizerConfig
 
@@ -31,3 +33,32 @@ class MultiObjectiveConfig(OptimizerConfig):
         if self.reference is not None and set(self.reference) != set(self.objectives):
             raise ValueError(f"reference needs a value for each objective: {', '.join(self.objectives)}")
         return self
+
+
+class NSGA2Config(MultiObjectiveConfig):
+    """Configuration for NSGA2, the multi-objective genetic optimizer.
+
+    Breeding works as in the genetic optimizer, with the same settings; selection and elitism
+    are NSGA-II's own. With max_evaluations set, population_size and generations default as
+    for the genetic optimizer.
+    """
+    mutation_rate: float | None = Field(default=None, ge=0, le=1)  # as in GeneticOptimizerConfig
+    mutation_scale: float = Field(default=0.1, gt=0)
+    adaptive_mutation: bool | None = None
+    crossover_rate: float = Field(default=0.8, ge=0, le=1)
+    blend_crossover: bool = True
+    blend_alpha: float = Field(default=0.1, ge=0)
+    niche_share: float | None = Field(default=None, ge=0, lt=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _defaults_from_budget(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or data.get("max_evaluations") is None:
+            return data
+        budget = data["max_evaluations"]
+        data = dict(data)
+        if data.get("population_size") is None:
+            data["population_size"] = min(max(budget // GENERATIONS_PER_BUDGET, MIN_POPULATION), MAX_POPULATION)
+        if data.get("generations") is None:
+            data["generations"] = budget
+        return data
