@@ -60,3 +60,13 @@ class ObjectiveFunction(BaseModel):
             )
         if missing:
             raise ValueError(f"{self.name}() requires parameters missing from the search space: {', '.join(missing)}")
+
+
+class MultiObjectiveFunction(ObjectiveFunction):
+    """An objective function returning a dict of values, one per objective, checked against the search space.
+
+    The dict itself is checked when it is told to the optimizer, in the main process.
+    """
+
+    def __call__(self, params: dict[str, Any]) -> Any:
+        return self.function(**params)

@@ -178,3 +178,16 @@ Search spaces are generated with up to six parameters, each possibly switched on
 | `check` refuses a value for a parameter that is switched off, and a point missing one that is switched on | `SearchSpace.check` docstring |
 | A search space with conditions saved to JSON and loaded again is equal to the original and switches the same parameters on | `conditions` module docstring: "a search space with conditions saves and loads like any other" |
 | Every optimizer only hands out points without switched-off parameters, and its best point is one too | `Optimizer` docstring |
+
+### `hone.pareto` (`test_pbt_pareto.py`)
+
+Generated sets of 1 to 40 points with 2 or 3 objectives, and random-search runs with every combination of directions.
+
+| Property | Source |
+| --- | --- |
+| No point on the front dominates another point on it | `hone.pareto` module docstring |
+| Every point is on the front, tied with a point on it, or dominated by one | `non_dominated` docstring |
+| The front doesn't change under an increasing rescaling of any objective | docs/design/multiple-objectives.md |
+| Adding a point never lowers hypervolume, and adding a dominated point leaves it unchanged | `Front.hypervolume` docstring: "A better front always has a larger hypervolume" |
+| Hypervolume depends only on the front | Definition of hypervolume |
+| A run's front is the front of every point it evaluated, with maximized objectives the right way round, and its hypervolume never falls | `MultiObjectiveOptimizer` docstring |

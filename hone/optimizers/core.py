@@ -45,12 +45,21 @@ class Trial(BaseModel):
 
 
 class Individual(BaseModel):
-    """One candidate solution: a value for every parameter, and its fitness once evaluated."""
+    """One candidate solution: a value for every parameter, and its fitness once evaluated.
+
+    A single-objective optimizer sets fitness; a multi-objective one sets values, by objective.
+    """
     params: dict[str, Any]
     generation: int
     fitness: float | None = None
+    values: dict[str, float] | None = None
     failed: bool = False
     id: int = -1
+
+    @property
+    def evaluated(self) -> bool:
+        """Whether the individual has been evaluated, successfully or not."""
+        return self.fitness is not None or self.values is not None or self.failed
 
     # Each individual is a candidate of its own, even when another holds the same values:
     # optimizers keep track of them by identity.
@@ -115,7 +124,7 @@ class OptimizerCore[ResultT](ABC):
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         """The individuals of the given generation, or of the first one when previous is None.
 
-        Individuals that already have a fitness, such as elites carried over, are not evaluated again.
+        Individuals already evaluated, such as elites carried over, are not evaluated again.
         Failed individuals in previous have failed set and the worst possible fitness.
         """
 
@@ -281,7 +290,7 @@ class OptimizerCore[ResultT](ABC):
         elif self._handed_out.issuperset(self._waiting) and self._told_this_generation >= self._quorum:
             # Enough of the generation has finished: the rest go on in the background.
             self._late.update(self._waiting)
-            self._population = [ind for ind in self._population or [] if ind.fitness is not None]
+            self._population = [ind for ind in self._population or [] if ind.evaluated]
             self._waiting = {}
             self._finish_generation()
         elif self._budget_left() == 0 and self._handed_out.isdisjoint(self._waiting):
@@ -492,7 +501,7 @@ class OptimizerCore[ResultT](ABC):
         self._handed_out = set()
         self._told_this_generation = 0
         for individual in self._population:
-            if individual.fitness is None:
+            if not individual.evaluated:
                 individual.id = self._next_id
                 self._next_id += 1
                 self._waiting[individual.id] = individual
