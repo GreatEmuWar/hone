@@ -91,6 +91,7 @@ nav:
       - Choosing an optimizer: guide/optimizers.md
       - Results: guide/results.md
       - Several objectives: guide/several-objectives.md
+      - Which parameters matter: guide/sensitivity.md
   - Examples:
       - examples/index.md
       - Pressure vessel: examples/pressure_vessel.md
@@ -98,11 +99,13 @@ nav:
       - Choosing a model: examples/choose_a_model.md
       - Tuning on iris: examples/tune_iris.md
       - Cantilever beam: examples/cantilever_beam.md
+      - Heat sink: examples/heat_sink.md
   - API reference:
       - Optimizers: api/optimizers.md
       - Configuration: api/configuration.md
       - Search spaces: api/search-spaces.md
       - Results: api/results.md
+      - Sensitivity analysis: api/sensitivity.md
       - Benchmarks: api/benchmarks.md
   - Benchmarks:
       - benchmarks/index.md

@@ -35,6 +35,7 @@ PAGES = {
     "benchmarks/conditional-results.md": "benchmarks/conditional-results.md",
     "benchmarks/multi-results.md": "benchmarks/multi-results.md",
     "examples/cantilever_beam.py": "examples/cantilever_beam.md",
+    "examples/heat_sink.py": "examples/heat_sink.md",
     "examples/choose_a_model.py": "examples/choose_a_model.md",
     "examples/maintenance_schedule.py": "examples/maintenance_schedule.md",
     "examples/pressure_vessel.py": "examples/pressure_vessel.md",

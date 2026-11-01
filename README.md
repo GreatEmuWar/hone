@@ -358,6 +358,34 @@ Everything else works as with one objective: constraints, conditions, workers an
 
 [examples/cantilever_beam.py](examples/cantilever_beam.py) designs a beam in steel, aluminium or carbon fibre that is light, cheap and stiff, three objectives, under a stress limit that depends on the material, and chooses the stiffest design under a mass and a cost limit. Tuning for more than three objectives is out of scope for now: with many objectives nearly every design is on the front, and the search loses its pull.
 
+### Which parameters matter
+
+Before optimizing a dozen parameters, it can pay to find out which of them matter. `sensitivity()` evaluates the objective at points chosen to measure each parameter's effect, through the same `workers`, `timeout` and failure handling as `optimize()`, and reports them most important first:
+
+```python
+from hone import choose_optimizer, sensitivity
+
+report = sensitivity(run_simulation, search_space, max_evaluations=500, workers=8, seed=0)
+print(report)
+reduced = report.reduced(search_space)  # the unimportant parameters fixed
+result = choose_optimizer(reduced, max_evaluations=200).optimize(run_simulation, workers=8)
+```
+
+How it measures depends on the budget:
+
+| Method | Evaluations | Reports |
+| --- | --- | --- |
+| Morris screening | About 10 × (parameters + 1), at least 2 × (parameters + 1) | `mu_star`, the mean size of each parameter's effect: the change in the objective across its whole range. `mu` is the mean with its sign, and `sigma` large against `mu_star` means the effect depends on the other parameters |
+| Sobol indices | 64 × (parameters + 2) or more, in powers of 2 | `total`, the share of the objective's variance the parameter accounts for with its interactions, and `first`, the share it accounts for alone. A `total` near 0 means the parameter can be fixed with little effect |
+
+Without `method=`, Sobol is used when at least 64 × (parameters + 2) evaluations fit in `max_evaluations`, and Morris otherwise. Each index comes with a 95% bootstrap interval. `report.ranking` lists the names, most important first, `report["fillet"]` gives one parameter, and `report.best_params` is the best point evaluated (`maximize=True` for the highest).
+
+`report.reduced(search_space)` returns the search space with the parameters `report.unimportant()` names fixed: those whose whole interval is below 0.05 for Sobol, or a tenth of the largest `mu_star` for Morris. `threshold=` changes that, and `keep=4` keeps the four most important instead. A fixed parameter is still passed to the objective, at its value in the best point evaluated unless `at={...}` gives one. A parameter can barely change the objective and still have a best value, so fixing it can cost a little; fix one you know the best value of with `at=`.
+
+Every kind of parameter is measured on the scale the optimizers search it on: a log range in its logarithm, an integer range rounded, and a choice parameter among its choices. A conditional parameter is passed only while switched on, so its indices include the points where it has no effect. Search spaces with constraints aren't supported yet.
+
+[examples/heat_sink.py](examples/heat_sink.py) finds which of a heat sink's eight settings drive a chip's temperature, fixes the four that don't, and on a budget of 60 evaluations finds a cooler design than a search over all eight.
+
 ### Benchmarks
 
 `hone.benchmarks` runs optimizers on test problems with known optima and reports how close each one gets:

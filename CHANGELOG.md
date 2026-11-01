@@ -1,10 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.13.0 (2026-11-01)
+
+Sensitivity analysis: which parameters matter, measured before optimizing or instead of it, and the search space with the rest fixed. A README section and a page on the site explain it, and an example finds which of a heat sink's eight settings drive a chip's temperature. See [docs/design/sensitivity.md](docs/design/sensitivity.md).
 
 ### Added
 
-- **Sensitivity analysis.** `sensitivity(objective, space, max_evaluations=500)` measures which parameters matter, before optimizing or instead of it, through the same workers, time limits and failure handling as `optimize()`. On small budgets it uses Morris screening, about 10 × (parameters + 1) evaluations, which ranks the parameters by `mu_star`, the mean size of each one's effect across its range. When the budget allows, at least 64 × (parameters + 2), it uses Sobol indices, the share of the objective's variance each parameter accounts for alone (`first`) and with its interactions (`total`). `method=` chooses either. Each index comes with a bootstrap confidence interval. Every kind of parameter is measured on the scale the optimizers search it on, conditional parameters included; search spaces with constraints aren't supported yet. The indices match the published values for the Ishigami function and Sobol's G-function. See [docs/design/sensitivity.md](docs/design/sensitivity.md).
+- **Sensitivity analysis.** `sensitivity(objective, space, max_evaluations=500)` measures which parameters matter, before optimizing or instead of it, through the same workers, time limits and failure handling as `optimize()`. On small budgets it uses Morris screening, about 10 × (parameters + 1) evaluations, which ranks the parameters by `mu_star`, the mean size of each one's effect across its range. When the budget allows, at least 64 × (parameters + 2), it uses Sobol indices, the share of the objective's variance each parameter accounts for alone (`first`) and with its interactions (`total`). `method=` chooses either. Each index comes with a bootstrap confidence interval. Every kind of parameter is measured on the scale the optimizers search it on, conditional parameters included; search spaces with constraints aren't supported yet. The indices match the published values for the Ishigami function and Sobol's G-function.
+- **Fixing what doesn't matter.** `report.reduced(search_space)` returns the search space with the parameters `report.unimportant()` names fixed: those whose whole interval is below 0.05 for Sobol's total index, or a tenth of the largest `mu_star` for Morris. `threshold=` changes the limit and `keep=` keeps a number of the most important instead. Each fixed parameter is held at its value in the best point evaluated, unless `at=` gives one, and is still passed to the objective. Conditions and constraints are kept.
+- **An example**, `examples/heat_sink.py`, measuring which of a heat sink's eight settings drive a chip's temperature, fixing the four that don't, and with 60 evaluations finding a cooler design than a search over all eight. It also shows what fixing costs: a setting that barely changes the temperature can still have a best value.
 
 ## 0.12.2 (2026-11-01)
 

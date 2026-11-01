@@ -33,14 +33,18 @@ MIN_TRAJECTORIES = 2  # Morris needs at least two trajectories to estimate sigma
 MIN_SOBOL_SAMPLES = 16  # Sobol rows below which its indices are too noisy to report
 AUTO_SOBOL_SAMPLES = 64  # rows at which sensitivity() picks Sobol over Morris by itself
 BOOTSTRAP_RESAMPLES = 1000
+DEFAULT_SOBOL_THRESHOLD = 0.05  # a total index below which reduced() fixes a parameter
+DEFAULT_MORRIS_THRESHOLD = 0.1  # a share of the largest mu_star below which reduced() fixes a parameter
 
 
 class Interval(BaseModel):
     """A confidence interval."""
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     low: float
+    """The lower end."""
     high: float
+    """The upper end."""
 
 
 class ParameterSensitivity(BaseModel):
@@ -49,9 +53,10 @@ class ParameterSensitivity(BaseModel):
     importance ranks the parameters: mu_star for Morris, the total index for Sobol. The
     other fields are None for the method that wasn't used.
     """
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     name: str
+    """The parameter's name."""
     importance: float
     """mu_star for Morris, the total index for Sobol."""
     interval: Interval | None = None
@@ -67,17 +72,20 @@ class ParameterSensitivity(BaseModel):
     first: float | None = None
     """Sobol: the share of the objective's variance the parameter accounts for alone."""
     first_interval: Interval | None = None
+    """Sobol: the confidence interval of first."""
     total: float | None = None
     """Sobol: the share of the variance the parameter accounts for with all its interactions; near 0
     means it can be fixed at any value with little effect. Estimates can fall slightly below 0."""
     total_interval: Interval | None = None
+    """Sobol: the confidence interval of total, the same as interval."""
 
 
 class SensitivityReport(BaseModel):
     """What sensitivity() measured: each parameter's importance, most important first."""
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
     method: Method
+    """How the parameters were measured: "morris" or "sobol"."""
     parameters: list[ParameterSensitivity]
     """Each parameter measured, most important first."""
     evaluations: int
@@ -89,7 +97,9 @@ class SensitivityReport(BaseModel):
     best_params: dict[str, Any] | None
     """The best point evaluated, as the objective was called with it; None if every evaluation failed."""
     best_value: float | None
+    """The objective's value at best_params; None if every evaluation failed."""
     maximize: bool
+    """Whether higher values were counted as better in choosing best_params."""
 
     @property
     def ranking(self) -> list[str]:
@@ -101,6 +111,79 @@ class SensitivityReport(BaseModel):
             if parameter.name == name:
                 return parameter
         raise KeyError(name)
+
+    def unimportant(self, threshold: float | None = None) -> list[str]:
+        """The parameters that can be fixed with little effect: those whose whole interval is below threshold.
+
+        For Sobol, threshold is a total index, 0.05 unless given: the parameter accounts for
+        under 5% of the objective's variance, interactions included. For Morris it is a share of
+        the largest mu_star, 0.1 unless given. Only the upper end of each interval is compared,
+        so a parameter whose importance is uncertain is kept. A parameter without an interval,
+        because too few of its evaluations succeeded, is kept too.
+        """
+        if threshold is None:
+            threshold = DEFAULT_SOBOL_THRESHOLD if self.method == "sobol" else DEFAULT_MORRIS_THRESHOLD
+        if threshold < 0:
+            raise ValueError(f"threshold must be at least 0, got {threshold}")
+        if self.method == "morris":
+            largest = max((p.importance for p in self.parameters if math.isfinite(p.importance)), default=0.0)
+            threshold *= largest
+        return [p.name for p in self.parameters if p.interval is not None and p.interval.high < threshold]
+
+    def reduced(
+        self,
+        search_space: SearchSpace | Sequence[Parameter],
+        *,
+        threshold: float | None = None,
+        keep: int | None = None,
+        at: dict[str, Any] | None = None,
+    ) -> SearchSpace:
+        """The search space with its unimportant parameters fixed, ready for choose_optimizer.
+
+        The parameters unimportant() names are fixed, or with keep, every parameter but the
+        keep most important. Each is fixed at its value in at, if given, and otherwise at the best
+        point evaluated; one the conditions switched off there, or every parameter if every
+        evaluation failed, is fixed at the middle of its range, or its middle choice.
+
+        A fixed parameter is still passed to the objective, so the objective doesn't change.
+        Conditions and constraints are kept: a parameter one of them tests stays a range or
+        choice parameter, narrowed to its one value, so they still apply.
+
+        Args:
+            search_space: The search space the report measured.
+            threshold: Passed to unimportant(). Not with keep.
+            keep: Keep this many of the most important parameters, and fix the rest.
+            at: Values to fix parameters at, by name.
+        """
+        space = search_space if isinstance(search_space, SearchSpace) else SearchSpace(search_space)
+        measured = [p.name for p in space.parameters if not isinstance(p, FixedParameter)]
+        if sorted(measured) != sorted(self.ranking):
+            raise ValueError(f"this report measured {', '.join(self.ranking)}, but the search space's parameters are {', '.join(measured)}")
+        if keep is not None:
+            if threshold is not None:
+                raise ValueError("give threshold or keep, not both")
+            if keep < 1:
+                raise ValueError(f"keep must be at least 1, got {keep}")
+            dropped = self.ranking[keep:]
+        else:
+            dropped = self.unimportant(threshold)
+        unknown = sorted(set(at or {}) - set(space.names))
+        if unknown:
+            raise ValueError(f"at names parameters the search space doesn't have: {', '.join(unknown)}")
+        tested = {name for c in space.conditions for name in c.when.names()} | {name for c in space.constraints for name in c.names()}
+        parameters = []
+        for parameter in space.parameters:
+            if parameter.name not in dropped:
+                parameters.append(parameter)
+                continue
+            if at is not None and parameter.name in at:
+                value = parameter.check(at[parameter.name])
+            elif self.best_params is not None and parameter.name in self.best_params:
+                value = self.best_params[parameter.name]
+            else:
+                value = _from_unit(parameter, 0.5)
+            parameters.append(_fixed(parameter, value, keep_kind=parameter.name in tested))
+        return SearchSpace(parameters, space.constraints, space.conditions)
 
     def __str__(self) -> str:
         if self.method == "morris":
@@ -249,6 +332,18 @@ def _from_unit(parameter: Parameter, u: float) -> Any:
     count = math.comb(len(parameter.choices), parameter.choose_n)
     indices = _unrank_combination(min(int(u * count), count - 1), len(parameter.choices), parameter.choose_n)
     return [parameter.choices[i] for i in indices]
+
+
+def _fixed(parameter: Parameter, value: Any, keep_kind: bool) -> Parameter:
+    """parameter held at value: a FixedParameter, or with keep_kind, a range or choice of that one value."""
+    if isinstance(parameter, RangeParameter):
+        if keep_kind:
+            return RangeParameter(parameter.name, value, value, integer=parameter.integer, log=parameter.log)
+        return FixedParameter(parameter.name, value)
+    assert isinstance(parameter, ChoiceParameter)
+    if parameter.choose_n is not None:
+        return ChoiceParameter(parameter.name, list(value), choose_n=parameter.choose_n)
+    return ChoiceParameter(parameter.name, [value]) if keep_kind else FixedParameter(parameter.name, value)
 
 
 def _unrank_combination(rank: int, n: int, k: int) -> list[int]:

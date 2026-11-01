@@ -316,3 +316,122 @@ def test_the_report_round_trips_through_json():
 def test_unknown_names_raise_key_error():
     with pytest.raises(KeyError):
         sensitivity(linear, LINEAR_SPACE, max_evaluations=40)["w"]
+
+
+# --- reducing the search space -------------------------------------------------------
+
+
+def test_unimportant_parameters_are_those_whose_interval_is_below_the_threshold():
+    sobol = sensitivity(g_function, G_SPACE, max_evaluations=1024 * 10, seed=0)
+    _, total = g_indices()
+    # The exact total indices: every parameter well under 0.05 is unimportant, every one well over isn't.
+    assert {f"x{i}" for i, t in enumerate(total) if t < 0.02} <= set(sobol.unimportant())
+    assert not {f"x{i}" for i, t in enumerate(total) if t > 0.1} & set(sobol.unimportant())
+    assert set(sobol.unimportant(0.0)) == set()
+    morris = sensitivity(linear, LINEAR_SPACE, max_evaluations=40, seed=0)
+    assert morris.unimportant() == ["z"]
+    assert set(morris.unimportant(0.5)) == {"x", "z"}  # x's effect is 3, under half of y's 20
+
+
+def test_reduced_fixes_the_unimportant_parameters_at_the_best_point():
+    report = sensitivity(linear, LINEAR_SPACE, max_evaluations=40, seed=0)
+    space = report.reduced(LINEAR_SPACE)
+    assert isinstance(space["z"], FixedParameter) and space["z"].value == report.best_params["z"]
+    assert space["x"] == LINEAR_SPACE[0] and space["y"] == LINEAR_SPACE[1]
+    assert space.names == ["x", "y", "z"]
+
+
+def test_reduced_keeps_the_most_important():
+    report = sensitivity(linear, LINEAR_SPACE, max_evaluations=40, seed=0)
+    space = report.reduced(LINEAR_SPACE, keep=1)
+    assert isinstance(space["x"], FixedParameter) and isinstance(space["z"], FixedParameter)
+    assert space["y"] == LINEAR_SPACE[1]
+
+
+def test_reduced_fixes_at_given_values():
+    report = sensitivity(linear, LINEAR_SPACE, max_evaluations=40, seed=0)
+    assert report.reduced(LINEAR_SPACE, at={"z": 0.25})["z"].value == 0.25
+    with pytest.raises(ValueError, match="outside"):
+        report.reduced(LINEAR_SPACE, at={"z": 5})
+    with pytest.raises(ValueError, match="doesn't have"):
+        report.reduced(LINEAR_SPACE, at={"w": 1})
+
+
+def test_reduced_without_a_best_point_uses_the_middle():
+    material = ChoiceParameter("material", ["steel", "aluminium", "carbon"])
+    space = [RangeParameter("x", 0, 10), material]
+
+    def fails(x, material):
+        raise EvaluationFailed
+
+    report = sensitivity(fails, space, max_evaluations=30, seed=0)
+    # Every evaluation failed, so nothing has an interval and nothing is unimportant; keep forces it.
+    assert report.unimportant() == []
+    reduced = report.reduced(space, keep=1)
+    dropped = next(p for p in reduced.parameters if isinstance(p, FixedParameter))
+    assert dropped.value == {"x": 5.0, "material": "aluminium"}[dropped.name]
+
+
+def test_reduced_keeps_conditions_and_the_kinds_they_test():
+    model = ChoiceParameter("model", ["svm", "forest"])
+    C = RangeParameter("C", 0, 1)
+    noise = RangeParameter("noise", 0, 1)
+    space = SearchSpace([model, C, noise], conditions=[model["svm"] >> C])
+
+    def objective(model, noise, C=None):
+        return 10 * C if model == "svm" else 0.0
+
+    report = sensitivity(objective, space, max_evaluations=1000, seed=0)
+    reduced = report.reduced(space, keep=1)
+    assert reduced.conditions == space.conditions
+    fixed_model = reduced["model"]
+    if fixed_model != model:
+        assert isinstance(fixed_model, ChoiceParameter) and len(fixed_model.choices) == 1
+    assert isinstance(reduced["noise"], FixedParameter)
+
+
+def test_reduced_choose_n_stays_a_choice_of_its_combination():
+    space = [ChoiceParameter("tools", ["drill", "saw", "file"], choose_n=2), RangeParameter("speed", 0, 1)]
+    report = sensitivity(lambda tools, speed: speed, space, max_evaluations=400, seed=0)
+    reduced = report.reduced(space)
+    tools = reduced["tools"]
+    assert isinstance(tools, ChoiceParameter) and tools.choose_n == 2 and sorted(tools.choices) == sorted(report.best_params["tools"])
+
+
+def test_reduced_needs_the_space_the_report_measured():
+    report = sensitivity(linear, LINEAR_SPACE, max_evaluations=40, seed=0)
+    with pytest.raises(ValueError, match="measured"):
+        report.reduced(LINEAR_SPACE[:2])
+    with pytest.raises(ValueError, match="not both"):
+        report.reduced(LINEAR_SPACE, keep=1, threshold=0.1)
+    with pytest.raises(ValueError, match="keep"):
+        report.reduced(LINEAR_SPACE, keep=0)
+    with pytest.raises(ValueError, match="threshold"):
+        report.unimportant(-1)
+
+
+def test_a_reduced_space_can_be_optimized():
+    from hone import choose_optimizer
+
+    report = sensitivity(linear, LINEAR_SPACE, max_evaluations=40, seed=0)
+    space = report.reduced(LINEAR_SPACE)
+    result = choose_optimizer(space, max_evaluations=60, seed=0).optimize(linear)
+    assert result.best_fitness == pytest.approx(-20, abs=0.5)
+
+
+def test_the_heat_sink_example_fixes_four_settings_and_beats_searching_all_eight():
+    from pathlib import Path
+    import subprocess
+    import sys
+
+    example = Path(__file__).parent.parent / "examples" / "heat_sink.py"
+    output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout
+    lines = output.splitlines()
+    assert lines[0].startswith("Sobol indices: 1280 evaluations")
+    fixed = next(line for line in lines if line.startswith("fixed:"))
+    assert set(fixed.removeprefix("fixed: ").split(", ")) == {"finish", "material", "screws", "base_thickness"}
+
+    def temperature(prefix):
+        return float(next(line for line in lines if line.startswith(prefix)).split(": ")[1].split()[0])
+
+    assert temperature("optimizing the settings that matter") < temperature("optimizing all eight")

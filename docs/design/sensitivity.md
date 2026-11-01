@@ -1,6 +1,6 @@
 # Sensitivity analysis: design
 
-Status: in progress. Morris screening, Sobol indices and the report are built (part 1). Still to come in part 2: `report.reduced(space)`, a README section, a page on the documentation site and an example.
+Status: done, released in 0.13.0: Morris screening, Sobol indices and the report (#51), and `report.reduced(space)`, a README section, guide and API pages on the site, and a heat sink example (part 2).
 
 ## What users get
 
@@ -63,14 +63,21 @@ Each interval is a percentile bootstrap, over trajectories for Morris and over r
 
 The tests check the Ishigami function's indices (Ishigami and Homma 1990) and Sobol's G-function's (Saltelli and Sobol 1995) against their exact values, Morris's ranking of the G-function, and exact effects of linear and log-linear objectives. Property tests check that every point is valid and within the budget, that a parameter the objective ignores scores exactly 0, and that Morris's effects are the change across each range.
 
-### 8. Later
+### 8. Fixing what doesn't matter
 
-- `report.reduced(space)`: the search space with the unimportant parameters fixed, by default at the best point evaluated, ready for `choose_optimizer`. Part 2.
+`report.reduced(space)` fixes the parameters `report.unimportant()` names: those whose whole interval lies below a threshold, 0.05 of the variance for Sobol's total index and a tenth of the largest `mu_star` for Morris. Comparing the top of the interval, rather than the estimate, keeps a parameter whose importance is uncertain. `keep=n` keeps the n most important instead. Each fixed parameter is held at its value in the best point evaluated, the middle of its range when it has none there, or a value given in `at=`. It is still passed to the objective, so the objective doesn't change.
+
+A fixed parameter that a condition or constraint tests stays a range or choice parameter of one value, so the condition or constraint still validates and applies. A `choose_n` parameter stays a choice of its one combination, since a fixed value can't be a list.
+
+The heat sink example shows the cost: a parameter can barely change the objective across the points measured and still have a best value. Fixed at the best point measured, the four unimportant settings cost up to 0.2 °C, against the 0.3 °C the reduced search gains at 60 evaluations. `at=` is the way to fix one at a value known to be good.
+
+### 9. Later
+
 - Indices from a finished run's evaluations through a surrogate, at no extra evaluations.
 - Tolerances around the best point: how far each parameter can move before the objective gets worse by a given amount.
 - Constraints, through a method that allows dependent parameters, such as Shapley effects.
 
 ## Plan
 
-1. Morris, Sobol, the report and their tests (this part).
+1. Morris, Sobol, the report and their tests (#51).
 2. `report.reduced(space)`, the README section, a guide page and an API page on the site, an example, and a release, 0.13.0.
