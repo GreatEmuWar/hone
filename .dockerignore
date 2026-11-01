@@ -1,5 +1,6 @@
 .git
-.github
+.github/*
+!.github/requirements
 .venv
 **/__pycache__
 .pytest_cache

@@ -38,3 +38,13 @@ These would be vulnerabilities, and are worth reporting:
 - a problem in a dependency that hone's own use of it makes exploitable. A problem in the dependency alone belongs with that project.
 
 The examples, tests and saved benchmark results in the repository aren't part of the installed package; problems there are welcome as ordinary issues. `hone.benchmarks`, which is installed, is in scope like the rest of `hone`.
+
+## Verifying a release
+
+Releases are built and published by GitHub Actions, never from a maintainer's machine. From the release after 0.12.1, each package carries a signed attestation that it was built by this repository's workflow, from the tagged commit. To check a wheel or source archive you downloaded, from PyPI or the GitHub release, with the [GitHub CLI](https://cli.github.com/):
+
+```sh
+gh attestation verify hone_python-<version>-py3-none-any.whl --repo GreatEmuWar/hone
+```
+
+PyPI also shows its own attestation for each file, under "Provenance" on the file's page.
