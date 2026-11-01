@@ -45,6 +45,10 @@ docker-build:
 docker-test: docker-build
 	@docker run --rm hone
 
+.PHONY: docker-shell
+docker-shell: docker-build
+	@docker run --rm -it hone bash
+
 # Former name of the test target.
 .PHONY: run-tests
 run-tests: test
