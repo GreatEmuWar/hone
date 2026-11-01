@@ -1,6 +1,6 @@
 # Multiple objectives: design
 
-Status: signed off. Part 1, the base-class refactor, is in this PR; the rest follow.
+Status: signed off. Part 1, the base-class refactor (#37), and part 2, the objectives, fronts, hypervolume and the random baseline, are in; the optimizers and benchmark follow.
 
 ## What users get
 

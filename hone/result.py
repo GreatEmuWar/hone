@@ -57,12 +57,19 @@ class Progress(BaseModel):
     elapsed: float  # seconds since the run started
 
 
-def print_progress(progress: Progress) -> None:
-    """A ready-made optimize() callback: print one line per generation."""
-    best = "none yet" if progress.best_fitness is None else f"{progress.best_fitness:.6g}"
+def print_progress(progress: Any) -> None:
+    """A ready-made optimize() callback: print one line per generation.
+
+    For several objectives, the line gives the size of the front and its hypervolume.
+    """
+    if isinstance(progress, Progress):
+        found = "best none yet" if progress.best_fitness is None else f"best {progress.best_fitness:.6g}"
+    else:
+        stats = progress.generation
+        volume = "" if stats.hypervolume is None else f", hypervolume {stats.hypervolume:.6g}"
+        found = f"front of {stats.front_size}{volume}"
     print(
-        f"generation {progress.generation.generation}: {progress.evaluations:,} evaluations, "
-        f"best {best}, {progress.elapsed:.1f} s",
+        f"generation {progress.generation.generation}: {progress.evaluations:,} evaluations, {found}, {progress.elapsed:.1f} s",
         flush=True,
     )
 

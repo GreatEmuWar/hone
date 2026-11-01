@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- **Several objectives at once** (in progress; optimizers that search for fronts follow). `MultiObjectiveConfig(objectives={"accuracy": "maximize", "cost": "minimize"})` names each objective, and the objective function returns a dict of them. A run returns a `ParetoResult` whose `front` holds the best trade-offs among everything evaluated: `front.best("accuracy", where={"cost": 20})` is the most accurate design costing at most 20, `front.closest()` the most balanced by augmented Chebyshev distance on the front's own scale, and `front.hypervolume(reference)` scores the front. With noise, each point on the front is an average and comes with its standard error. A dict with the wrong keys raises `TypeError`. `MultiObjectiveRandomSearch` is the baseline, and `print_progress` prints the size of the front and its hypervolume. See [docs/design/multiple-objectives.md](docs/design/multiple-objectives.md).
+
 ### Internal
 
 - The optimizer base class is split into `OptimizerCore`, the generation loop, ask and tell, workers, checkpoints and run records shared by every optimizer, and `Optimizer`, which adds what a single objective needs. This makes room for multiple objectives (see [docs/design/multiple-objectives.md](docs/design/multiple-objectives.md)). Results don't change, and checkpoints saved by 0.11.0 still load.

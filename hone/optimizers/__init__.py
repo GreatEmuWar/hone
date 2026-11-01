@@ -3,4 +3,5 @@ from .base import EvaluationFailed, Individual, Optimizer, Trial, UnsupportedSea
 from .choice import choose_optimizer
 from .cmaes import CMAES
 from .genetic import GeneticOptimizer
+from .multi import MultiObjectiveOptimizer, MultiObjectiveRandomSearch
 from .random_search import RandomSearch
