@@ -406,31 +406,6 @@ docker run --rm -v "$PWD/benchmarks:/src/benchmarks" hone python -m hone.benchma
 
 Rebuild the image after changing hone's code; changing only the code reuses the cached dependency layer, so it takes seconds.
 
-### Running in Docker
-
-With [Docker](https://docs.docker.com/get-docker/) installed you can run hone without Python or Poetry on your machine. The image holds hone with its development dependencies, the tests, the examples and the saved benchmark summaries, on Python 3.14.
-
-```sh
-make docker-build                    # build the image, tagged hone
-make docker-test                     # run the tests in it
-make docker-shell                    # a shell in it, with hone installed
-docker run --rm hone python examples/pressure_vessel.py
-```
-
-To run a script of your own, mount its folder and run it from there:
-
-```sh
-docker run --rm -v "$PWD:/work" -w /work hone python my_search.py
-```
-
-To run a benchmark and keep its results, mount the `benchmarks` folder so the files it writes land in your copy:
-
-```sh
-docker run --rm -v "$PWD/benchmarks:/src/benchmarks" hone python -m hone.benchmarks --quick --markdown benchmarks/quick-results.md
-```
-
-Rebuild the image after changing hone's code; changing only the code reuses the cached dependency layer, so it takes seconds.
-
 To release, raise `version` in `pyproject.toml` and add a section for it to `CHANGELOG.md`. Once the change is on `main` and its checks pass, CI tags the version, publishes a GitHub release with that section as its notes and the built package attached, and uploads the same package to PyPI as `hone-python`.
 
 `pbt/tests/` holds property tests, which check hone against what its documentation promises over search spaces, configs and objectives that Hypothesis generates; set `PBT_EXAMPLES` (default 25) for a deeper search. `pbt/SUMMARY.md` lists every property and where it is promised.
