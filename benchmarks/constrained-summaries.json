@@ -156,7 +156,7 @@
     "runs": 10,
     "median_error": 0.9585999099738288,
     "lower_quartile": 0.3365813601684882,
-    "upper_quartile": 1.2827097078026413,
+    "upper_quartile": 1.282709707802641,
     "solved": 0.0
   },
   {
@@ -166,7 +166,7 @@
     "runs": 10,
     "median_error": 0.5524434167514908,
     "lower_quartile": 0.2623412943281458,
-    "upper_quartile": 0.8449538609916541,
+    "upper_quartile": 0.844953860991654,
     "solved": 0.0
   },
   {
@@ -266,7 +266,7 @@
     "runs": 10,
     "median_error": 6.726913152043197,
     "lower_quartile": 4.831644818694207,
-    "upper_quartile": 9.091963698012819,
+    "upper_quartile": 9.09196369801282,
     "solved": 0.0
   },
   {
@@ -355,7 +355,7 @@
     "budget_per_dimension": 50,
     "runs": 10,
     "median_error": 6.6966638500150655,
-    "lower_quartile": 4.179861381213966,
+    "lower_quartile": 4.179861381213967,
     "upper_quartile": 11.47538299793641,
     "solved": 0.0
   },
@@ -365,7 +365,7 @@
     "budget_per_dimension": 100,
     "runs": 10,
     "median_error": 6.0852947829734,
-    "lower_quartile": 4.179861381213966,
+    "lower_quartile": 4.179861381213967,
     "upper_quartile": 7.695788049229089,
     "solved": 0.0
   },
@@ -435,7 +435,7 @@
     "budget_per_dimension": 10,
     "runs": 10,
     "median_error": 4.33285277678937,
-    "lower_quartile": 3.0675462088204406,
+    "lower_quartile": 3.067546208820441,
     "upper_quartile": 7.393055789472562,
     "solved": 0.0
   },
@@ -445,7 +445,7 @@
     "budget_per_dimension": 20,
     "runs": 10,
     "median_error": 2.010596934551932,
-    "lower_quartile": 1.1505768338157811,
+    "lower_quartile": 1.1505768338157814,
     "upper_quartile": 2.7453699224465833,
     "solved": 0.0
   },
@@ -516,7 +516,7 @@
     "runs": 10,
     "median_error": 6.642359004078167,
     "lower_quartile": 3.906265933588017,
-    "upper_quartile": 8.709821868563951,
+    "upper_quartile": 8.70982186856395,
     "solved": 0.0
   },
   {
@@ -536,7 +536,7 @@
     "runs": 10,
     "median_error": 3.3565377304394324,
     "lower_quartile": 2.40797405609371,
-    "upper_quartile": 4.017780597452904,
+    "upper_quartile": 4.017780597452905,
     "solved": 0.0
   },
   {
@@ -605,7 +605,7 @@
     "budget_per_dimension": 10,
     "runs": 10,
     "median_error": 337.33273514708804,
-    "lower_quartile": 245.20737956880714,
+    "lower_quartile": 245.20737956880717,
     "upper_quartile": 378.97918051028967,
     "solved": 0.0
   },
@@ -676,7 +676,7 @@
     "runs": 10,
     "median_error": 504.9616651976415,
     "lower_quartile": 431.149301456953,
-    "upper_quartile": 1120.8662059949158,
+    "upper_quartile": 1120.8662059949156,
     "solved": 0.0
   },
   {
@@ -706,7 +706,7 @@
     "runs": 10,
     "median_error": 135.21178431533883,
     "lower_quartile": 106.12807212409005,
-    "upper_quartile": 176.66071922817974,
+    "upper_quartile": 176.66071922817972,
     "solved": 0.0
   },
   {
@@ -786,7 +786,7 @@
     "runs": 10,
     "median_error": 2.7645364128577987,
     "lower_quartile": 2.283738064235311,
-    "upper_quartile": 3.2485426742208765,
+    "upper_quartile": 3.248542674220876,
     "solved": 0.0
   },
   {
@@ -856,7 +856,7 @@
     "runs": 10,
     "median_error": 28.21630271055018,
     "lower_quartile": 21.46118907527158,
-    "upper_quartile": 29.815661655181124,
+    "upper_quartile": 29.815661655181128,
     "solved": 0.0
   },
   {
@@ -886,7 +886,7 @@
     "runs": 10,
     "median_error": 12.688952533342711,
     "lower_quartile": 10.044303825803379,
-    "upper_quartile": 14.136123967496783,
+    "upper_quartile": 14.136123967496781,
     "solved": 0.0
   },
   {
@@ -906,7 +906,7 @@
     "runs": 10,
     "median_error": 94.82063418160274,
     "lower_quartile": 55.285046017607726,
-    "upper_quartile": 169.4695392875686,
+    "upper_quartile": 169.46953928756864,
     "solved": 0.0
   },
   {
@@ -926,7 +926,7 @@
     "runs": 10,
     "median_error": 4.712752863763092,
     "lower_quartile": 3.5695359187009013,
-    "upper_quartile": 8.30440320827103,
+    "upper_quartile": 8.304403208271031,
     "solved": 0.0
   },
   {
@@ -976,7 +976,7 @@
     "runs": 10,
     "median_error": 4.792260927776026,
     "lower_quartile": 2.339822028669478,
-    "upper_quartile": 7.862811924281139,
+    "upper_quartile": 7.8628119242811385,
     "solved": 0.0
   },
   {
@@ -996,7 +996,7 @@
     "runs": 10,
     "median_error": 3.6686912463648174,
     "lower_quartile": 2.4707074959495388,
-    "upper_quartile": 8.238985473364515,
+    "upper_quartile": 8.238985473364513,
     "solved": 0.0
   },
   {
@@ -1086,7 +1086,7 @@
     "runs": 10,
     "median_error": 0.28142125178310423,
     "lower_quartile": 0.10460520269832514,
-    "upper_quartile": 0.3694742435839324,
+    "upper_quartile": 0.3694742435839323,
     "solved": 0.0
   },
   {
@@ -1105,7 +1105,7 @@
     "budget_per_dimension": 1000,
     "runs": 10,
     "median_error": 0.0013671811028444236,
-    "lower_quartile": 3.574884445784178e-05,
+    "lower_quartile": 3.574884445784177e-05,
     "upper_quartile": 0.009930090678914457,
     "solved": 0.3
   },
@@ -1165,7 +1165,7 @@
     "budget_per_dimension": 10,
     "runs": 10,
     "median_error": 0.3783387687312876,
-    "lower_quartile": 0.1703581368007117,
+    "lower_quartile": 0.17035813680071168,
     "upper_quartile": 0.4504424116092492,
     "solved": 0.0
   },
@@ -1176,7 +1176,7 @@
     "runs": 10,
     "median_error": 0.00288029782826645,
     "lower_quartile": 0.0019535580424795617,
-    "upper_quartile": 0.00989027488629036,
+    "upper_quartile": 0.009890274886290358,
     "solved": 0.1
   },
   {
@@ -1186,7 +1186,7 @@
     "runs": 10,
     "median_error": 2.325742267718878e-05,
     "lower_quartile": 5.144319422664251e-06,
-    "upper_quartile": 5.149313454403468e-05,
+    "upper_quartile": 5.149313454403469e-05,
     "solved": 1.0
   },
   {
@@ -1215,8 +1215,8 @@
     "budget_per_dimension": 20,
     "runs": 10,
     "median_error": 1.4184769822525847,
-    "lower_quartile": 0.779252049428937,
-    "upper_quartile": 1.633013513586043,
+    "lower_quartile": 0.7792520494289369,
+    "upper_quartile": 1.6330135135860433,
     "solved": 0.0
   },
   {
@@ -1246,7 +1246,7 @@
     "runs": 10,
     "median_error": 0.024029526337448513,
     "lower_quartile": 0.006274653120080397,
-    "upper_quartile": 0.043755345386061156,
+    "upper_quartile": 0.04375534538606115,
     "solved": 0.0
   },
   {
@@ -1306,7 +1306,7 @@
     "runs": 10,
     "median_error": 10007.775250993274,
     "lower_quartile": 9650.929973639551,
-    "upper_quartile": 12481.298068356238,
+    "upper_quartile": 12481.29806835624,
     "solved": 0.0
   },
   {
@@ -1315,7 +1315,7 @@
     "budget_per_dimension": 20,
     "runs": 10,
     "median_error": 7917.465660903426,
-    "lower_quartile": 6281.319544891611,
+    "lower_quartile": 6281.31954489161,
     "upper_quartile": 9387.442501824939,
     "solved": 0.0
   },
@@ -1385,7 +1385,7 @@
     "budget_per_dimension": 10,
     "runs": 10,
     "median_error": 19139.647183640955,
-    "lower_quartile": 14909.285406071947,
+    "lower_quartile": 14909.285406071946,
     "upper_quartile": 25215.711580387466,
     "solved": 0.0
   },
@@ -1395,7 +1395,7 @@
     "budget_per_dimension": 20,
     "runs": 10,
     "median_error": 15194.882743619088,
-    "lower_quartile": 12167.795979112649,
+    "lower_quartile": 12167.79597911265,
     "upper_quartile": 17499.449899784395,
     "solved": 0.0
   },
@@ -1486,7 +1486,7 @@
     "runs": 10,
     "median_error": 0.006853793037519132,
     "lower_quartile": 0.004887254880796515,
-    "upper_quartile": 0.0087697341159987,
+    "upper_quartile": 0.008769734115998698,
     "solved": 0.0
   },
   {
@@ -1566,7 +1566,7 @@
     "runs": 10,
     "median_error": 0.00867777341953197,
     "lower_quartile": 0.005896428662188615,
-    "upper_quartile": 0.010484959199232613,
+    "upper_quartile": 0.010484959199232612,
     "solved": 0.0
   },
   {
@@ -1665,7 +1665,7 @@
     "budget_per_dimension": 10,
     "runs": 10,
     "median_error": 0.9462616908060058,
-    "lower_quartile": 0.8013045757046757,
+    "lower_quartile": 0.8013045757046756,
     "upper_quartile": 1.0919833139141177,
     "solved": 0.0
   },
@@ -1745,8 +1745,8 @@
     "budget_per_dimension": 10,
     "runs": 10,
     "median_error": 1.135322486156886,
-    "lower_quartile": 0.7582381025908735,
-    "upper_quartile": 1.420948666031294,
+    "lower_quartile": 0.7582381025908734,
+    "upper_quartile": 1.4209486660312942,
     "solved": 0.0
   },
   {
@@ -1756,7 +1756,7 @@
     "runs": 10,
     "median_error": 0.7645639868214831,
     "lower_quartile": 0.6083533416340579,
-    "upper_quartile": 1.0177815211531882,
+    "upper_quartile": 1.017781521153188,
     "solved": 0.0
   },
   {
@@ -1787,6 +1787,546 @@
     "median_error": 0.2003474705053888,
     "lower_quartile": 0.17970947453359531,
     "upper_quartile": 0.24535898063466832,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 36154.83645921067,
+    "lower_quartile": 30217.30256319857,
+    "upper_quartile": 40888.92814876208,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 19518.336393280733,
+    "lower_quartile": 11117.273222442655,
+    "upper_quartile": 23930.872349398,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 4649.867960325382,
+    "lower_quartile": 3619.9145719398866,
+    "upper_quartile": 7320.95144718508,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 2866.65517869196,
+    "lower_quartile": 1987.8947094303521,
+    "upper_quartile": 3328.401551482274,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 480.50695713051573,
+    "lower_quartile": 424.00137307668683,
+    "upper_quartile": 830.7688903189601,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 26672.838105145995,
+    "lower_quartile": 17800.01855153359,
+    "upper_quartile": 32234.036690014713,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 16139.623656836126,
+    "lower_quartile": 15156.456345082337,
+    "upper_quartile": 16966.298252087887,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 6286.7979710597865,
+    "lower_quartile": 4394.806787667595,
+    "upper_quartile": 7217.815460211528,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 1297.8009732187043,
+    "lower_quartile": 699.2976826354154,
+    "upper_quartile": 1750.0552559822909,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 277.3132650172897,
+    "lower_quartile": 64.41395827123301,
+    "upper_quartile": 697.8123944781448,
+    "solved": 0.2
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 143.66017830184137,
+    "lower_quartile": 98.28527762125464,
+    "upper_quartile": 189.3749585505534,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 36.659666431096866,
+    "lower_quartile": 28.299160023339027,
+    "upper_quartile": 51.725997679275906,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 31.550482986722272,
+    "lower_quartile": 8.527708405843669,
+    "upper_quartile": 32.29282941260044,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 37774.8877874411,
+    "lower_quartile": 23839.99004289892,
+    "upper_quartile": 47833.26162278386,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 24188.66958358231,
+    "lower_quartile": 18364.557732418503,
+    "upper_quartile": 31410.05744906595,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 15194.882743619088,
+    "lower_quartile": 12167.79597911265,
+    "upper_quartile": 17499.449899784395,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 14184.169992111996,
+    "lower_quartile": 10185.405229779797,
+    "upper_quartile": 15619.700878504747,
+    "solved": 0.0
+  },
+  {
+    "problem": "pressure-vessel-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 3919.8111584027774,
+    "lower_quartile": 3097.0253274443153,
+    "upper_quartile": 4977.38145552683,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0725430964987402,
+    "lower_quartile": 0.029894530986776836,
+    "upper_quartile": Infinity,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.029798506436720745,
+    "lower_quartile": 0.021959311842115033,
+    "upper_quartile": 0.0553047369960212,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.021160596588876507,
+    "lower_quartile": 0.012584441079303762,
+    "upper_quartile": 0.031009177346854506,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.011380013459412742,
+    "lower_quartile": 0.008968211164827544,
+    "upper_quartile": 0.016929439685435053,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.0015566802059974669,
+    "lower_quartile": 0.0011688832419270694,
+    "upper_quartile": 0.004873449532135698,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.1256868561358984,
+    "lower_quartile": 0.04275103207015188,
+    "upper_quartile": Infinity,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.04608187126830511,
+    "lower_quartile": 0.022230375640499744,
+    "upper_quartile": 0.07160091851727471,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.02249941181256985,
+    "lower_quartile": 0.014050899604306027,
+    "upper_quartile": 0.03441989764703819,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.011788884762112444,
+    "lower_quartile": 0.00902771487024679,
+    "upper_quartile": 0.022720658396965458,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.00032283932611350177,
+    "lower_quartile": 5.693599004181083e-05,
+    "upper_quartile": 0.00042299011481789894,
+    "solved": 0.4
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.001654342535057582,
+    "lower_quartile": 0.0007320835045127498,
+    "upper_quartile": 0.005459356022174563,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 6.531097309427688e-05,
+    "lower_quartile": 3.458280109397893e-05,
+    "upper_quartile": 6.857422314472672e-05,
+    "solved": 0.9
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 8.836147438073816e-06,
+    "lower_quartile": 4.278604979513021e-06,
+    "upper_quartile": 1.472648738518002e-05,
+    "solved": 1.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": Infinity,
+    "lower_quartile": 0.050574701384664716,
+    "upper_quartile": Infinity,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.060741933638856146,
+    "lower_quartile": 0.038989894940955026,
+    "upper_quartile": Infinity,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.03140921441430551,
+    "lower_quartile": 0.017392178505754932,
+    "upper_quartile": 0.05399913325479483,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.024302477806530103,
+    "lower_quartile": 0.017130520769131692,
+    "upper_quartile": 0.034136830240409775,
+    "solved": 0.0
+  },
+  {
+    "problem": "tension-spring-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.004540594916414545,
+    "lower_quartile": 0.0038813408324617693,
+    "upper_quartile": 0.005090575209749217,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.8507334403928182,
+    "lower_quartile": 1.4362259444400962,
+    "upper_quartile": 2.3380329207761164,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 1.3695931509167085,
+    "lower_quartile": 0.9851703900399585,
+    "upper_quartile": 2.1153154400784113,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 1.084916020182605,
+    "lower_quartile": 0.6016034493634115,
+    "upper_quartile": 1.605749576382241,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.6249588564767206,
+    "lower_quartile": 0.4688582566827495,
+    "upper_quartile": 0.6913620440763342,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "genetic",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.28584365172514337,
+    "lower_quartile": 0.0800178367906399,
+    "upper_quartile": 0.5612760187051283,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 1.9776053541184333,
+    "lower_quartile": 1.0109664480605196,
+    "upper_quartile": 2.8159524683071675,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 1.335761750619494,
+    "lower_quartile": 0.9978424187986792,
+    "upper_quartile": 2.4875595831433097,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.7056683948366007,
+    "lower_quartile": 0.5348875333474588,
+    "upper_quartile": 1.3046453348935723,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 0.3220821971175193,
+    "lower_quartile": 0.1206729383220615,
+    "upper_quartile": 0.6450428099578862,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "cma-es",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 3.059995465903853e-07,
+    "lower_quartile": 3.05927186194932e-07,
+    "upper_quartile": 3.0734305461743716e-07,
+    "solved": 1.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 0.0709634175504178,
+    "lower_quartile": 0.03475560976644099,
+    "upper_quartile": 0.11275889852687981,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 0.019474993329191337,
+    "lower_quartile": 0.012632107775502,
+    "upper_quartile": 0.02447315023937613,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "bayesian",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 0.011215153295410452,
+    "lower_quartile": 0.007553007556100333,
+    "upper_quartile": 0.013254290010439984,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 10,
+    "runs": 10,
+    "median_error": 2.5682948919397983,
+    "lower_quartile": 2.066968742729587,
+    "upper_quartile": 2.8630187199405213,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 20,
+    "runs": 10,
+    "median_error": 2.027138339107773,
+    "lower_quartile": 1.5518714919021086,
+    "upper_quartile": 2.441185912319539,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 50,
+    "runs": 10,
+    "median_error": 1.2918948719432508,
+    "lower_quartile": 0.9367170801368734,
+    "upper_quartile": 1.7532522130189725,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 100,
+    "runs": 10,
+    "median_error": 1.082318970674293,
+    "lower_quartile": 0.7582381025908734,
+    "upper_quartile": 1.357588374276005,
+    "solved": 0.0
+  },
+  {
+    "problem": "welded-beam-outputs",
+    "optimizer": "random",
+    "budget_per_dimension": 1000,
+    "runs": 10,
+    "median_error": 0.5063935680185165,
+    "lower_quartile": 0.37703750479590203,
+    "upper_quartile": 0.5217249085972284,
     "solved": 0.0
   }
 ]

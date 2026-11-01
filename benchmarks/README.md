@@ -123,7 +123,7 @@ The machine learning suite has a conditional problem too: model-selection-breast
 
 ## Constrained problems
 
-`python -m hone.benchmarks --constrained` runs ten problems whose optimum lies on a constraint's boundary, as it usually does in engineering, at the same five budgets:
+`python -m hone.benchmarks --constrained` runs thirteen problems whose optimum lies on a constraint's boundary, as it usually does in engineering, at the same five budgets. Ten have their limits on the parameters; the other three are engineering problems with their limits on outputs, described [below](#constraints-on-outputs).
 
 | Problem | What it tests |
 | --- | --- |
@@ -133,12 +133,33 @@ The machine learning suite has a conditional problem too: model-selection-breast
 | tension-spring | A spring of least weight under four limits; only 0.8% of the box satisfies them all |
 | welded-beam | A welded beam of least cost under six limits, two of them functions with square roots; 2.9% of the box is feasible |
 
-The engineering problems are scored against the best designs published for them. Every optimizer only ever asks for feasible points, so each evaluation counts.
+The engineering problems are scored against the best designs published for them. With limits on the parameters, every optimizer only ever asks for feasible points, so each evaluation counts. The findings below are for those ten problems.
 
 - **Bayesian optimization is the best at small budgets**, more clearly than without constraints: it has the lowest median error on all ten problems at 10 and 20 evaluations per dimension, and all six it runs on at 50. On the pressure vessel with 40 evaluations its median cost is 266 above the best known design, against 10,010 for CMA-ES and 19,140 for random search.
 - **CMA-ES is the best at 1,000 evaluations per dimension**, on all ten problems. It finds the best known design of nine of them in every run, and of the pressure vessel in three of ten. When a candidate breaks a constraint, it draws again from the same distribution. Ranking such candidates below every feasible one without evaluating them was also tried, and did worse at every budget (×1.17 to ×1.59).
 - **The genetic optimizer is behind CMA-ES under constraints**, but it is the optimizer for constrained problems with choice or integer parameters, which CMA-ES can't search or handles less well. A child that breaks a constraint is moved back toward its fitter parent, halving the gap ten times, so it lands near the boundary. Against breeding a new child instead, this cut its geometric-mean error to ×0.84, ×0.68, ×0.74, ×0.46 and ×0.44 at 10 to 1,000 evaluations per dimension; on the welded beam at 1,000 it went from 0.080 to 0.0058. It beats random search on every problem at 50 and 1,000 evaluations per dimension, and on nine of ten at 100, losing on rosenbrock-disk-2d.
 - **`choose_optimizer`'s rule holds without change.** Its pick is 1.04 times the best optimizer's error on geometric mean, and the best on 45 of the 50 problem and budget pairs.
+
+### Constraints on outputs
+
+pressure-vessel-outputs, tension-spring-outputs and welded-beam-outputs are the three engineering problems with their limits reported by the objective, as a simulation would report them, instead of written on the parameters. The welded beam keeps its two geometric limits on the parameters, since they need no analysis. Each design and its score are the same as in the parameter version; only when the optimizer learns of a limit differs. A run that finds no design satisfying every limit scores infinity.
+
+Median error over 10 seeds, with each limit known before evaluating against reported after:
+
+| Problem | Evaluations per dimension | Bayesian | Genetic | CMA-ES |
+| --- | ---: | ---: | ---: | ---: |
+| pressure vessel | 20 | 191 → 36.7 | 15,400 → 19,500 | 7,920 → 16,100 |
+| pressure vessel | 50 | 180 → 31.6 | 1,120 → 4,650 | 1,470 → 6,290 |
+| tension spring | 20 | 7.3e-05 → 6.5e-05 | 0.0053 → 0.030 | 0.0069 → 0.046 |
+| tension spring | 50 | 6.6e-05 → 8.8e-06 | 0.00097 → 0.021 | 0.0019 → 0.023 |
+| welded beam | 20 | 0.0176 → 0.0195 | 0.506 → 1.37 | 0.489 → 1.34 |
+| welded beam | 50 | 0.0104 → 0.0112 | 0.328 → 1.08 | 0.205 → 0.706 |
+| welded beam | 1,000 | n/a | 0.0058 → 0.286 | 3.1e-07 → 3.1e-07 |
+
+- **Bayesian optimization loses almost nothing when limits are only reported, and sometimes gains.** Its models of the limits learn where the infeasible designs lie from the evaluations that broke one. On the welded beam its error grows by at most 11% at 20 and 50 evaluations per dimension, though from 0.041 to 0.071 at 10, and on the tension spring it solves 90% of runs at 20 evaluations per dimension and all of them at 50. On the pressure vessel it does better with reported limits, 31.6 against 180 at 50: with the limits on the parameters, it only ever considers candidates inside them, while a model of the limits can also step across the boundary to find better designs along it.
+- **The genetic optimizer and CMA-ES lose a lot at small and middle budgets.** They only learn which designs ranked lower, so most of their evaluations go to designs that break a limit. Their errors are 1.3 to 31 times larger at 10 to 100 evaluations per dimension. At 1,000, CMA-ES finds the best welded beam in every run either way, and its pressure vessel is as good. The genetic optimizer's welded beam stays 50 times worse, since it can no longer repair a child back inside the limits before evaluating it.
+- **Random search finds no feasible spring in most runs at 10 evaluations per dimension.** Only 0.8% of the box satisfies every limit, and 30 evaluations seldom land there.
+- **`choose_optimizer`'s rule still holds** on the thirteen problems. Its test passes on the new results: Bayesian optimization up to 200 evaluations, then the genetic optimizer or CMA-ES. At 1,000 evaluations per dimension CMA-ES is the better of the two on all three problems with reported limits; at 100 the two are level on the spring.
 
 ## Multi-objective problems
 
