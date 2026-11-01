@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Internal
+
+- The optimizer base class is split into `OptimizerCore`, the generation loop, ask and tell, workers, checkpoints and run records shared by every optimizer, and `Optimizer`, which adds what a single objective needs. This makes room for multiple objectives (see [docs/design/multiple-objectives.md](docs/design/multiple-objectives.md)). Results don't change, and checkpoints saved by 0.11.0 still load.
+
 ## 0.11.0 (2026-10-31)
 
 Conditional parameters: parameters that exist only while others take certain values, written `model["svm"] >> [kernel, C]`, which every optimizer supports. A README section explains them, an example chooses a classifier and its settings in one search, and the benchmark has a conditional suite comparing each optimizer with searching every parameter all the time. See [benchmarks/README.md](benchmarks/README.md#conditional-problems).
