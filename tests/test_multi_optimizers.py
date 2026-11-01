@@ -24,6 +24,11 @@ OBJECTIVES = {"f1": "minimize", "f2": "minimize"}
 ZDT1 = zdt("zdt1", 4)
 
 
+def zdt1(**params):
+    """ZDT1 at module level, so worker processes started by forkserver (Python 3.14's default) can unpickle it."""
+    return ZDT1.function(**params)
+
+
 def gap(problem, result):
     return problem.true_hypervolume - problem.hypervolume(p.values for p in result.front)
 
@@ -61,7 +66,7 @@ def test_nsga2_finds_a_three_objective_front():
 def test_nsga2_repeats_exactly_and_doesnt_depend_on_workers():
     first = nsga2(max_evaluations=600).optimize(ZDT1.function)
     assert first == nsga2(max_evaluations=600).optimize(ZDT1.function)
-    assert first == nsga2(max_evaluations=600).optimize(ZDT1.function, workers=2)
+    assert first == nsga2(max_evaluations=600).optimize(zdt1, workers=2)
 
 
 def test_nsga2_keeps_to_constraints():
@@ -189,3 +194,16 @@ def test_the_runner_scores_every_optimizer():
     assert all(0 <= run.gap <= zdt("zdt1", 3).true_hypervolume for run in runs)
     summaries = summarize_multi(runs)
     assert all(s.attainment is not None for s in summaries)
+
+
+def test_the_saved_benchmark_backs_choose_pareto_optimizers_rule():
+    """Where both ran (up to 200 evaluations), ParEGO's median front beats NSGA2's on at least four problems in five."""
+    import json
+    from pathlib import Path
+
+    summaries = json.loads((Path(__file__).parent.parent / "benchmarks" / "multi-summaries.json").read_text())
+    median = {(s["problem"], s["optimizer"], s["budget_per_dimension"]): s["median_gap"] for s in summaries}
+    cells = [(p, b) for p, o, b in median if o == "bayesian-parego"]
+    decided = [(p, b) for p, b in cells if median[p, "bayesian-parego", b] != median[p, "nsga2", b]]
+    wins = sum(median[p, "bayesian-parego", b] < median[p, "nsga2", b] for p, b in decided)
+    assert len(decided) >= 10 and wins >= 0.8 * len(decided)

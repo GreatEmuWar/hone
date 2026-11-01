@@ -378,6 +378,8 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make benchmark-noisy` | Run the noisy problems and update `benchmarks/noisy-results.md` |
 | `make benchmark-ml` | Run the machine learning tuning problems and update `benchmarks/ml-results.md` |
 | `make benchmark-constrained` | Run the constrained problems and update `benchmarks/constrained-results.md` |
+| `make benchmark-conditional` | Run the conditional problems and update `benchmarks/conditional-results.md` |
+| `make benchmark-multi` | Run the multi-objective problems and update `benchmarks/multi-results.md` |
 
 To release, raise `version` in `pyproject.toml` and add a section for it to `CHANGELOG.md`. Once the change is on `main` and its checks pass, CI tags the version, publishes a GitHub release with that section as its notes and the built package attached, and uploads the same package to PyPI as `hone-python`.
 
