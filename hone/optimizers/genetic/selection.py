@@ -34,14 +34,18 @@ def roulette(individuals: list[Individual], rng: np.random.Generator, *, maximiz
     """
     violations = np.array([individual.violation for individual in individuals], dtype=float)
     feasible = violations == 0
-    if not feasible.any():
-        weights = violations.max() - violations if np.isfinite(violations).all() else np.isfinite(violations).astype(float)
-    else:
+    if feasible.any():
         fitnesses = np.array([individual.fitness for individual in individuals], dtype=float)
         shown = fitnesses[feasible]
         weights = np.where(feasible, fitnesses - shown.min() if maximize else shown.max() - fitnesses, 0.0)
+        tied = feasible  # with every feasible point equally fit, pick among them
+    else:
+        finite = np.isfinite(violations)
+        worst = violations[finite].max() if finite.any() else 0.0
+        weights = np.where(finite, worst - violations, 0.0)
+        tied = finite if finite.any() else np.ones(len(individuals), dtype=bool)
     total = weights.sum()
     if total == 0:
-        # Every individual is equally fit.
-        return individuals[rng.integers(len(individuals))]
+        candidates = np.flatnonzero(tied)
+        return individuals[int(candidates[rng.integers(len(candidates))])]
     return individuals[rng.choice(len(individuals), p=weights / total)]

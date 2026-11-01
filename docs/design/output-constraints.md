@@ -71,7 +71,9 @@ Every evaluation that succeeds is ranked by Deb's feasibility rule (Deb, 2000):
 
 A failed evaluation ranks below all of them.
 
-The total violation is the sum, over the output constraints that apply, of each one's violation relative to the size of its limit. For `stress <= 250` that is `(stress - 250) / 250`. This makes limits in different units comparable: 10% over a stress limit counts the same as 10% over a deflection limit. A limit of zero, which includes every function constraint, has no size to divide by, so its violation counts as it is. A function constraint should return a relative margin, such as `stress / LIMIT - 1`, when it shares a problem with other limits.
+The total violation is the sum, over the output constraints that apply, of each one's violation relative to the size of its limit, when the limit is a number. For `stress <= 250` that is `(stress - 250) / 250`. This makes limits in different units comparable: 10% over a stress limit counts the same as 10% over a deflection limit.
+
+A limit that isn't a number has no fixed size, and its violation counts in its own units. That covers a limit that varies with the point, such as `stress <= 50 * width`, a limit of zero, and every function constraint. Dividing by a size that varies would make the violation jump wherever the limit crosses zero: for `Output("s") <= x - 0.5` at s = 0.01, it would be 99 at x = 0.5001 and 1.0 at x = 0.4999. Because only a number on one side gives a scale, the violation depends on how a limit is written: `stress - 250 <= 0` counts 25 where `stress <= 250` counts 0.1. A function constraint should return a relative margin, such as `stress / LIMIT - 1`, when it shares a problem with other limits.
 
 There's no penalty weight to tune. A point that breaks a limit is never mistaken for a good one however small its objective, and among points that break limits the search is steered back toward the feasible region.
 
@@ -90,7 +92,7 @@ The models in Bayesian optimization learn where the infeasible region is from th
 
 A Gaussian process for a constraint is fitted to its relative margin, through the bilog transform `sign(m) log(1 + |m|)` (Eriksson and Poloczek, 2021). The margin is `left - right` for `left <= right`, the other way round for `>=`, and the function's value for a function constraint. The relative margin divides it by the limit's size, as the violation does. Bilog keeps the sign, so the limit stays at zero, and compresses the far tails: stresses near the edges of a design space run to many times their limit, and a stationary Gaussian process fitted to those raw values smooths over the boundary, which is the part that matters. On the welded beam example, modelling raw margins left one seed of four at 40% above the best design. With bilog all four came within 1.4%, with a quarter fewer evaluations breaking a limit.
 
-A margin that couldn't be computed, such as from a division by zero, is modelled as the largest margin seen. A conditional constraint is fitted only to the points where it applies, and counts as satisfied wherever its test doesn't hold. The constraints' models are treated as independent, so the probability that all hold is the product of each one's.
+A margin that couldn't be computed, such as from a division by zero, is modelled as the largest margin seen, and at least a relative margin of 1, 100% over. If it were only the largest seen, a region that couldn't be computed, next to points that all satisfied the limit, would be modelled as feasible. A conditional constraint is fitted only to the points where it applies, and counts as satisfied wherever its test doesn't hold. The constraints' models are treated as independent, so the probability that all hold is the product of each one's.
 
 ### 6. What the result says
 
@@ -109,6 +111,13 @@ With `noise=True`, a point's outputs would have to be averaged with its objectiv
 ### 8. Measured like everything else
 
 The constrained suite gains output-constraint versions of the pressure vessel, the tension spring and the welded beam. They are the same problems with their limits reported by the objective instead of written on the parameters. Each optimizer reports error at the usual budgets on both versions, which shows how much is lost by not knowing a limit before evaluating.
+
+### 9. Known weaknesses
+
+- Until a point is feasible, Bayesian optimization maximizes the probability of feasibility, the criterion of Gelbart et al. When every margin seen is positive, that probability is highest where the models are least sure, at the corners and edges, rather than where the margins fall. Expected improvement in the total violation would follow the trend instead. It hasn't been measured.
+- CMA-ES's restart for a run gone flat looks only at feasible bests, so it never fires while nothing is feasible. Its other restarts, for a step size too small or a covariance too elongated, still do.
+- Ranking alone costs CMA-ES accuracy: on a 5-dimensional quadratic with a linear limit and 1,500 evaluations, its median error was 3.2e-6 with the limit on the parameters and 2.9e-5 with it as an output.
+- Batches of Bayesian optimization can land within 0.001 of each other, with output constraints or without. This was already the case before output constraints; the believer on the constraints' models doesn't cause it.
 
 ## Out of scope for now
 

@@ -1,3 +1,4 @@
+import inspect
 import math
 import numbers
 from collections.abc import Sequence
@@ -486,7 +487,17 @@ def _check_constraint(constraint: AnyConstraint, by_name: dict[str, Parameter]) 
     elif isinstance(constraint, FunctionConstraint):
         missing = sorted(constraint.required() - set(by_name))
         if missing:
-            raise ValueError(f"the constraint {constraint.name!r} needs parameters missing from the search space: {', '.join(missing)}")
+            raise ValueError(
+                f"the constraint {constraint.name!r} needs parameters missing from the search space: {', '.join(missing)}; "
+                f"if {'it is an output' if len(missing) == 1 else 'they are outputs'}, list {'it' if len(missing) == 1 else 'them'} "
+                f"in Constraint.function(..., outputs={missing!r})"
+            )
+        if constraint.func is not None and constraint.outputs:
+            signature = inspect.signature(constraint.func)
+            if not any(p.kind is inspect.Parameter.VAR_KEYWORD for p in signature.parameters.values()):
+                unaccepted = [name for name in constraint.outputs if name not in signature.parameters]
+                if unaccepted:
+                    raise ValueError(f"the constraint {constraint.name!r} is passed the outputs {', '.join(unaccepted)}, but its function doesn't take them")
     elif isinstance(constraint, ConditionalConstraint):
         _check_test(constraint.when, by_name, f"the constraint `{constraint}`")
         _check_constraint(constraint.constraint, by_name)

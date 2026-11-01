@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Self
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from hone.result import RunInfo
+from hone.result import RunInfo, _Unpickles
 
 if TYPE_CHECKING:
     from hone.optimizers.multi import MultiObjectiveOptimizer
@@ -116,7 +116,7 @@ class Front(BaseModel):
             raise ValueError(f"no objective is named {', '.join(map(repr, unknown))}; the objectives are {', '.join(self.objectives)}")
 
 
-class ParetoGenerationStats(BaseModel):
+class ParetoGenerationStats(_Unpickles):
     """Summary of one generation of a multi-objective run."""
     model_config = ConfigDict(frozen=True)
 
@@ -136,6 +136,7 @@ class ParetoProgress(BaseModel):
     evaluations: int  # evaluations made so far, failed ones included
     front: Front  # the front of everything evaluated so far
     elapsed: float  # seconds since the run started
+    feasible: bool = True  # whether any point has satisfied every constraint on the outputs, so the front isn't empty
 
 
 class ParetoResult(BaseModel):

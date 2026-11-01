@@ -84,6 +84,7 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
         self._front_stale = False  # with noise, an average changed, so the front must be worked out again
         self._succeeded = 0  # successful evaluations, feasible or not
         self._infeasible = 0  # evaluations that broke a constraint on the outputs
+        self._infeasible_values: list[np.ndarray] = []  # their values to minimize, for the reference point
         self._reference: np.ndarray | None = None if self.config.reference is None else _minimizing(self.config.reference, self._objectives)
 
     # --- what a value is ---------------------------------------------------
@@ -119,6 +120,7 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
             if individual.violation > 0:
                 # A point that breaks a limit never joins the front, but its values still teach a model.
                 self._infeasible += 1
+                self._infeasible_values.append(_minimizing(values, self._objectives))
                 individual.values = values
                 return
         key = self._key(individual.params)
@@ -181,7 +183,8 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
             return None
         if self._reference is None:
             # Frozen from the first generation, so hypervolume is comparable through the run.
-            values = np.array([o.mean for o in observed])
+            # With output constraints, infeasible points count too, so a front of one early point doesn't pin it there.
+            values = np.array([o.mean for o in observed] + self._infeasible_values)
             worst, best = values.max(axis=0), values.min(axis=0)
             self._reference = worst + REFERENCE_MARGIN * np.maximum(worst - best, np.maximum(np.abs(worst), 1.0) * 1e-9)
         return hypervolume(np.array([observed[i].mean for i in indices]), self._reference)
@@ -219,7 +222,9 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
             return len(self._history)
         front = self.front()
         for stats in self._history[reported:]:
-            progress = ParetoProgress(generation=stats, evaluations=stats.evaluations, front=front, elapsed=self._elapsed())
+            progress = ParetoProgress(
+                generation=stats, evaluations=stats.evaluations, front=front, elapsed=self._elapsed(), feasible=bool(self._observed)
+            )
             if callback(progress) and not self._done:
                 self._finish(stopped=True)
                 break

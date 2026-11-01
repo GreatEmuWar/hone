@@ -200,6 +200,8 @@ def tension_spring_outputs() -> Problem:
     weight = problem.function
 
     def tension_spring_outputs(wire: float, coil: float, turns: float) -> dict[str, float]:
+        if coil == wire:
+            return {"objective": math.nan, "deflection": math.nan, "shear": math.nan, "surge": math.nan}  # the shear divides by zero: failed
         return {
             "objective": weight(wire=wire, coil=coil, turns=turns),
             "deflection": coil**3 * turns / (71785 * wire**4),

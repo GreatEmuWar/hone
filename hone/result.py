@@ -10,7 +10,18 @@ if TYPE_CHECKING:
     from hone.optimizers import Optimizer
 
 
-class GenerationStats(BaseModel):
+class _Unpickles(BaseModel):
+    """A model that a checkpoint from an earlier version of hone can unpickle: fields added since take their defaults."""
+
+    def __setstate__(self, state: Any) -> None:
+        fields = state.get("__dict__", {})
+        for name, field in type(self).model_fields.items():
+            if name not in fields and not field.is_required():
+                fields[name] = field.get_default(call_default_factory=True)
+        super().__setstate__(state)
+
+
+class GenerationStats(_Unpickles):
     """Summary of one generation's fitness, over its successful evaluations that satisfy any constraints on outputs.
 
     The fitness fields are None when every evaluation in the generation failed or broke an

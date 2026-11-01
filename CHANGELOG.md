@@ -14,8 +14,8 @@ Constraints on outputs: limits on what an evaluation reports, such as the peak s
 
 ### Changed
 
-- **Checkpoints from earlier versions can't be loaded**, since each evaluation now records its outputs and violation; a run saved by 0.13.0 or before raises `ValueError` saying so. Finish such runs with the version that started them.
-- Constraints with no outputs behave exactly as before, and seeded runs without output constraints give the same results.
+- **Checkpoints have a new format**, since each evaluation now records its outputs and violation. Checkpoints saved by 0.13.0 and before still load, with those fields at their defaults.
+- Constraints with no outputs behave exactly as before, and seeded runs without output constraints give the same results. `sensitivity()`'s `best_params` is the best point that satisfies any output constraints, so `reduced()` holds parameters there. `ParetoProgress.feasible` says whether the front has any point yet.
 
 ## 0.13.0 (2026-11-01)
 

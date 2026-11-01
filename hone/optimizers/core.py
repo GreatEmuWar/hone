@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict
 from hone.config import OptimizerConfig
 from hone.objective_function import ObjectiveFunction
 from hone.parameters import Parameter, SearchSpace
-from hone.result import RunInfo
+from hone.result import RunInfo, _Unpickles
 
 from ._pool import EvaluationPool
 
@@ -47,7 +47,7 @@ class Trial(BaseModel):
     generation: int
 
 
-class Individual(BaseModel):
+class Individual(_Unpickles):
     """One candidate solution: a value for every parameter, and its fitness once evaluated.
 
     A single-objective optimizer sets fitness; a multi-objective one sets values, by objective.
@@ -374,7 +374,7 @@ class OptimizerCore[ResultT](ABC):
         you saved yourself.
         """
         checkpoint = pickle.loads(Path(path).read_bytes())
-        if not isinstance(checkpoint, dict) or checkpoint.get("format") != CHECKPOINT_FORMAT:
+        if not isinstance(checkpoint, dict) or checkpoint.get("format") not in READABLE_FORMATS:
             raise ValueError(f"{path} is not a checkpoint this version of hone can read")
         if checkpoint["setup"] != self._setup():
             raise ValueError(
@@ -553,6 +553,7 @@ class OptimizerCore[ResultT](ABC):
 
 
 CHECKPOINT_FORMAT = 2  # raised when the checkpoint layout changes, so old files are refused clearly
+READABLE_FORMATS = (1, 2)  # 1, from hone 0.13.0 and before, lacks each evaluation's outputs and violation, which default
 
 
 @cache

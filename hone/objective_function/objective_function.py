@@ -20,9 +20,9 @@ class ObjectiveFunction(BaseModel):
         self._check_signature()
 
     def __call__(self, params: dict[str, Any]) -> Any:
-        """Evaluate the function at params, which must return a real number.
+        """Evaluate the function at params, which returns a real number.
 
-        With constraints on outputs it returns a dict of the objective's value and the outputs
+        With constraints on outputs the function returns a dict of the objective's value and the outputs
         instead, which is checked when it is told to the optimizer, in the main process.
         """
         value = self.function(**params)

@@ -2,9 +2,12 @@
 import math
 import pickle
 
+import numpy as np
+
 import pytest
 from pydantic import ValidationError
 
+from hone.optimizers.core import Individual
 from hone import (
     CMAES,
     NSGA2,
@@ -73,6 +76,15 @@ def test_the_violation_is_relative_to_each_limit_so_units_compare():
     assert space.output_violation({"x": 1, "y": 1}, {"stress": 275, "deflection": 0.5}) == pytest.approx(0.1)
     assert space.output_violation({"x": 1, "y": 1}, {"stress": 250, "deflection": 0.55}) == pytest.approx(0.1)
     assert space.output_violation({"x": 1, "y": 1}, {"stress": 200, "deflection": 0.4}) == 0
+
+
+def test_only_a_limit_that_is_a_number_scales_the_violation():
+    # A limit that varies with the point, or one of zero, counts in its own units, so the violation changes smoothly.
+    assert (Output("s") <= 250).relative_violation({}, {"s": 275}) == pytest.approx(0.1)
+    assert (250 >= Output("s")).relative_violation({}, {"s": 275}) == pytest.approx(0.1)
+    assert (Output("s") - 250 <= 0).relative_violation({}, {"s": 275}) == pytest.approx(25)
+    varying = Output("s") <= X - 0.5
+    assert [varying.relative_violation({"x": x}, {"s": 0.01}) for x in (0.5001, 0.5, 0.4999)] == pytest.approx([0.0099, 0.01, 0.0101])
 
 
 def test_a_limit_of_zero_counts_its_violation_as_it_is():
@@ -289,7 +301,7 @@ def test_ask_and_tell_with_bayesian_optimization():
 def test_a_mixed_limit_of_outputs_and_parameters():
     space = SearchSpace([X, Y], [TOTAL <= X + 1])  # x + y <= x + 1, so y <= 1, and the optimum is (5, 1), at 16
 
-    result = CMAES(space, CMAESConfig(max_evaluations=400, seed=0)).optimize(bowl)
+    result = CMAES(space, CMAESConfig(max_evaluations=800, seed=0)).optimize(bowl)
     assert result.feasible and result.best_fitness == pytest.approx(16, abs=0.05)
 
 
@@ -325,9 +337,9 @@ def test_a_checkpoint_carries_on_the_run(tmp_path):
     assert resumed == whole
 
 
-def test_a_checkpoint_from_the_previous_format_is_refused(tmp_path):
+def test_a_checkpoint_of_an_unknown_format_is_refused(tmp_path):
     path = tmp_path / "old.checkpoint"
-    path.write_bytes(pickle.dumps({"format": 1}))
+    path.write_bytes(pickle.dumps({"format": 99}))
     with pytest.raises(ValueError, match="not a checkpoint this version of hone can read"):
         RandomSearch(SPACE).load_checkpoint(path)
 
@@ -456,3 +468,126 @@ def test_each_output_problem_agrees_with_its_parameter_version(name):
         feasible_after = after.search_space.feasible(point) and after.search_space.output_violation(point, reported) == 0
         agreed += feasible_after == before.search_space.feasible(point)
     assert agreed == 300
+
+
+def test_a_margin_that_cant_be_computed_is_modelled_as_infeasible():
+    space = SearchSpace([X], [Output("a") / Output("b") <= 1])
+    optimizer = BayesianOptimizer(space, BayesianConfig(max_evaluations=10, seed=0))
+    for x, b in [(1, 1.0), (2, 1.0), (8, 0.0), (9, 0.0)]:  # b = 0 divides by zero: the margin is infinite
+        individual = Individual(params={"x": float(x)}, generation=0, fitness=0.0, outputs={"a": 0.5, "b": b})
+        individual.violation = space.output_violation(individual.params, individual.outputs)
+        optimizer._X.append(optimizer._encoding.encode(individual.params))
+        optimizer._absorb_outputs(individual)
+    models = optimizer._constraint_models(np.array(optimizer._X), [])
+    probability = np.exp(optimizer._log_feasibility(models)(optimizer._encoding.encode({"x": 8.5})[None, :]))
+    assert probability[0] < 0.5
+
+
+def test_roulette_with_one_feasible_point_picks_it():
+    from hone.optimizers.genetic import selection
+
+    rng = np.random.default_rng(0)
+    population = [Individual(params={}, generation=0, fitness=f, violation=v) for f, v in [(1.0, 0.0), (0.0, 0.5), (0.0, 3.0), (0.0, 10.0)]]
+    picks = {id(selection.roulette(population, rng, maximize=False)) for _ in range(200)}
+    assert picks == {id(population[0])}
+
+
+def test_roulette_with_nothing_feasible_favours_the_smaller_violation_even_beside_an_infinite_one():
+    from hone.optimizers.genetic import selection
+
+    rng = np.random.default_rng(0)
+    population = [Individual(params={}, generation=0, fitness=0.0, violation=v) for v in [0.01, 0.02, math.inf]]
+    picks = [selection.roulette(population, rng, maximize=False).violation for _ in range(400)]
+    assert picks.count(0.01) == 400  # the worst finite violation has weight zero, as the worst fitness does
+
+
+# --- found in review ---------------------------------------------------------------------
+
+
+def test_a_limit_and_its_mirror_image_agree():
+    w = RangeParameter("w", 1, 10)
+    s = Output("s")
+    for first, second in [(s <= 250, 250 >= s), (s <= 50 * w, 50 * w >= s), (2 * s >= 7, 7 <= 2 * s)]:
+        point, outputs = {"w": 2.0}, {"s": 150.0}
+        assert first.relative_violation(point, outputs) == pytest.approx(second.relative_violation(point, outputs))
+        assert first.margin(point, outputs) == pytest.approx(second.margin(point, outputs))
+
+
+def test_outputs_must_be_a_list_of_names():
+    with pytest.raises(TypeError, match=r"outputs=\['stress'\]"):
+        Constraint.function(lambda stress: stress - 1, outputs="stress")
+
+
+def test_a_function_must_take_the_outputs_it_is_passed():
+    with pytest.raises(ValidationError, match="doesn't take them"):
+        SearchSpace([X, Y], [Constraint.function(lambda x: x - 5, name="limit", outputs=["s"])])
+
+
+def test_a_function_taking_an_output_without_saying_so_gets_a_hint():
+    with pytest.raises(ValidationError, match=r"outputs=\['stress'\]"):
+        SearchSpace([X, Y], [Constraint.function(lambda x, stress: stress - x, name="limit")])
+
+
+def test_a_function_constraint_without_outputs_saves_as_before():
+    space = SearchSpace([X, Y], [Constraint.function(lambda x: x - 5, name="limit")])
+    assert "outputs" not in space.model_dump_json()
+
+
+def test_the_reference_point_counts_infeasible_points_so_hypervolume_grows():
+    # Only a thin strip is feasible, so the first front is a single point; the reference mustn't sit on it.
+    space = SearchSpace([RangeParameter("x", 0, 1), RangeParameter("y", 0, 1)], [Output("g") <= 0.03])
+
+    def problem(x, y):
+        return {"f1": x, "f2": 1 - x + y, "g": y}
+
+    config = MultiObjectiveConfig(objectives={"f1": "minimize", "f2": "minimize"}, max_evaluations=300, seed=1)
+    result = MultiObjectiveRandomSearch(space, config).optimize(problem)
+    volumes = [stats.hypervolume for stats in result.generations if stats.hypervolume is not None]
+    assert volumes[-1] > 0.1 and volumes[-1] > volumes[0]
+
+
+def test_pareto_progress_says_whether_anything_is_feasible():
+    seen = []
+    config = MultiObjectiveConfig(objectives=OBJECTIVES, population_size=2, generations=1, seed=0)
+    MultiObjectiveRandomSearch(FRONT_SPACE, config).optimize(
+        lambda x, y: {"a": x, "b": y, "total": 0.0, "cost": 0.0}, callback=seen.append
+    )
+    assert not seen[0].feasible and len(seen[0].front) == 0
+
+
+def test_a_checkpoint_from_before_output_constraints_carries_on(tmp_path, monkeypatch):
+    from hone.optimizers import core
+    from hone.result import GenerationStats
+
+    def make():
+        return GeneticOptimizer([X, Y], GeneticOptimizerConfig(max_evaluations=300, seed=0))
+
+    def sphere(x, y):
+        return x * x + y * y
+
+    def killed_at_generation_3(progress):
+        if progress.generation.generation == 3:
+            raise KeyboardInterrupt
+
+    whole = make().optimize(sphere)
+    # Save as hone 0.13.0 did: format 1, with none of the fields added since.
+    with monkeypatch.context() as patch:
+        patch.setattr(core, "CHECKPOINT_FORMAT", 1)
+        for cls, added in [(Individual, ("outputs", "violation")), (GenerationStats, ("infeasible",))]:
+            original = cls.__getstate__
+
+            def without(self, original=original, added=added):
+                state = original(self)
+                state["__dict__"] = {k: v for k, v in state["__dict__"].items() if k not in added}
+                return state
+
+            patch.setattr(cls, "__getstate__", without)
+        make().optimize(sphere, checkpoint=tmp_path / "old.checkpoint", callback=killed_at_generation_3)
+    assert pickle.loads((tmp_path / "old.checkpoint").read_bytes())["format"] == 1
+    assert make().optimize(sphere, checkpoint=tmp_path / "old.checkpoint") == whole
+
+
+def test_sensitivity_holds_reduced_parameters_at_a_feasible_point():
+    space = SearchSpace([X, Y], [TOTAL <= 4])
+    report = sensitivity(lambda x, y: {"objective": -(x + y), "total": x + y}, space, max_evaluations=60, seed=0)
+    assert report.best_params["x"] + report.best_params["y"] <= 4

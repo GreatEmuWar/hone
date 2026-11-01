@@ -90,7 +90,9 @@ class Optimizer(OptimizerCore[Result]):
             raise ValueError("pass the trial's value, or failed=True")
         outputs = self.search_space.outputs
         if outputs:
-            return not _check_outputs(value, [OBJECTIVE, *outputs], "the value")
+            return not _check_outputs(
+                value, [OBJECTIVE, *outputs], f"the value, since the search space has constraints on the outputs {', '.join(outputs)},"
+            )
         if isinstance(value, bool) or not isinstance(value, numbers.Real):
             raise TypeError(f"the value must be a number, got {value!r}")
         return not math.isfinite(value)

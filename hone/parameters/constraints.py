@@ -270,7 +270,12 @@ class Constraint(BaseModel):
         raise NotImplementedError
 
     def size(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
-        """The size of the limit, |right|, which relative_violation divides by; 0 for a function."""
+        """The size of the limit, which relative_violation divides by: |limit| for a limit that is a number, else 0.
+
+        Only a constant limit has a size, so a constraint's scale is the same at every point and
+        its relative violation changes smoothly. A limit that varies, a limit of zero and a
+        function have none, and their violations count in their own units.
+        """
         return 0.0
 
     def violation(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
@@ -321,6 +326,8 @@ class Constraint(BaseModel):
         is judged after evaluating. Return a relative margin, such as stress / LIMIT - 1,
         when other output constraints share the problem, so their violations compare.
         """
+        if isinstance(outputs, str):
+            raise TypeError(f"outputs is a list of names, such as outputs=[{outputs!r}], not a string")
         return FunctionConstraint(name=name or getattr(function, "__name__", "constraint"), func=function, outputs=list(outputs))
 
 
@@ -362,8 +369,11 @@ class ExpressionConstraint(Constraint):
         return math.inf if math.isnan(value) else value
 
     def size(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
-        sides = self._sides(params, outputs)
-        return 0.0 if sides is None else abs(sides[1])
+        # The limit is whichever side is a plain number: stress <= 250, or 250 >= stress.
+        for side, other in ((self.right, self.left), (self.left, self.right)):
+            if isinstance(side, Number) and not isinstance(other, Number):
+                return abs(side.value)
+        return 0.0
 
     def violation(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
         # Both sides once, since every candidate an optimizer considers is checked.
@@ -398,7 +408,7 @@ class FunctionConstraint(Constraint):
     kind: Literal["function"] = "function"
     name: str
     func: Callable[..., float] | None = Field(default=None, exclude=True)  # not saved; None once loaded
-    outputs: list[str] = Field(default_factory=list)  # the outputs it is passed, by name
+    outputs: list[str] = Field(default_factory=list, exclude_if=lambda outputs: not outputs)  # the outputs it is passed, by name; left out of a saved search space when empty, as before
 
     def margin(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
         if self.func is None:

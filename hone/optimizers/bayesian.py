@@ -36,6 +36,7 @@ REFINED = 5  # the best candidates are refined by gradient search
 REFIT_EVERY = 5  # past FIT_EVERY_UNTIL observations, refit the model's hyperparameters only this often
 FIT_EVERY_UNTIL = 50
 INACTIVE = 0.5  # where a range switched off by a condition is encoded
+UNCOMPUTED_MARGIN = 1.0  # the least relative margin, 100% over, modelled where a constraint couldn't be computed
 
 
 class _ModelSearch:
@@ -71,7 +72,7 @@ class _ModelSearch:
         through the bilog transform, sign(m) log(1 + |m|) (Eriksson and Poloczek, 2021), which
         keeps the sign, so the limit stays at zero, and tames the far tails that stresses and
         the like have near a design's edges. A margin that couldn't be computed counts as the
-        largest seen. A constraint with fewer than two such points has no model yet.
+        largest seen, and at least UNCOMPUTED_MARGIN, so it is never taken for feasible. A constraint with fewer than two such points has no model yet.
         """
         models = []
         for j in range(len(self.search_space.output_constraints)):
@@ -82,7 +83,8 @@ class _ModelSearch:
             finite = np.isfinite(values)
             if not finite.any():
                 continue
-            values[~finite] = values[finite].max()
+            # A margin that couldn't be computed counts as infeasible: at least 100% over, or the worst seen.
+            values[~finite] = max(values[finite].max(), UNCOMPUTED_MARGIN)
             values = _bilog(values)
             theta = self._constraint_thetas.get(j)
             model = GaussianProcess(X[rows], values, theta)
