@@ -29,6 +29,10 @@
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
+         <loc>https://hone-python.dev/latest/api/sensitivity/</loc>
+         <lastmod>2026-11-01</lastmod>
+    </url>
+    <url>
          <loc>https://hone-python.dev/latest/benchmarks/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
@@ -69,6 +73,10 @@
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
+         <loc>https://hone-python.dev/latest/examples/heat_sink/</loc>
+         <lastmod>2026-11-01</lastmod>
+    </url>
+    <url>
          <loc>https://hone-python.dev/latest/examples/maintenance_schedule/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
@@ -94,6 +102,10 @@
     </url>
     <url>
          <loc>https://hone-python.dev/latest/guide/search-spaces/</loc>
+         <lastmod>2026-11-01</lastmod>
+    </url>
+    <url>
+         <loc>https://hone-python.dev/latest/guide/sensitivity/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
