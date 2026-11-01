@@ -4,7 +4,7 @@
 
 ### Added
 
-- **A documentation site**, at https://greatemuwar.github.io/hone/, built with MkDocs Material. Its guide, examples, benchmark results and changelog are pulled from the README, the example scripts and the benchmark files, so each is still written once, and its API reference is generated from the docstrings. Every config field now has a docstring, which also becomes its description in the config's JSON schema. CI builds the site on every pull request and publishes it on every push to `main`; see "Docs" in the README.
+- **A documentation site**, at https://hone-python.dev/, built with MkDocs Material. Its guide, examples, benchmark results and changelog are pulled from the README, the example scripts and the benchmark files, so each is still written once, and its API reference is generated from the docstrings. Every config field now has a docstring, which also becomes its description in the config's JSON schema. CI builds the site on every pull request and publishes it on every push to `main`; see "Docs" in the README.
 
 ### Internal
 

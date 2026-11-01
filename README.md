@@ -1,7 +1,7 @@
 # hone
 Python-based optimization engine.
 
-Documentation: https://greatemuwar.github.io/hone/
+Documentation: https://hone-python.dev/
 
 ## Install
 
@@ -429,7 +429,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 
 The documentation site is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) from `mkdocs.yml` and the pages in `docs/`. Most pages hold no text of their own: a line such as `<!-- include README.md#constraints level=2 -->` pulls in a section of this README, and others pull in `CHANGELOG.md`, the benchmark results and the examples, so each is written once. `docs/hooks.py` does the including and points links at the site's own pages. The API reference is generated from docstrings by mkdocstrings; a config field is documented by a docstring on the line after it. `docs/design/` holds design notes and isn't published.
 
-On every push to `main`, CI builds the site and publishes it to the `gh-pages` branch with [mike](https://github.com/jimporter/mike), as the version `latest`, which GitHub Pages serves. For it to be served, the repository's Pages settings must publish from the `gh-pages` branch.
+On every push to `main`, CI builds the site and publishes it to the `gh-pages` branch with [mike](https://github.com/jimporter/mike), as the version `latest`, which GitHub Pages serves at https://hone-python.dev. The repository's Pages settings publish from the `gh-pages` branch with `hone-python.dev` as the custom domain, which GitHub keeps in a `CNAME` file on that branch; mike leaves it in place when it deploys. The domain's DNS is at Cloudflare.
 
 Only `latest` is kept for now. To keep the docs of each release once that's needed:
 
