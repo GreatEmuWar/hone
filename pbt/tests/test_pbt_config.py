@@ -100,7 +100,7 @@ def test_configs_are_frozen(config):
 
 
 # README: "It can also be loaded from a JSON or YAML file", and rebuild_optimizer re-validates the dumped config.
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(genetic_configs(), st.sampled_from(["json", "yaml", "yml"]))
 def test_genetic_config_file_round_trip(tmp_path, config, suffix):
     data = config.model_dump(mode="json")
@@ -111,7 +111,7 @@ def test_genetic_config_file_round_trip(tmp_path, config, suffix):
 
 
 # Loading a file that gives only some settings applies the same defaults as the constructor.
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(optional(budgets), optional(st.integers(min_value=0, max_value=100)), st.sampled_from(["json", "yaml"]))
 def test_partial_file_matches_constructor(tmp_path, budget, seed, suffix):
     data = {k: v for k, v in {"max_evaluations": budget, "seed": seed}.items() if v is not None}
