@@ -24,7 +24,7 @@ packages = [{ include = "hone" }]
 optional = true
 
 [project.urls]
-Documentation = "https://greatemuwar.github.io/hone/"
+Documentation = "https://hone-python.dev/"
 Source = "https://github.com/GreatEmuWar/hone"
 Changelog = "https://github.com/GreatEmuWar/hone/blob/main/CHANGELOG.md"
 

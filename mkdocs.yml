@@ -1,6 +1,6 @@
 site_name: hone
 site_description: A Python optimization engine for expensive, noisy and constrained problems.
-site_url: https://greatemuwar.github.io/hone/
+site_url: https://hone-python.dev/
 repo_url: https://github.com/GreatEmuWar/hone
 repo_name: GreatEmuWar/hone
 
