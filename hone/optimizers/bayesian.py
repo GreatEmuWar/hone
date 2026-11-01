@@ -12,7 +12,7 @@ INACTIVE, and a choice with every column 0. So points that differ only where par
 switched off are the same point to the model, and the values they happen to hold add no noise.
 """
 import math
-from typing import Any, List
+from typing import Any, Callable, List
 
 import numpy as np
 from scipy.optimize import minimize
@@ -33,7 +33,58 @@ FIT_EVERY_UNTIL = 50
 INACTIVE = 0.5  # where a range switched off by a condition is encoded
 
 
-class BayesianOptimizer(Optimizer):
+class _ModelSearch:
+    """Searching an acquisition function for the next candidate, over the encoded space, keeping to constraints.
+
+    Shared by single- and multi-objective Bayesian optimization.
+    """
+    search_space: SearchSpace
+    rng: np.random.Generator
+    _encoding: "_Encoding"
+
+    def _search(self, acquisition: Callable[[np.ndarray], np.ndarray], leaders: np.ndarray, seen: np.ndarray) -> np.ndarray:
+        """The candidate with the highest acquisition not yet evaluated: from random points, points near the leaders, and the best of those refined."""
+        encoding = self._encoding
+        local = leaders[self.rng.integers(len(leaders), size=LOCAL_CANDIDATES)]
+        scales = self.rng.choice([0.01, 0.05, 0.2], size=(LOCAL_CANDIDATES, 1))
+        local = encoding.perturb(self.rng, local, scales)
+        candidates = encoding.snap(np.vstack([encoding.spread(self.rng, GLOBAL_CANDIDATES), local]))
+        scores = self._only_feasible(candidates, acquisition(candidates))
+
+        columns = encoding.numeric
+        if columns.size:
+            starts = candidates[np.argsort(-scores)[:REFINED]]
+            refined = encoding.snap(_refine(acquisition, starts, columns))
+            candidates = np.vstack([candidates, refined])
+            scores = np.append(scores, self._only_feasible(refined, acquisition(refined)))
+
+        for index in np.argsort(-scores):
+            if scores[index] == -np.inf and self.search_space.constraints:
+                break  # the rest break a constraint
+            if not np.any(np.all(np.abs(seen - candidates[index]) < 1e-9, axis=1)):
+                return candidates[index]
+        return self._feasible_spread(1)[0]  # every feasible candidate was already evaluated
+
+    # --- constraints --------------------------------------------------------------
+
+    def _feasible_spread(self, count: int) -> np.ndarray:
+        """count points spread over the space, any that break a constraint replaced by random feasible points."""
+        X = self._encoding.spread(self.rng, count)
+        if self.search_space.constraints:
+            for i, x in enumerate(X):
+                if not self.search_space.feasible(self._encoding.decode(x)):
+                    X[i] = self._encoding.encode(self.search_space.sample(self.rng))
+        return X
+
+    def _only_feasible(self, X: np.ndarray, scores: np.ndarray) -> np.ndarray:
+        """scores, with those of points that break a constraint set to minus infinity."""
+        if not self.search_space.constraints:
+            return scores
+        feasible = np.array([self.search_space.feasible(self._encoding.decode(x)) for x in X], dtype=bool)
+        return np.where(feasible, scores, -np.inf)
+
+
+class BayesianOptimizer(Optimizer, _ModelSearch):
     """Bayesian optimization with a Gaussian process and expected improvement.
 
     The first generation is spread over the search space (with any initial points). After that,
@@ -130,52 +181,14 @@ class BayesianOptimizer(Optimizer):
         return chosen
 
     def _maximize_improvement(self, model: GaussianProcess, best: float) -> np.ndarray:
-        encoding = self._encoding
         leaders = model.X[np.argsort(model.z)[:5]]
-        local = leaders[self.rng.integers(len(leaders), size=LOCAL_CANDIDATES)]
-        scales = self.rng.choice([0.01, 0.05, 0.2], size=(LOCAL_CANDIDATES, 1))
-        local = encoding.perturb(self.rng, local, scales)
-        candidates = encoding.snap(np.vstack([encoding.spread(self.rng, GLOBAL_CANDIDATES), local]))
-        scores = self._only_feasible(candidates, _log_expected_improvement(model, candidates, best))
-
-        columns = encoding.numeric
-        if columns.size:
-            starts = candidates[np.argsort(-scores)[:REFINED]]
-            refined = encoding.snap(_refine(model, starts, columns, best))
-            candidates = np.vstack([candidates, refined])
-            scores = np.append(scores, self._only_feasible(refined, _log_expected_improvement(model, refined, best)))
-
-        seen = model.X
-        for index in np.argsort(-scores):
-            if scores[index] == -np.inf and self.search_space.constraints:
-                break  # the rest break a constraint
-            if not np.any(np.all(np.abs(seen - candidates[index]) < 1e-9, axis=1)):
-                return candidates[index]
-        return self._feasible_spread(1)[0]  # every feasible candidate was already evaluated
-
-    # --- constraints --------------------------------------------------------------
-
-    def _feasible_spread(self, count: int) -> np.ndarray:
-        """count points spread over the space, any that break a constraint replaced by random feasible points."""
-        X = self._encoding.spread(self.rng, count)
-        if self.search_space.constraints:
-            for i, x in enumerate(X):
-                if not self.search_space.feasible(self._encoding.decode(x)):
-                    X[i] = self._encoding.encode(self.search_space.sample(self.rng))
-        return X
-
-    def _only_feasible(self, X: np.ndarray, scores: np.ndarray) -> np.ndarray:
-        """scores, with those of points that break a constraint set to minus infinity."""
-        if not self.search_space.constraints:
-            return scores
-        feasible = np.array([self.search_space.feasible(self._encoding.decode(x)) for x in X], dtype=bool)
-        return np.where(feasible, scores, -np.inf)
+        return self._search(lambda X: _log_expected_improvement(model, X, best), leaders, model.X)
 
 
-def _refine(model: GaussianProcess, starts: np.ndarray, columns: np.ndarray, best: float) -> np.ndarray:
-    """Each start moved uphill in expected improvement by gradient search over the numeric columns.
+def _refine(acquisition: Callable[[np.ndarray], np.ndarray], starts: np.ndarray, columns: np.ndarray) -> np.ndarray:
+    """Each start moved uphill in the acquisition by gradient search over the numeric columns.
 
-    The gradient comes from finite differences, all taken in one vectorized call to the model.
+    The gradient comes from finite differences, all taken in one vectorized call.
     """
     step = 1e-6
     refined = starts.copy()
@@ -185,11 +198,11 @@ def _refine(model: GaussianProcess, starts: np.ndarray, columns: np.ndarray, bes
             X = np.repeat(start[None, :], len(columns) + 1, axis=0)
             X[:, columns] = u
             X[np.arange(1, len(columns) + 1), columns] += step
-            values = _log_expected_improvement(model, X, best)
+            values = acquisition(X)
             return -values[0], -(values[1:] - values[0]) / step
 
         found = minimize(negative_and_gradient, start[columns], jac=True, method="L-BFGS-B", bounds=[(0, 1 - step)] * len(columns))
-        if found.fun <= -_log_expected_improvement(model, start[None, :], best)[0]:
+        if found.fun <= -acquisition(start[None, :])[0]:
             refined[row, columns] = found.x
     return refined
 

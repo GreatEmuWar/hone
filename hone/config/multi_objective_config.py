@@ -62,3 +62,25 @@ class NSGA2Config(MultiObjectiveConfig):
         if data.get("generations") is None:
             data["generations"] = budget
         return data
+
+
+class MultiObjectiveBayesianConfig(MultiObjectiveConfig):
+    """Configuration for multi-objective Bayesian optimization. Usually only the budget, max_evaluations, needs setting.
+
+    As with BayesianConfig, each generation is a batch of candidates chosen together, and with
+    max_evaluations set, generations defaults to the budget.
+    """
+    population_size: int | None = Field(default=None, ge=1)  # type: ignore[assignment]  # candidates per batch; None: 1, or the number of workers
+    generations: int = Field(default=100, ge=1)
+    initial_samples: int | None = Field(default=None, ge=1)  # spread-out candidates before the models are used; None: 2 × (variables + 1)
+    # How candidates are chosen. "parego": a random weighting of the scaled objectives per
+    # candidate, scored by one Gaussian process. "models": one Gaussian process per objective,
+    # with the weighting applied to their predictions.
+    method: Literal["parego", "models"] = "parego"
+
+    @model_validator(mode="before")
+    @classmethod
+    def _generations_from_budget(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("max_evaluations") is not None and data.get("generations") is None:
+            data = {**data, "generations": data["max_evaluations"]}
+        return data

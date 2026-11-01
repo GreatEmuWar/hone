@@ -225,5 +225,6 @@ class MultiObjectiveRandomSearch(MultiObjectiveOptimizer):
 def builtin() -> list[type[MultiObjectiveOptimizer]]:
     """hone's own multi-objective optimizers, which ParetoResult.rebuild_optimizer finds by name."""
     from .genetic import NSGA2
+    from .multi_bayesian import MultiObjectiveBayesian
 
-    return [NSGA2, MultiObjectiveRandomSearch]
+    return [NSGA2, MultiObjectiveBayesian, MultiObjectiveRandomSearch]
