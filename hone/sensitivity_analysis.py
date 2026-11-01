@@ -21,7 +21,8 @@ from pydantic import BaseModel, ConfigDict
 from scipy.stats import qmc
 
 from hone.objective_function import ObjectiveFunction
-from hone.optimizers.core import UnsupportedSearchSpace, _evaluate
+from hone.optimizers.base import _check_outputs
+from hone.optimizers.core import OBJECTIVE, UnsupportedSearchSpace, _evaluate
 from hone.optimizers._pool import EvaluationPool
 from hone.parameters import ChoiceParameter, FixedParameter, Parameter, RangeParameter, SearchSpace
 
@@ -233,7 +234,9 @@ def sensitivity(
 
     Args:
         objective_function: The function to measure.
-        search_space: The parameters, with any conditions; constraints aren't supported yet.
+        search_space: The parameters, with any conditions. Constraints on outputs are allowed and
+            ignored: the objective returns its dict, and only its "objective" is measured.
+            Constraints on the parameters aren't supported yet.
         max_evaluations: The most evaluations to make.
         method: "morris" or "sobol", rather than choosing from max_evaluations.
         maximize: Whether higher values are better, which only decides best_params.
@@ -246,10 +249,10 @@ def sensitivity(
     function must be defined at the top level of a module.
     """
     space = search_space if isinstance(search_space, SearchSpace) else SearchSpace(search_space)
-    if space.constraints:
+    if space.parameter_constraints:
         raise UnsupportedSearchSpace(
-            "sensitivity() doesn't support constraints yet: Morris and Sobol assume each parameter can take any of its "
-            "values whatever the others are"
+            "sensitivity() doesn't support constraints on the parameters yet: Morris and Sobol assume each parameter can "
+            "take any of its values whatever the others are"
         )
     if workers < 1:
         raise ValueError(f"workers must be at least 1, got {workers}")
@@ -374,6 +377,12 @@ def _evaluate_all(
     else:
         with EvaluationPool(evaluate, workers, timeout) as pool:
             outcomes = pool.map(called)
+    if space.output_constraints:
+        # The objective returns a dict with its outputs, which don't change where the points are.
+        for outcome in outcomes:
+            if outcome is not None:
+                _check_outputs(outcome, [OBJECTIVE, *space.outputs], f"{objective.name}()'s value")
+        outcomes = [None if outcome is None else outcome[OBJECTIVE] for outcome in outcomes]
     values = np.array([math.nan if outcome is None else outcome for outcome in outcomes], dtype=float)
     values[~np.isfinite(values)] = math.nan
     return values

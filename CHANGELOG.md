@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+Constraints on outputs: limits on what an evaluation reports, such as the peak stress a simulation computes, written with `Output` in the same `constraints=` list as limits on the parameters. A README section explains them, an example designs a welded beam whose stresses come from an analysis, and the constrained benchmark gains output versions of its three engineering problems. See [docs/design/output-constraints.md](docs/design/output-constraints.md).
+
+### Added
+
+- **Constraints on outputs.** `Output("stress") <= 250` is a limit judged once the objective reports the stress. Outputs combine with parameters and numbers like any term, so `Output("stress") <= 50 * width` works, and `material["steel"] >> (Output("stress") <= 400)` applies a limit only to one branch. `Constraint.function(f, outputs=["stress"])` passes outputs to a function constraint by name. With output constraints the objective returns a dict, its value under `"objective"` and a number for each output; with several objectives, the outputs share the objectives' dict, and a name can be both. `SearchSpace.parameter_constraints` and `output_constraints` split the list by when each can be judged, and `outputs` names what the objective must return. `sensitivity()` accepts output constraints and measures only the objective.
+- **Deb's feasibility rule in every optimizer.** A design that satisfies every output constraint beats one that doesn't; feasible designs rank by value, the others by their total violation, each violation a share of its limit's size, so no penalty weight is needed. The genetic optimizer's elites, tournaments, roulette and niches, CMA-ES's recombination and random search's best all use it, and NSGA2 uses constrained domination. Bayesian optimization models each output constraint with a Gaussian process, on its relative margin through the bilog transform, and multiplies expected improvement by the probability that every one holds; until a design satisfies them all, it looks for one that does. Multi-objective Bayesian optimization does the same with the improvement in its weighted objectives.
+- **Results report feasibility.** `Result.feasible` says whether `best_params` satisfies every output constraint, which is false only if no evaluation did; `best_outputs` holds its outputs, and `infeasible` counts the evaluations that broke one. `GenerationStats` and `ParetoGenerationStats` count them per generation too, and a generation's fitness statistics leave them out. `Progress.feasible` says the same of the best so far, and `print_progress` marks a best that breaks a limit. A threshold is reached only by a feasible design. A front holds only feasible designs, each `ParetoPoint` with its `outputs`, and `ParetoResult.feasible` is false while it is empty.
+- **An example**, `examples/welded_beam.py`, designing a welded beam whose stresses, buckling load and deflection come from an analysis of each design, which gets within about 1% of the best published design in 150 evaluations of Bayesian optimization.
+- **Benchmark problems** `pressure-vessel-outputs`, `tension-spring-outputs` and `welded-beam-outputs` in `--constrained`: the engineering designs with their limits reported by the objective instead of written on the parameters.
+
+### Changed
+
+- **Checkpoints from earlier versions can't be loaded**, since each evaluation now records its outputs and violation; a run saved by 0.13.0 or before raises `ValueError` saying so. Finish such runs with the version that started them.
+- Constraints with no outputs behave exactly as before, and seeded runs without output constraints give the same results.
+
 ## 0.13.0 (2026-11-01)
 
 Sensitivity analysis: which parameters matter, measured before optimizing or instead of it, and the search space with the rest fixed. A README section and a page on the site explain it, and an example finds which of a heat sink's eight settings drive a chip's temperature. See [docs/design/sensitivity.md](docs/design/sensitivity.md).

@@ -15,7 +15,7 @@ from hone.optimizers import (
     choose_optimizer,
     choose_pareto_optimizer,
 )
-from hone.parameters import ChoiceParameter, Condition, Constraint, FixedParameter, InfeasibleSearchSpace, RangeParameter, SearchSpace
+from hone.parameters import ChoiceParameter, Condition, Constraint, FixedParameter, InfeasibleSearchSpace, Output, RangeParameter, SearchSpace
 from hone.pareto import Front, ParetoGenerationStats, ParetoPoint, ParetoProgress, ParetoResult
 from hone.result import GenerationStats, Progress, Result, RunInfo, print_progress
 from hone.sensitivity_analysis import Interval, ParameterSensitivity, SensitivityReport, sensitivity
@@ -47,6 +47,7 @@ __all__ = [
     "NSGA2Config",
     "Optimizer",
     "OptimizerConfig",
+    "Output",
     "ParameterSensitivity",
     "ParetoGenerationStats",
     "ParetoPoint",

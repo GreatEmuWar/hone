@@ -20,6 +20,10 @@ class NSGA2(MultiObjectiveOptimizer, Breeding):
     bred as in the genetic optimizer, with its crossover, mutation, repeat avoidance, repair
     for constraints, conditions and niches.
 
+    With constraints on outputs, domination is constrained (Deb et al., 2002): points that
+    satisfy every one are sorted into fronts as above, and come before every point that
+    doesn't, which rank by their total violation, smallest first.
+
     The result's front is that of every point evaluated, not only the survivors, so a
     trade-off found early is never lost when crowding drops it from the population.
     Ties are broken by the order points were created, so a seeded run repeats exactly, and
@@ -54,10 +58,15 @@ class NSGA2(MultiObjectiveOptimizer, Breeding):
     # --- survival ----------------------------------------------------------
 
     def _survivors(self, pool: list[Individual], size: int) -> list[Individual]:
-        """The best size individuals of pool, by front and then crowding distance, with their standing recorded."""
+        """The best size individuals of pool, by front and then crowding distance, with their standing recorded.
+
+        Points that break an output constraint come after every feasible front, each in a rank
+        of its own by violation, smallest first.
+        """
         assert all(ind.values is not None for ind in pool)
         vectors = np.array([_minimizing(ind.values, self._objectives) for ind in pool])  # type: ignore[arg-type]
-        remaining = list(range(len(pool)))
+        remaining = [i for i, ind in enumerate(pool) if ind.violation == 0]
+        infeasible = sorted((i for i, ind in enumerate(pool) if ind.violation > 0), key=lambda i: (pool[i].violation, pool[i].id))
         survivors: list[Individual] = []
         self._standing = {}
         rank = 0
@@ -70,6 +79,12 @@ class NSGA2(MultiObjectiveOptimizer, Breeding):
             survivors += [pool[i] for i in front[: size - len(survivors)]]
             chosen = set(front)
             remaining = [i for i in remaining if i not in chosen]
+            rank += 1
+        for i in infeasible:
+            if len(survivors) >= size:
+                break
+            self._standing[pool[i]] = (rank, 0.0)
+            survivors.append(pool[i])
             rank += 1
         return survivors
 

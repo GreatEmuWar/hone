@@ -9,6 +9,7 @@ from hone.result import GenerationStats, Progress, Result
 
 from .core import (
     CHECKPOINT_FORMAT,
+    OBJECTIVE,
     EvaluationFailed,
     Individual,
     OptimizerCore,
@@ -21,6 +22,7 @@ from .core import (
 
 __all__ = [
     "CHECKPOINT_FORMAT",
+    "OBJECTIVE",
     "EvaluationFailed",
     "Individual",
     "Optimizer",
@@ -60,6 +62,12 @@ class Optimizer(OptimizerCore[Result]):
 
     The objective returns a number. To record an evaluation as failed instead, it can raise
     EvaluationFailed or return NaN or infinity.
+
+    With constraints on outputs, the objective returns a dict instead: its value under
+    "objective", and a number for each output the constraints use. Evaluations are then ranked
+    by Deb's feasibility rule: a point that satisfies every output constraint beats one that
+    doesn't, feasible points rank by value, and the others by their total violation, so no
+    penalty weight is needed. Failed evaluations rank below them all.
     """
 
     def reset(self) -> None:
@@ -71,6 +79,7 @@ class Optimizer(OptimizerCore[Result]):
         self._points: dict[tuple, dict[str, Any]] = {}
         self._finalists: list[tuple] = []
         self._final_round = False
+        self._infeasible = 0  # evaluations that broke a constraint on the outputs
 
     # --- what a value is ---------------------------------------------------
 
@@ -79,6 +88,9 @@ class Optimizer(OptimizerCore[Result]):
             return True
         if value is None:
             raise ValueError("pass the trial's value, or failed=True")
+        outputs = self.search_space.outputs
+        if outputs:
+            return not _check_outputs(value, [OBJECTIVE, *outputs], "the value")
         if isinstance(value, bool) or not isinstance(value, numbers.Real):
             raise TypeError(f"the value must be a number, got {value!r}")
         return not math.isfinite(value)
@@ -87,6 +99,11 @@ class Optimizer(OptimizerCore[Result]):
         individual.fitness = -math.inf if self.config.maximize else math.inf
 
     def _record(self, individual: Individual, value: Any) -> None:
+        if isinstance(value, dict):
+            individual.outputs = {name: float(value[name]) for name in self.search_space.outputs}
+            individual.violation = self.search_space.output_violation(individual.params, individual.outputs)
+            self._infeasible += individual.violation > 0
+            value = value[OBJECTIVE]
         individual.fitness = float(value)
         if self.config.noise:
             # Average every evaluation of the same point, so a lucky value regresses toward its mean.
@@ -94,7 +111,7 @@ class Optimizer(OptimizerCore[Result]):
             self._observations.setdefault(key, []).append(float(value))
             self._points.setdefault(key, dict(individual.params))
             individual.fitness = float(np.mean(self._observations[key]))
-        if self._best is None or self._is_better(individual.fitness, _fitness(self._best)):
+        if self._best is None or self._rank(individual) < self._rank(self._best):
             self._best = individual
 
     def _has_result(self) -> bool:
@@ -108,12 +125,16 @@ class Optimizer(OptimizerCore[Result]):
         if best is None:
             raise RuntimeError("no successful evaluations yet")
         best_fitness, best_params = best
+        assert self._best is not None
         return Result(
             best_fitness=best_fitness,
             best_params=dict(best_params),
+            best_outputs=dict(self._best.outputs) if self._best.outputs is not None else None,
+            feasible=self._best.violation == 0,
             generations=self._history,
             evaluations=self._evaluations,
             failures=self._failures,
+            infeasible=self._infeasible,
             reached_threshold=self._reached_threshold,
             stopped=self._stopped,
             run=self._run_info(),
@@ -141,6 +162,7 @@ class Optimizer(OptimizerCore[Result]):
                 evaluations=stats.evaluations,
                 best_fitness=best[0] if best is not None else None,
                 best_params=dict(best[1]) if best is not None else None,
+                feasible=self._best is None or self._best.violation == 0,
                 elapsed=self._elapsed(),
             )
             if callback(progress) and not self._done:
@@ -152,7 +174,8 @@ class Optimizer(OptimizerCore[Result]):
 
     def _goal_reached(self) -> bool:
         best = self._best_point()
-        return best is not None and self._reached(best[0])
+        # Only a point that satisfies every constraint on the outputs can reach the threshold.
+        return best is not None and self._best is not None and self._best.violation == 0 and self._reached(best[0])
 
     def _begin_final_round(self) -> bool:
         if self.config.reserved_evaluations and not self._final_round and self._observations:
@@ -207,13 +230,19 @@ class Optimizer(OptimizerCore[Result]):
 
     # --- ranking ---------------------------------------------------------------
 
-    def _is_better(self, fitness: float, other: float) -> bool:
-        """Whether fitness beats other in the configured direction."""
-        return fitness > other if self.config.maximize else fitness < other
+    def _rank(self, individual: Individual) -> tuple[bool, float, float]:
+        """A sort key putting the best individual first, by Deb's feasibility rule.
+
+        Successful before failed; among those, smaller violation of the output constraints
+        first, which puts every feasible point (violation 0) ahead; then better fitness. Without
+        output constraints every violation is 0, so this ranks by fitness alone.
+        """
+        fitness = _fitness(individual)
+        return individual.failed, individual.violation, -fitness if self.config.maximize else fitness
 
     def _ranked(self, individuals: list[Individual]) -> list[Individual]:
-        """The individuals, best first. Failed individuals sort last."""
-        return sorted(individuals, key=_fitness, reverse=self.config.maximize)
+        """The individuals, best first: by feasibility, then fitness. Failed individuals sort last."""
+        return sorted(individuals, key=self._rank)
 
     def _reached(self, fitness: float) -> bool:
         """Whether fitness is good enough to stop early. Never true without a threshold."""
@@ -223,15 +252,19 @@ class Optimizer(OptimizerCore[Result]):
 
     def _summarize(self, generation: int, evaluations: int, population: list[Individual]) -> GenerationStats:
         evaluated = [ind for ind in population if ind.fitness is not None]
-        succeeded = self._ranked([ind for ind in evaluated if not ind.failed])
-        failures = len(evaluated) - len(succeeded)
+        ranked = self._ranked([ind for ind in evaluated if not ind.failed])
+        failures = len(evaluated) - len(ranked)
+        # The fitness statistics cover only points that satisfy the output constraints.
+        succeeded = [ind for ind in ranked if ind.violation == 0]
+        infeasible = len(ranked) - len(succeeded)
         if not succeeded:
-            return GenerationStats(generation=generation, evaluations=evaluations, failures=failures)
+            return GenerationStats(generation=generation, evaluations=evaluations, failures=failures, infeasible=infeasible)
         fitnesses = [_fitness(ind) for ind in succeeded]
         return GenerationStats(
             generation=generation,
             evaluations=evaluations,
             failures=failures,
+            infeasible=infeasible,
             best_fitness=succeeded[0].fitness,
             best_params=self.search_space.active(succeeded[0].params),
             worst_fitness=succeeded[-1].fitness,
@@ -239,6 +272,21 @@ class Optimizer(OptimizerCore[Result]):
             median=float(np.median(fitnesses)),
             std=float(np.std(fitnesses)),
         )
+
+
+def _check_outputs(value: Any, names: list[str], what: str) -> bool:
+    """Check value is a dict with a number for exactly the given names, raising TypeError if not. Returns whether every number is finite."""
+    if not isinstance(value, dict):
+        raise TypeError(f"{what} must be a dict with a number for each of {', '.join(names)}, got {value!r}")
+    missing, extra = [n for n in names if n not in value], sorted(set(value) - set(names))
+    if missing or extra:
+        problems = [f"missing {', '.join(missing)}"] * bool(missing) + [f"unknown {', '.join(map(str, extra))}"] * bool(extra)
+        raise TypeError(f"{what} must have exactly {', '.join(names)}: {'; '.join(problems)}")
+    for name in names:
+        number = value[name]
+        if isinstance(number, bool) or not isinstance(number, numbers.Real):
+            raise TypeError(f"the value of {name} must be a number, got {number!r}")
+    return all(math.isfinite(value[name]) for name in names)
 
 
 def _fitness(individual: Individual) -> float:

@@ -1,6 +1,7 @@
 """Run optimizers on benchmark problems and summarize how close they get to each optimum."""
 import functools
 import json
+import math
 import multiprocessing
 import statistics
 import zlib
@@ -79,7 +80,7 @@ class Run(BaseModel):
     optimizer: str
     budget_per_dimension: int
     seed: int
-    error: float  # best value found minus the problem's optimum; 0 means the optimum was found
+    error: float  # best value found minus the problem's optimum; 0 means the optimum was found, infinity that nothing feasible was
     evaluations: int
     trace: list[tuple[int, float]]  # (evaluations so far, error of the best so far), once per generation
 
@@ -100,7 +101,7 @@ class Summary(BaseModel):
     @classmethod
     def of(cls, runs: list[Run], tolerance: float) -> "Summary":
         errors = sorted(run.error for run in runs)
-        quartiles = statistics.quantiles(errors, n=4, method="inclusive") if len(errors) > 1 else errors * 3
+        quartiles = [_quantile(errors, q) for q in (0.25, 0.5, 0.75)]
         return cls(
             problem=runs[0].problem,
             optimizer=runs[0].optimizer,
@@ -111,6 +112,15 @@ class Summary(BaseModel):
             upper_quartile=quartiles[2],
             solved=sum(error <= tolerance for error in errors) / len(errors),
         )
+
+
+def _quantile(ordered: list[float], q: float) -> float:
+    """The q quantile of sorted values, interpolated as statistics.quantiles' inclusive method does, allowing infinity."""
+    position = (len(ordered) - 1) * q
+    low, high = math.floor(position), math.ceil(position)
+    if ordered[low] == ordered[high] or position == low:
+        return ordered[low]
+    return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
 
 
 def run_benchmark(
@@ -172,6 +182,7 @@ def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: 
         # noisy value it saw there, which is likely to be a lucky one.
         return problem.function(**params) if problem.noise else fitness
 
+    # With constraints on outputs, generations' bests are of feasible points only, so the trace is too.
     trace, best = [], float("inf")
     for generation in result.generations:
         if generation.best_fitness is not None and generation.best_params is not None:
@@ -182,7 +193,7 @@ def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: 
         optimizer=name,
         budget_per_dimension=per_dimension,
         seed=seed,
-        error=max(true_value(result.best_fitness, result.best_params) - problem.optimum, 0.0),
+        error=max(true_value(result.best_fitness, result.best_params) - problem.optimum, 0.0) if result.feasible else math.inf,
         evaluations=result.evaluations,
         trace=trace,
     )

@@ -8,6 +8,11 @@
 - pressure-vessel, tension-spring and welded-beam: three standard engineering design problems,
   scored against the best designs published for them. The welded beam's stress formulas need
   square roots, so its constraints are functions; the others are expressions.
+
+Each engineering problem also comes with its limits on outputs, as the -outputs version: the
+objective reports the volume, stresses and so on that the limits apply to, as a simulation
+would, and the optimizer only learns that a design breaks a limit after evaluating it. The
+pairs show what is lost by not knowing a limit beforehand.
 """
 import math
 import zlib
@@ -15,7 +20,7 @@ from typing import Any
 
 import numpy as np
 
-from hone.parameters import Constraint, RangeParameter, SearchSpace
+from hone.parameters import Constraint, Output, RangeParameter, SearchSpace
 
 from .problems import BOUND, Problem, _shift
 
@@ -166,7 +171,100 @@ def welded_beam() -> Problem:
     return Problem(name="welded-beam", function=welded_beam, search_space=space, optimum=1.724852, tags=frozenset({"constrained", "engineering"}))
 
 
+def pressure_vessel_outputs() -> Problem:
+    """The pressure vessel, with its limits on what it reports: the plate thicknesses its radius needs, and its volume."""
+    problem = pressure_vessel()
+    shell, head = RangeParameter("shell", 1, 99, integer=True), RangeParameter("head", 1, 99, integer=True)
+    radius, length = RangeParameter("radius", 10, 200), RangeParameter("length", 10, 200)
+    cost = problem.function
+
+    def pressure_vessel_outputs(shell: int, head: int, radius: float, length: float) -> dict[str, float]:
+        return {
+            "objective": cost(shell=shell, head=head, radius=radius, length=length),
+            "shell_needed": 0.0193 * radius,
+            "head_needed": 0.00954 * radius,
+            "volume": math.pi * radius**2 * length + 4 / 3 * math.pi * radius**3,
+        }
+
+    space = SearchSpace(
+        [shell, head, radius, length],
+        [shell / 16 >= Output("shell_needed"), head / 16 >= Output("head_needed"), Output("volume") >= 1_296_000],
+    )
+    return problem.model_copy(update={"name": "pressure-vessel-outputs", "function": pressure_vessel_outputs, "search_space": space, "tags": problem.tags | {"outputs"}})
+
+
+def tension_spring_outputs() -> Problem:
+    """The tension spring, with its deflection, shear stress and surge frequency limits on what it reports."""
+    problem = tension_spring()
+    d, coil, n = RangeParameter("wire", 0.05, 2.0), RangeParameter("coil", 0.25, 1.3), RangeParameter("turns", 2.0, 15.0)
+    weight = problem.function
+
+    def tension_spring_outputs(wire: float, coil: float, turns: float) -> dict[str, float]:
+        return {
+            "objective": weight(wire=wire, coil=coil, turns=turns),
+            "deflection": coil**3 * turns / (71785 * wire**4),
+            "shear": (4 * coil**2 - wire * coil) / (12566 * (coil * wire**3 - wire**4)) + 1 / (5108 * wire**2),
+            "surge": 140.45 * wire / (coil**2 * turns),
+        }
+
+    space = SearchSpace(
+        [d, coil, n],
+        [Output("deflection") >= 1, Output("shear") <= 1, Output("surge") >= 1, d + coil <= 1.5],
+    )
+    return problem.model_copy(update={"name": "tension-spring-outputs", "function": tension_spring_outputs, "search_space": space, "tags": problem.tags | {"outputs"}})
+
+
+def welded_beam_outputs() -> Problem:
+    """The welded beam, with its shear, bending, buckling and deflection limits on what it reports.
+
+    The geometric limits, weld <= width and the cost cap, stay on the parameters, as they would
+    in practice: they need no simulation.
+    """
+    problem = welded_beam()
+    weld, length = RangeParameter("weld", 0.1, 2.0), RangeParameter("length", 0.1, 10.0)
+    thickness, width = RangeParameter("thickness", 0.1, 10.0), RangeParameter("width", 0.1, 2.0)
+    cost = problem.function
+
+    def welded_beam_outputs(weld: float, length: float, thickness: float, width: float) -> dict[str, float]:
+        return {
+            "objective": cost(weld=weld, length=length, thickness=thickness, width=width),
+            "shear": _shear(weld, length, thickness),
+            "bending": 6 * P * L / (width * thickness**2),
+            "buckling": _buckling(thickness, width),
+            "deflection": 4 * P * L**3 / (E * thickness**3 * width),
+        }
+
+    space = SearchSpace(
+        [weld, length, thickness, width],
+        [
+            Output("shear") <= 13600,
+            Output("bending") <= 30000,
+            weld <= width,
+            0.10471 * weld**2 + 0.04811 * thickness * width * (14 + length) <= 5,
+            Output("deflection") <= 0.25,
+            Output("buckling") >= P,
+        ],
+    )
+    return problem.model_copy(update={"name": "welded-beam-outputs", "function": welded_beam_outputs, "search_space": space, "tags": problem.tags | {"outputs"}})
+
+
 def constrained_problems(dimensions: tuple[int, ...] = (2, 5, 10)) -> list[Problem]:
-    """The constrained suite: boundary sphere and ellipsoid in each dimension, Rosenbrock in a disk, and three engineering designs."""
+    """The constrained suite: boundary sphere and ellipsoid in each dimension, Rosenbrock in a disk, and three engineering designs.
+
+    Each engineering design comes twice: with its limits on the parameters, and on its outputs.
+    """
     problems = [factory(d) for d in dimensions for factory in (boundary_sphere, boundary_ellipsoid)]
-    return problems + [rosenbrock_disk(), pressure_vessel(), tension_spring(), welded_beam()]
+    return problems + [
+        rosenbrock_disk(),
+        pressure_vessel(),
+        tension_spring(),
+        welded_beam(),
+        pressure_vessel_outputs(),
+        tension_spring_outputs(),
+        welded_beam_outputs(),
+    ]
+
+
+def output_problems() -> list[Problem]:
+    """The engineering designs with their limits on outputs only, for a quick comparison with the parameter versions."""
+    return [pressure_vessel_outputs(), tension_spring_outputs(), welded_beam_outputs()]

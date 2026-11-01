@@ -11,15 +11,17 @@ if TYPE_CHECKING:
 
 
 class GenerationStats(BaseModel):
-    """Summary of one generation's fitness, over its successful evaluations.
+    """Summary of one generation's fitness, over its successful evaluations that satisfy any constraints on outputs.
 
-    The fitness fields are None when every evaluation in the generation failed.
+    The fitness fields are None when every evaluation in the generation failed or broke an
+    output constraint.
     """
     model_config = ConfigDict(frozen=True)
 
     generation: int
     evaluations: int  # evaluations up to the end of this generation, failed ones included
     failures: int = 0  # failed evaluations in this generation
+    infeasible: int = 0  # evaluations in this generation that broke a constraint on the outputs
     best_fitness: float | None = None
     best_params: dict[str, Any] | None = None
     worst_fitness: float | None = None
@@ -55,6 +57,7 @@ class Progress(BaseModel):
     best_fitness: float | None  # the best value so far; None while every evaluation has failed
     best_params: dict[str, Any] | None
     elapsed: float  # seconds since the run started
+    feasible: bool = True  # whether best_params satisfies every constraint on the outputs
 
 
 def print_progress(progress: Any) -> None:
@@ -64,6 +67,8 @@ def print_progress(progress: Any) -> None:
     """
     if isinstance(progress, Progress):
         found = "best none yet" if progress.best_fitness is None else f"best {progress.best_fitness:.6g}"
+        if progress.best_fitness is not None and not progress.feasible:
+            found += " (breaks an output constraint)"
     else:
         stats = progress.generation
         volume = "" if stats.hypervolume is None else f", hypervolume {stats.hypervolume:.6g}"
@@ -77,6 +82,9 @@ def print_progress(progress: Any) -> None:
 class Result(BaseModel):
     """Outcome of an optimization run. Save it with save() and read it back with load().
 
+    With constraints on outputs, best_params is the best point that satisfies them all. If no
+    evaluation did, it is the point that came closest, by total violation, and feasible is False.
+
     Two results are equal when they found the same things; their run records are not compared,
     since a repeated run differs in its timing.
     """
@@ -84,9 +92,12 @@ class Result(BaseModel):
 
     best_fitness: float
     best_params: dict[str, Any]
+    best_outputs: dict[str, float] | None = None  # the outputs at best_params, with constraints on outputs
+    feasible: bool = True  # whether best_params satisfies every constraint on the outputs; False only if no evaluation did
     generations: list[GenerationStats]  # completed generations; empty partway through the first
     evaluations: int  # evaluations made, failed ones included
     failures: int = 0  # evaluations that failed
+    infeasible: int = 0  # evaluations that broke a constraint on the outputs
     reached_threshold: bool  # whether the run stopped early because it reached config.threshold
     stopped: bool = False  # whether the run was stopped before it finished, by its callback or Ctrl+C
     run: RunInfo | None = None  # how the result was produced; None in results saved before hone 0.7.1

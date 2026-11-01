@@ -223,10 +223,13 @@ MAX_DRAWS = 100_000  # draws in a row without a feasible point before a search s
 class SearchSpace(BaseModel):
     """The set of parameters an objective function is optimized over, and any constraints and conditions on them.
 
-    Every point an optimizer asks for satisfies every constraint, so the objective is never
-    evaluated where a constraint rules it out. A condition, written `test >> parameters`,
-    switches parameters on only while the test holds, such as `model["svm"] >> [kernel, C]`;
-    a parameter that is switched off isn't part of the point.
+    Every point an optimizer asks for satisfies every constraint on the parameters, so the
+    objective is never evaluated where one rules it out. A constraint that uses an output, such
+    as `Output("stress") <= 250`, can only be judged after evaluating: the objective returns
+    the outputs in a dict, and points that break such a limit rank below those that don't.
+    A condition, written `test >> parameters`, switches parameters on only while the test
+    holds, such as `model["svm"] >> [kernel, C]`; a parameter that is switched off isn't part
+    of the point.
     """
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -238,6 +241,9 @@ class SearchSpace(BaseModel):
     # an order that puts each parameter after those its test uses.
     _tests: dict[str, ChoiceTest | ExpressionConstraint] = PrivateAttr(default_factory=dict)
     _order: list[Parameter] = PrivateAttr(default_factory=list)
+    # The constraints sorted by when they can be judged: before evaluating, or only after, from outputs.
+    _before: list[AnyConstraint] = PrivateAttr(default_factory=list)
+    _after: list[AnyConstraint] = PrivateAttr(default_factory=list)
 
     def __init__(
         self,
@@ -267,6 +273,14 @@ class SearchSpace(BaseModel):
         by_name = {parameter.name: parameter for parameter in self.parameters}
         for constraint in self.constraints:
             _check_constraint(constraint, by_name)
+            clashing = sorted(constraint.output_names() & set(by_name))
+            if clashing:
+                raise ValueError(
+                    f"the constraint `{constraint}` uses an output named {clashing[0]!r}, which is also a parameter: "
+                    "give the output another name"
+                )
+        self._before = [c for c in self.constraints if not c.output_names()]
+        self._after = [c for c in self.constraints if c.output_names()]
         return self
 
     @model_validator(mode="after")
@@ -296,6 +310,52 @@ class SearchSpace(BaseModel):
     def names(self) -> list[str]:
         return [parameter.name for parameter in self.parameters]
 
+    @property
+    def parameter_constraints(self) -> list[AnyConstraint]:
+        """The constraints judged from the parameters alone, before evaluating: every point asked for satisfies them."""
+        return list(self._before)
+
+    @property
+    def output_constraints(self) -> list[AnyConstraint]:
+        """The constraints that use an output, so can only be judged once an evaluation reports it."""
+        return list(self._after)
+
+    @property
+    def outputs(self) -> list[str]:
+        """The outputs the constraints use, which the objective must return, in alphabetical order."""
+        return sorted({name for constraint in self._after for name in constraint.output_names()})
+
+    def output_violation(self, params: dict[str, Any], outputs: dict[str, float]) -> float:
+        """The total violation of the output constraints at params: the sum of each one's relative violation.
+
+        Zero when every one that applies is satisfied. Each violation is a share of its limit's
+        size, so 0.1 is 10% over, and limits in different units add up fairly.
+        """
+        point = self.active(params)
+        return float(sum(c.relative_violation(point, outputs) for c in self._after if c.applies(point)))
+
+    def output_broken(self, params: dict[str, Any], outputs: dict[str, float]) -> list[AnyConstraint]:
+        """The output constraints params and their outputs don't satisfy."""
+        point = self.active(params)
+        return [c for c in self._after if c.applies(point) and not c.satisfied(point, outputs)]
+
+    def output_margins(self, params: dict[str, Any], outputs: dict[str, float]) -> list[float | None]:
+        """Each output constraint's relative margin at params, in order: None where it doesn't apply.
+
+        A relative margin is the margin divided by the size of its limit, as for relative_violation,
+        so it is zero or less where the constraint is satisfied: stress <= 250 at a stress of 200
+        has -0.2. A limit of size zero keeps its margin as it is.
+        """
+        point = self.active(params)
+        margins: list[float | None] = []
+        for c in self._after:
+            if not c.applies(point):
+                margins.append(None)
+                continue
+            margin, size = c.margin(point, outputs), c.size(point, outputs)
+            margins.append(margin / size if math.isfinite(margin) and math.isfinite(size) and size > 0 else margin)
+        return margins
+
     def is_conditional(self, name: str) -> bool:
         """Whether a condition switches the parameter on and off."""
         return name in self._tests
@@ -322,7 +382,7 @@ class SearchSpace(BaseModel):
         are drawn until one is feasible. Raises InfeasibleSearchSpace after MAX_DRAWS draws in
         a row without one.
         """
-        for _ in range(MAX_DRAWS if self.constraints else 1):
+        for _ in range(MAX_DRAWS if self._before else 1):
             point = {parameter.name: parameter.sample(rng) for parameter in self.parameters}
             if self.feasible(point):
                 return point
@@ -344,14 +404,17 @@ class SearchSpace(BaseModel):
         return SearchSpace(self.parameters, constraints, self.conditions)
 
     def feasible(self, params: dict[str, Any]) -> bool:
-        """Whether params satisfy every constraint that applies to the parameters switched on."""
+        """Whether params satisfy every constraint on the parameters that applies to those switched on.
+
+        Constraints on outputs aren't checked: they can't be until the point is evaluated.
+        """
         point = self.active(params)
-        return all(not constraint.applies(point) or constraint.satisfied(point) for constraint in self.constraints)
+        return all(not constraint.applies(point) or constraint.satisfied(point) for constraint in self._before)
 
     def broken(self, params: dict[str, Any]) -> list[AnyConstraint]:
-        """The constraints params don't satisfy."""
+        """The constraints on the parameters that params don't satisfy."""
         point = self.active(params)
-        return [c for c in self.constraints if c.applies(point) and not c.satisfied(point)]
+        return [c for c in self._before if c.applies(point) and not c.satisfied(point)]
 
     def check(self, params: dict[str, Any]) -> dict[str, Any]:
         """params as a complete point of this space, in parameter order, or ValueError if they aren't one.
@@ -388,6 +451,12 @@ class SearchSpace(BaseModel):
 
 
 def _check_test(test: ChoiceTest | ExpressionConstraint, by_name: dict[str, Parameter], where: str) -> None:
+    if test.output_names():
+        raise ValueError(
+            f"{where} tests the output {sorted(test.output_names())[0]!r}, but a test, on the left of >>, can only use "
+            "parameters: which parameters the objective is passed, or which limits apply, can't depend on what it returns. "
+            "Use Constraint.function(..., outputs=[...]) for a limit that depends on an output"
+        )
     if isinstance(test, ChoiceTest):
         parameter = by_name.get(test.name)
         if parameter is None:

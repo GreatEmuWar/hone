@@ -27,6 +27,9 @@ from hone.result import RunInfo
 from ._pool import EvaluationPool
 
 
+OBJECTIVE = "objective"  # the key of the objective's value in the dict it returns when there are output constraints
+
+
 class UnsupportedSearchSpace(ValueError):
     """The optimizer cannot search this kind of parameter."""
 
@@ -48,11 +51,15 @@ class Individual(BaseModel):
     """One candidate solution: a value for every parameter, and its fitness once evaluated.
 
     A single-objective optimizer sets fitness; a multi-objective one sets values, by objective.
+    With constraints on outputs, outputs holds what the evaluation reported and violation the
+    total relative violation of those constraints: 0 when it satisfies them all.
     """
     params: dict[str, Any]
     generation: int
     fitness: float | None = None
     values: dict[str, float] | None = None
+    outputs: dict[str, float] | None = None
+    violation: float = 0.0
     failed: bool = False
     id: int = -1
 
@@ -108,13 +115,18 @@ class OptimizerCore[ResultT](ABC):
             raise UnsupportedSearchSpace(f"{type(self).__name__} doesn't support constraints yet; RandomSearch does")
         if search_space.conditions and not self.supports_conditions:
             raise UnsupportedSearchSpace(f"{type(self).__name__} doesn't support conditional parameters yet; RandomSearch does")
+        if search_space.output_constraints and self.config.noise:
+            raise UnsupportedSearchSpace(
+                "constraints on outputs aren't supported with noise yet: whether a noisy point satisfies a limit would need "
+                "the same averaging as its value. Turn noise off, or penalize the limit in the objective"
+            )
         if isinstance(initial_points, dict):
             initial_points = [initial_points]
         self.initial_points = [search_space.check(point) for point in initial_points or []]
         for point in self.initial_points:
             if broken := search_space.broken(point):
                 raise ValueError(f"the initial point {point} breaks the constraint `{broken[0]}`")
-        if search_space.constraints and not self.initial_points:
+        if search_space.parameter_constraints and not self.initial_points:
             # Fail now, before any evaluation, if the constraints leave nothing to search.
             search_space.sample(np.random.default_rng(0))
         self._workers = 1  # how many evaluations run at once; optimizers may size their population from it
@@ -540,7 +552,7 @@ class OptimizerCore[ResultT](ABC):
         return Individual(params=self.search_space.sample(self.rng), generation=generation)
 
 
-CHECKPOINT_FORMAT = 1  # raised when the checkpoint layout changes, so old files are refused clearly
+CHECKPOINT_FORMAT = 2  # raised when the checkpoint layout changes, so old files are refused clearly
 
 
 @cache

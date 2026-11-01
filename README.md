@@ -188,6 +188,38 @@ Constraints should be quick to check: hone checks them for every candidate it co
 
 Starting points must satisfy the constraints. If the constraints leave nothing to search, or a region too small to find in 100,000 random draws, the optimizer raises `InfeasibleSearchSpace` when it's created, before any evaluation. Each optimizer keeps to constraints in its own way: random search and Bayesian optimization only consider points that satisfy them, CMA-ES draws a candidate again while it breaks one, and the genetic optimizer moves such a child back toward its fitter parent until it is feasible, which tends to land it near the boundary, where constrained optima usually are. On the benchmark's constrained problems the choice between optimizers follows the same pattern as without constraints; see [benchmarks/README.md](benchmarks/README.md#constrained-problems). [examples/pressure_vessel.py](examples/pressure_vessel.py) designs a pressure vessel of least cost under three constraints and finds the best published design. [examples/maintenance_schedule.py](examples/maintenance_schedule.py) chooses a maintenance schedule for a production line, scored by a noisy simulation of a year, with a constraint on technician hours and a function constraint that depends on the chosen shift; it halves the expected yearly cost of a sensible schedule chosen by hand.
 
+#### Constraints on outputs
+
+Some limits can't be checked until a design has been evaluated: the peak stress a simulation reports, a temperature, a latency. Write them the same way, with `Output` standing for the reported value, and pass them in the same list:
+
+```python
+from hone import BayesianOptimizer, Output, SearchSpace
+
+stress = Output("stress")
+search_space = SearchSpace(
+    [width, height],
+    constraints=[
+        width * height <= 40,  # on the parameters: checked before evaluating
+        stress <= 250,  # on an output: judged once the evaluation reports it
+        stress <= 50 * width,  # outputs and parameters can mix
+    ],
+)
+
+def simulate(width, height):
+    ...
+    return {"objective": mass, "stress": peak_stress}
+
+result = BayesianOptimizer(search_space).optimize(simulate)
+result.feasible  # whether best_params satisfies every limit on the outputs
+result.best_outputs  # {"stress": ...} at best_params
+```
+
+With constraints on outputs, the objective returns a dict: its value under `"objective"`, and a number for each output the constraints use. With several objectives, the outputs go in the same dict as the objectives, and a name can be both, so `Output("cost") <= 20` limits an objective. A dict with missing or extra keys, or a value that isn't a number, raises `TypeError`, and NaN or infinity anywhere in it marks the evaluation as failed. `tell(trial, {...})` takes the same dict. Outputs work everywhere parameters do in an expression, including `test >> constraint`, as in `material["steel"] >> (stress <= 400)`. They can't appear in a test, on the left of `>>`, because which parameters the objective is passed can't depend on what it returns. A function constraint takes outputs by name too: `Constraint.function(f, outputs=["stress"])`.
+
+A design that breaks a limit on an output has already been evaluated, so it can't be skipped; instead it is ranked by Deb's feasibility rule, with no penalty weight to tune. A design that satisfies every limit beats one that doesn't, those that do rank by their value, and those that don't rank by their total violation. Each violation is a share of its limit, so 10% over a stress limit counts the same as 10% over a deflection limit. `best_params` is the best design that satisfies every limit. If none did, it is the one that came closest, and `feasible` is `False`. Each generation's statistics count the designs that broke a limit in `infeasible` and leave them out of the fitness figures. A threshold is reached only by a design that satisfies every limit. On a front, only such designs appear, and each point carries its `outputs`.
+
+Bayesian optimization makes the most of these limits. It models each limit with a Gaussian process, learning from the designs that broke one, and multiplies its expected improvement by the probability that a candidate satisfies them all; until it finds a design that does, it looks for one. The other optimizers only learn which designs ranked lower. On the benchmark's engineering problems with their limits on outputs, Bayesian optimization comes close to its results when the same limits are known before evaluating, while the genetic optimizer and CMA-ES lose more; see [benchmarks/README.md](benchmarks/README.md#constraints-on-outputs). Constraints on outputs aren't supported with `noise=True` yet, since a noisy design can pass a limit by luck. `sensitivity()` accepts them and measures only the objective. [examples/welded_beam.py](examples/welded_beam.py) designs a welded beam whose stresses, buckling load and deflection come from an analysis of each design, and gets within about 1% of the best published design in 150 evaluations.
+
 ### Conditional parameters
 
 Some settings only exist when another takes certain values: a kernel's settings only for the model that has kernels, a third layer's size only with three layers or more. Write each condition as `test >> parameters`, read "then", and pass them to `SearchSpace`:

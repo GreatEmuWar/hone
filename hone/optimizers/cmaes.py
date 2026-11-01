@@ -153,7 +153,7 @@ class CMAES(Optimizer):
         """
         x = self._draw()
         params = self._decode(x)
-        if self.search_space.constraints and not self.search_space.feasible(params):
+        if self.search_space.parameter_constraints and not self.search_space.feasible(params):
             for _ in range(RESAMPLES):
                 x = self._draw()
                 params = self._decode(x)
@@ -170,7 +170,9 @@ class CMAES(Optimizer):
         ranked = [ind for ind in self._ranked(previous) if not ind.failed and ind in self._vectors]
         if ranked:
             self._adapt(np.array([self._vectors[ind] for ind in ranked[: len(self._weights)]]))
-            self._recent_bests.append(_fitness(ranked[0]))
+            if ranked[0].violation == 0:
+                # Only a feasible best says whether the search has gone flat: a violation shrinking isn't a value stalling.
+                self._recent_bests.append(_fitness(ranked[0]))
         self._vectors = {}
         if self.config.restarts and self._should_restart():
             self.population_size *= 2

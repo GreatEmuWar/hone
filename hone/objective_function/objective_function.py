@@ -19,9 +19,15 @@ class ObjectiveFunction(BaseModel):
         # Checked after validation rather than in a validator, so a mismatch raises a plain ValueError.
         self._check_signature()
 
-    def __call__(self, params: dict[str, Any]) -> float:
-        """Evaluate the function at params, which must return a real number."""
+    def __call__(self, params: dict[str, Any]) -> Any:
+        """Evaluate the function at params, which must return a real number.
+
+        With constraints on outputs it returns a dict of the objective's value and the outputs
+        instead, which is checked when it is told to the optimizer, in the main process.
+        """
         value = self.function(**params)
+        if self.search_space.output_constraints:
+            return value
         if not isinstance(value, numbers.Real):
             raise TypeError(f"{self.name}() must return a number, but returned {value!r}")
         return float(value)
