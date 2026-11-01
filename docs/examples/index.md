@@ -9,3 +9,4 @@ Each example is a complete script in the repository's [`examples`](https://githu
 | [Choosing a model](choose_a_model.md) | Conditional parameters: a classifier and its settings in one search |
 | [Tuning on iris](tune_iris.md) | Bayesian optimization of log-scale hyperparameters |
 | [Cantilever beam](cantilever_beam.md) | Three objectives and choosing a design from the front |
+| [Heat sink](heat_sink.md) | Sensitivity analysis: which of eight settings matter, then optimizing only those |
