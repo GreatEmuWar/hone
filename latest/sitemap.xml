@@ -1,103 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/</loc>
+         <loc>https://hone-python.dev/latest/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/changelog/</loc>
+         <loc>https://hone-python.dev/latest/changelog/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/api/benchmarks/</loc>
+         <loc>https://hone-python.dev/latest/api/benchmarks/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/api/configuration/</loc>
+         <loc>https://hone-python.dev/latest/api/configuration/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/api/optimizers/</loc>
+         <loc>https://hone-python.dev/latest/api/optimizers/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/api/results/</loc>
+         <loc>https://hone-python.dev/latest/api/results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/api/search-spaces/</loc>
+         <loc>https://hone-python.dev/latest/api/search-spaces/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/benchmarks/</loc>
+         <loc>https://hone-python.dev/latest/benchmarks/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/benchmarks/conditional-results/</loc>
+         <loc>https://hone-python.dev/latest/benchmarks/conditional-results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/benchmarks/constrained-results/</loc>
+         <loc>https://hone-python.dev/latest/benchmarks/constrained-results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/benchmarks/ml-results/</loc>
+         <loc>https://hone-python.dev/latest/benchmarks/ml-results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/benchmarks/multi-results/</loc>
+         <loc>https://hone-python.dev/latest/benchmarks/multi-results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/benchmarks/noisy-results/</loc>
+         <loc>https://hone-python.dev/latest/benchmarks/noisy-results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/benchmarks/results/</loc>
+         <loc>https://hone-python.dev/latest/benchmarks/results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/examples/</loc>
+         <loc>https://hone-python.dev/latest/examples/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/examples/cantilever_beam/</loc>
+         <loc>https://hone-python.dev/latest/examples/cantilever_beam/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/examples/choose_a_model/</loc>
+         <loc>https://hone-python.dev/latest/examples/choose_a_model/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/examples/maintenance_schedule/</loc>
+         <loc>https://hone-python.dev/latest/examples/maintenance_schedule/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/examples/pressure_vessel/</loc>
+         <loc>https://hone-python.dev/latest/examples/pressure_vessel/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/examples/tune_iris/</loc>
+         <loc>https://hone-python.dev/latest/examples/tune_iris/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/guide/optimizers/</loc>
+         <loc>https://hone-python.dev/latest/guide/optimizers/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/guide/results/</loc>
+         <loc>https://hone-python.dev/latest/guide/results/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/guide/running/</loc>
+         <loc>https://hone-python.dev/latest/guide/running/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/guide/search-spaces/</loc>
+         <loc>https://hone-python.dev/latest/guide/search-spaces/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
     <url>
-         <loc>https://greatemuwar.github.io/hone/latest/guide/several-objectives/</loc>
+         <loc>https://hone-python.dev/latest/guide/several-objectives/</loc>
          <lastmod>2026-11-01</lastmod>
     </url>
 </urlset>
