@@ -230,7 +230,7 @@ def test_refinement_improves_on_its_starting_points():
     model = GaussianProcess(X, ((X - 0.3) ** 2).sum(1)).fit(rng=rng)
     starts = np.array([[0.9, 0.9], [0.1, 0.8]])
     best = float(model.z.min())
-    refined = bayesian._refine(model, starts, np.array([0, 1]), best)
+    refined = bayesian._refine(lambda C: bayesian._log_expected_improvement(model, C, best), starts, np.array([0, 1]))
     before = bayesian._log_expected_improvement(model, starts, best)
     after = bayesian._log_expected_improvement(model, refined, best)
     assert (after >= before).all() and (after > before).any() and math.isfinite(after.max())

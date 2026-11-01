@@ -7,7 +7,17 @@ import numpy as np
 
 from hone.config.multi_objective_config import MultiObjectiveConfig
 from hone.objective_function.objective_function import MultiObjectiveFunction
-from hone.pareto import Front, ParetoGenerationStats, ParetoPoint, ParetoProgress, ParetoResult, _minimizing, hypervolume, non_dominated
+from hone.pareto import (
+    Front,
+    ParetoGenerationStats,
+    ParetoPoint,
+    ParetoProgress,
+    ParetoResult,
+    _minimizing,
+    _joining,
+    hypervolume,
+    non_dominated,
+)
 
 from .core import Individual, OptimizerCore
 
@@ -64,6 +74,9 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
         super().reset()
         self._objectives = dict(self.config.objectives)
         self._observed: dict[tuple, _Observed] = {}  # every point evaluated successfully, in the order first seen
+        self._means: list[np.ndarray] = []  # each observed point's values to minimize, in the same order
+        self._front: list[int] = []  # the observed points on the front, by position in that order
+        self._front_stale = False  # with noise, an average changed, so the front must be worked out again
         self._reference: np.ndarray | None = None if self.config.reference is None else _minimizing(self.config.reference, self._objectives)
 
     # --- what a value is ---------------------------------------------------
@@ -91,11 +104,21 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
         values = {name: float(value[name]) for name in self._objectives}
         key = self._key(individual.params)
         observed = self._observed.get(key)
+        new = observed is None
         if observed is None:
             observed = self._observed[key] = _Observed(self.search_space.active(individual.params), individual.id)
         observed.add(_minimizing(values, self._objectives))
         if self.config.noise:
             values = self._values(observed.mean)
+            if new:
+                self._means.append(observed.mean)
+            self._front_stale = True
+        elif new:
+            # Without noise a point's values never change, so the front only needs this point added.
+            self._means.append(observed.mean)
+            joins, stays = _joining(np.array([self._means[j] for j in self._front]), observed.mean)
+            if joins:
+                self._front = [j for j, kept in zip(self._front, stays) if kept] + [len(self._means) - 1]
         individual.values = values
 
     def _has_result(self) -> bool:
@@ -109,9 +132,12 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
 
     def _front_indices(self) -> tuple[list[_Observed], list[int]]:
         observed = list(self._observed.values())
-        if not observed:
-            return observed, []
-        return observed, non_dominated(np.array([o.mean for o in observed]))
+        if self._front_stale:
+            self._means = [o.mean for o in observed]
+            self._front = non_dominated(np.array(self._means)) if observed else []
+            self._front_stale = False
+        means = np.array(self._means) if self._means else np.zeros((0, len(self._objectives)))
+        return observed, sorted(self._front, key=lambda j: (tuple(means[j]), j))
 
     def front(self) -> Front:
         """The front of every point evaluated so far."""
@@ -198,4 +224,7 @@ class MultiObjectiveRandomSearch(MultiObjectiveOptimizer):
 
 def builtin() -> list[type[MultiObjectiveOptimizer]]:
     """hone's own multi-objective optimizers, which ParetoResult.rebuild_optimizer finds by name."""
-    return [MultiObjectiveRandomSearch]
+    from .genetic import NSGA2
+    from .multi_bayesian import MultiObjectiveBayesian
+
+    return [NSGA2, MultiObjectiveBayesian, MultiObjectiveRandomSearch]

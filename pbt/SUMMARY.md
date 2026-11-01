@@ -190,4 +190,4 @@ Generated sets of 1 to 40 points with 2 or 3 objectives, and random-search runs 
 | The front doesn't change under an increasing rescaling of any objective | docs/design/multiple-objectives.md |
 | Adding a point never lowers hypervolume, and adding a dominated point leaves it unchanged | `Front.hypervolume` docstring: "A better front always has a larger hypervolume" |
 | Hypervolume depends only on the front | Definition of hypervolume |
-| A run's front is the front of every point it evaluated, with maximized objectives the right way round, and its hypervolume never falls | `MultiObjectiveOptimizer` docstring |
+| Every multi-objective optimizer's front (random search, NSGA2, Bayesian) is the front of every point it evaluated, with maximized objectives the right way round, and its hypervolume never falls | `MultiObjectiveOptimizer` and `NSGA2` docstrings: "a trade-off found early is never lost" |

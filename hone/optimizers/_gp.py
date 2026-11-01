@@ -123,6 +123,11 @@ class GaussianProcess:
     def standardize(self, y: float | np.ndarray) -> float | np.ndarray:
         return (np.asarray(y) - self._offset) / self._scale
 
+    def predict_original(self, Xs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Posterior mean and standard deviation at Xs, in the units of the observations."""
+        mean, sd = self.predict(Xs)
+        return mean * self._scale + self._offset, sd * self._scale
+
     def with_observation(self, x: np.ndarray, z: float) -> "GaussianProcess":
         """This model with one more observation, given in standardized units, and the same hyperparameters."""
         model = object.__new__(GaussianProcess)

@@ -7,7 +7,7 @@ from hypothesis import HealthCheck, assume, given, settings, strategies as st
 from hone import ChoiceParameter, GeneticOptimizer, GeneticOptimizerConfig, RangeParameter, SelectionMethod
 from pbt_runs import Recorder, seeds
 from pbt_strategies import search_spaces
-from hone.optimizers.genetic import optimizer as genetic
+from hone.optimizers.genetic import breeding as genetic
 
 EXAMPLES = int(os.environ.get("PBT_EXAMPLES", "25"))
 run_settings = settings(max_examples=EXAMPLES, deadline=None, suppress_health_check=[HealthCheck.too_slow])

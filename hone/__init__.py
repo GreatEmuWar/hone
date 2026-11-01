@@ -1,16 +1,19 @@
-from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, MultiObjectiveConfig, OptimizerConfig, SelectionMethod
+from hone.config import BayesianConfig, CMAESConfig, GeneticOptimizerConfig, MultiObjectiveBayesianConfig, MultiObjectiveConfig, NSGA2Config, OptimizerConfig, SelectionMethod
 from hone.optimizers import (
     CMAES,
     BayesianOptimizer,
     EvaluationFailed,
     GeneticOptimizer,
+    MultiObjectiveBayesian,
     MultiObjectiveOptimizer,
     MultiObjectiveRandomSearch,
+    NSGA2,
     Optimizer,
     RandomSearch,
     Trial,
     UnsupportedSearchSpace,
     choose_optimizer,
+    choose_pareto_optimizer,
 )
 from hone.parameters import ChoiceParameter, Condition, Constraint, FixedParameter, InfeasibleSearchSpace, RangeParameter, SearchSpace
 from hone.pareto import Front, ParetoGenerationStats, ParetoPoint, ParetoProgress, ParetoResult
@@ -21,6 +24,7 @@ __all__ = [
     "BayesianOptimizer",
     "ChoiceParameter",
     "choose_optimizer",
+    "choose_pareto_optimizer",
     "CMAES",
     "CMAESConfig",
     "Condition",
@@ -32,9 +36,13 @@ __all__ = [
     "GeneticOptimizer",
     "GeneticOptimizerConfig",
     "InfeasibleSearchSpace",
+    "MultiObjectiveBayesian",
+    "MultiObjectiveBayesianConfig",
     "MultiObjectiveConfig",
     "MultiObjectiveOptimizer",
     "MultiObjectiveRandomSearch",
+    "NSGA2",
+    "NSGA2Config",
     "Optimizer",
     "OptimizerConfig",
     "ParetoGenerationStats",

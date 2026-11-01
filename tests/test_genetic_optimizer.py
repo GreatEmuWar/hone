@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from hone import GeneticOptimizer, GeneticOptimizerConfig
-from hone.optimizers.genetic import optimizer as genetic
+from hone.optimizers.genetic import breeding as genetic
 from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
 
 from conftest import bounded_parameters, individual, make_optimizer, run, sphere

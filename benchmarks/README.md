@@ -14,6 +14,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `constrained-summaries.json` | The same results as data |
 | [conditional-results.md](conditional-results.md) | The conditional problems' results, from `make benchmark-conditional` |
 | `conditional-summaries.json` | The same results as data |
+| [multi-results.md](multi-results.md) | The multi-objective problems' results, from `make benchmark-multi` |
+| `multi-summaries.json` | The same results as data, with each run's median attainment surface |
 | `quick-baseline.json` | The quick suite's results, which CI compares every change against |
 
 ## What the suite measures
@@ -137,6 +139,29 @@ The engineering problems are scored against the best designs published for them.
 - **CMA-ES is the best at 1,000 evaluations per dimension**, on all ten problems. It finds the best known design of nine of them in every run, and of the pressure vessel in three of ten. When a candidate breaks a constraint, it draws again from the same distribution. Ranking such candidates below every feasible one without evaluating them was also tried, and did worse at every budget (×1.17 to ×1.59).
 - **The genetic optimizer is behind CMA-ES under constraints**, but it is the optimizer for constrained problems with choice or integer parameters, which CMA-ES can't search or handles less well. A child that breaks a constraint is moved back toward its fitter parent, halving the gap ten times, so it lands near the boundary. Against breeding a new child instead, this cut its geometric-mean error to ×0.84, ×0.68, ×0.74, ×0.46 and ×0.44 at 10 to 1,000 evaluations per dimension; on the welded beam at 1,000 it went from 0.080 to 0.0058. It beats random search on every problem at 50 and 1,000 evaluations per dimension, and on nine of ten at 100, losing on rosenbrock-disk-2d.
 - **`choose_optimizer`'s rule holds without change.** Its pick is 1.04 times the best optimizer's error on geometric mean, and the best on 45 of the 50 problem and budget pairs.
+
+## Multi-objective problems
+
+`python -m hone.benchmarks --multi` runs seven problems with two or three objectives, at the same five budgets. A run is scored by the **hypervolume gap**: the true front's hypervolume less that of the front the run found, with each objective scaled from 0 at the true front's best value to 1 at its worst and a reference point of 1.1. 0 is the true front; lower is better. The scale is fixed per problem, so gaps compare across optimizers and seeds.
+
+| Problem | What it tests |
+| --- | --- |
+| zdt1-8d | A convex front, with seven variables that must all be found to reach it |
+| rotated-zdt1-8d | The same, with those seven variables turned by a fixed rotation so they interact |
+| zdt2-8d | A concave front, which no weighted sum of the objectives can reach the middle of |
+| zdt3-8d | A front in five separate pieces |
+| zdt4-6d | Many false fronts, from a Rastrigin grid in five of the variables |
+| dtlz2-7d | Three objectives, with a spherical front |
+| welded-beam-2 | The welded beam's cost against its deflection, under its constraints; scored against the combined front of three NSGA2 runs of 50,000 evaluations |
+
+The ZDT and DTLZ2 problems are shifted so their best designs lie inside the bounds rather than on them, where clipping would find them for free. Weighted sums are the baseline, the usual way of getting a front without a multi-objective optimizer: the budget is shared among single-objective runs, each minimizing a weighted sum of the objectives (5 evenly spread weightings for two objectives, 6 for three), by the optimizer `choose_optimizer` would pick for its share. The objectives are scaled by the true front before weighting, which a real user couldn't do, so this baseline is generous.
+
+- **Bayesian optimization with ParEGO is the best at small budgets.** At 10 evaluations per dimension it has the lowest median gap on all six problems that any optimizer gets a front on, and at 20 Bayesian optimization, with one method or the other, does on five of six; on ZDT1 with 80 evaluations its gap is 0.16, against 0.33 for NSGA2 and 0.58 for weighted sums. It isn't run above 200 evaluations, where choosing each candidate takes longer than most evaluations it would save.
+- **One model per objective (`method="models"`) is the better choice for three objectives.** On DTLZ2 at 20 evaluations per dimension its gap is 0.13 against ParEGO's 0.23, and on the welded beam the two are level. On the ZDT problems it is well behind ParEGO, so ParEGO is the default. A smoother estimate of its expected improvement was tried and made no difference.
+- **NSGA2 is the best from 100 evaluations per dimension**, on every problem but the welded beam at 100. At 1,000 its median gap is about 0.001 on all four ZDT problems, rotated or not, ten times closer than weighted sums, and 0.004 on the welded beam. It is the only optimizer to get onto ZDT4's front, at 1,000 evaluations per dimension.
+- **Weighted sums hold up at 50 to 100 evaluations per dimension**, ahead of NSGA2 on ZDT1, ZDT2 and the welded beam at 50. Past that they stall: on the concave ZDT2 at 1,000 their gap is 0.034 against NSGA2's 0.0013, since each weighting can only find an end of that front.
+- **ZDT4 is out of reach at small budgets.** Every optimizer's gap is 0.877, the whole hypervolume, until NSGA2 at 1,000 evaluations per dimension: no front lands inside the reference point before then.
+- **`choose_pareto_optimizer`'s rule holds.** Where both run, ParEGO's median gap beats NSGA2's on 12 of the 13 problem and budget pairs they don't tie on, and a test checks the saved results still say so.
 
 ## Noisy problems
 
