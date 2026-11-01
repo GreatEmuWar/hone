@@ -452,6 +452,10 @@ To release, raise `version` in `pyproject.toml` and add a section for it to `CHA
 
 CI also runs the quick benchmark and fails if any optimizer's median error, at any budget, grows more than tenfold against `benchmarks/quick-baseline.json`. After an intended change in results, update the baseline with `python -m hone.benchmarks --quick --save benchmarks/quick-baseline.json`.
 
+## Security
+
+Please report vulnerabilities privately, not as issues: see [SECURITY.md](SECURITY.md) for how, and for what counts.
+
 ## License
 
 BSD 3-Clause. See [LICENSE](LICENSE).

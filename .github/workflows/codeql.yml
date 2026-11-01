@@ -1,0 +1,33 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Weekly, so new queries run against code that hasn't changed.
+  schedule:
+    - cron: "17 6 * * 1"
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # Python for the package, actions for these workflows. Neither needs a build.
+        language: [ "python", "actions" ]
+    steps:
+    - uses: actions/checkout@v5
+    - uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: none
+        queries: security-extended
+    - uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{ matrix.language }}"
