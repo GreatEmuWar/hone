@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- **A documentation site**, at https://greatemuwar.github.io/hone/, built with MkDocs Material. Its guide, examples, benchmark results and changelog are pulled from the README, the example scripts and the benchmark files, so each is still written once, and its API reference is generated from the docstrings. Every config field now has a docstring, which also becomes its description in the config's JSON schema. CI builds the site on every pull request and publishes it on every push to `main`; see "Docs" in the README.
+
 ### Internal
 
 - **CI is hardened against supply-chain attacks.** Every workflow is read-only unless a job needs more, every action is pinned by commit, and checkouts don't keep the token. Poetry is installed from a hash-pinned requirements file, and the Docker image's base is pinned by digest and runs the tests as an ordinary user. Released packages carry a build provenance attestation, which `gh attestation verify` checks, alongside PyPI's own. Pull requests are checked for dependencies with known vulnerabilities, zizmor lints the workflows, and OpenSSF Scorecard scores the repository weekly. Dependabot keeps actions, dependencies, Poetry and the base image current.

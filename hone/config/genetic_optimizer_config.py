@@ -27,30 +27,38 @@ class GeneticOptimizerConfig(OptimizerConfig):
     population to about a twentieth of the budget, between 16 and 50, and generations to
     as many as the budget allows. Without a budget they default to 100 and 25.
     """
-    # Chance each gene of a child is mutated. None: 1 / the number of variables, at least 0.1;
-    # with noise, 0.1, which the benchmark's noisy problems favour at large budgets.
     mutation_rate: float | None = Field(default=None, ge=0, le=1)
-    # Size of a range mutation, as a fraction of the range width: the starting size when
-    # mutation adapts, and the size throughout when it doesn't.
+    """Chance each gene of a child is mutated. None: 1 / the number of variables, at least 0.1;
+    with noise, 0.1, which the benchmark's noisy problems favour at large budgets."""
     mutation_scale: float = Field(default=0.1, gt=0)
-    # Each individual carries its own mutation size, which its children inherit and vary, so
-    # selection tunes it as the run goes. None: on, except with noise, where it didn't help.
+    """Size of a range mutation, as a fraction of the range width: the starting size when
+    mutation adapts, and the size throughout when it doesn't."""
     adaptive_mutation: bool | None = None
-    crossover_rate: float = Field(default=0.8, ge=0, le=1)  # chance each gene of a child comes from its first parent
-    # Draw each range value of a child from between its parents' values, widened by blend_alpha
-    # times their distance on each side, rather than copying one.
+    """Each individual carries its own mutation size, which its children inherit and vary, so
+    selection tunes it as the run goes. None: on, except with noise, where it didn't help."""
+    crossover_rate: float = Field(default=0.8, ge=0, le=1)
+    """Chance each gene of a child comes from its first parent."""
     blend_crossover: bool = True
+    """Draw each range value of a child from between its parents' values, widened by blend_alpha
+    times their distance on each side, rather than copying one."""
     blend_alpha: float = Field(default=0.1, ge=0)
+    """How far beyond its parents' values a blended range value may fall, as a multiple of
+    their distance."""
     elitism: bool = True
-    elitism_rate: float = Field(default=0.1, ge=0, lt=1)  # share of each generation carried over unchanged
+    """Carry the fittest individuals over to the next generation unchanged."""
+    elitism_rate: float = Field(default=0.1, ge=0, lt=1)
+    """Share of each generation carried over unchanged, at most all but one individual."""
     selection_method: SelectionMethod = SelectionMethod.TOURNAMENT
+    """How parents are chosen."""
     tournament_size: int = Field(default=4, ge=2)
-    tournament_p: float = Field(default=1.0, ge=0, le=1)  # chance a tournament picks its best rather than its worst
-    # Share of children bred within niches of parents with the same choice parameter values, so
-    # each option keeps tuning its own numbers. Helps problems where the best choice is found
-    # late, on large budgets; costs on small ones. 0 turns niches off. None, the default, means
-    # 0.5 for a search space with conditions, where each branch is a niche, and 0 otherwise.
+    """Individuals drawn for each tournament; the fittest of them becomes a parent."""
+    tournament_p: float = Field(default=1.0, ge=0, le=1)
+    """Chance a tournament picks its best rather than its worst."""
     niche_share: float | None = Field(default=None, ge=0, lt=1)
+    """Share of children bred within niches of parents with the same choice parameter values, so
+    each option keeps tuning its own numbers. Helps problems where the best choice is found
+    late, on large budgets; costs on small ones. 0 turns niches off. None, the default, means
+    0.5 for a search space with conditions, where each branch is a niche, and 0 otherwise."""
 
     @model_validator(mode="before")
     @classmethod

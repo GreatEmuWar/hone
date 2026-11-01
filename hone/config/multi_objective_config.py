@@ -18,9 +18,10 @@ class MultiObjectiveConfig(OptimizerConfig):
     don't apply.
     """
     objectives: dict[str, Direction] = Field(min_length=2)
-    # A point every objective must be better than to count toward hypervolume, by objective. None:
-    # the worst value of each objective in the first generation, a tenth of its range further out.
+    """Each objective's name, and whether to minimize or maximize it."""
     reference: dict[str, float] | None = None
+    """A point every objective must be better than to count toward hypervolume, by objective. None:
+    the worst value of each objective in the first generation, a tenth of its range further out."""
 
     @model_validator(mode="after")
     def _check_objectives(self):
@@ -42,13 +43,20 @@ class NSGA2Config(MultiObjectiveConfig):
     are NSGA-II's own. With max_evaluations set, population_size and generations default as
     for the genetic optimizer.
     """
-    mutation_rate: float | None = Field(default=None, ge=0, le=1)  # as in GeneticOptimizerConfig
+    mutation_rate: float | None = Field(default=None, ge=0, le=1)
+    """As in GeneticOptimizerConfig: chance each gene of a child is mutated."""
     mutation_scale: float = Field(default=0.1, gt=0)
+    """As in GeneticOptimizerConfig: size of a range mutation, as a fraction of the range width."""
     adaptive_mutation: bool | None = None
+    """As in GeneticOptimizerConfig: each individual carries its own mutation size."""
     crossover_rate: float = Field(default=0.8, ge=0, le=1)
+    """As in GeneticOptimizerConfig: chance each gene of a child comes from its first parent."""
     blend_crossover: bool = True
+    """As in GeneticOptimizerConfig: draw each range value of a child from between its parents' values."""
     blend_alpha: float = Field(default=0.1, ge=0)
+    """As in GeneticOptimizerConfig: how far beyond its parents' values a blended value may fall."""
     niche_share: float | None = Field(default=None, ge=0, lt=1)
+    """As in GeneticOptimizerConfig: share of children bred within niches of parents with the same choices."""
 
     @model_validator(mode="before")
     @classmethod
@@ -70,13 +78,16 @@ class MultiObjectiveBayesianConfig(MultiObjectiveConfig):
     As with BayesianConfig, each generation is a batch of candidates chosen together, and with
     max_evaluations set, generations defaults to the budget.
     """
-    population_size: int | None = Field(default=None, ge=1)  # type: ignore[assignment]  # candidates per batch; None: 1, or the number of workers
+    population_size: int | None = Field(default=None, ge=1)  # type: ignore[assignment]
+    """Candidates per batch. None: 1, or the number of workers."""
     generations: int = Field(default=100, ge=1)
-    initial_samples: int | None = Field(default=None, ge=1)  # spread-out candidates before the models are used; None: 2 × (variables + 1)
-    # How candidates are chosen. "parego": a random weighting of the scaled objectives per
-    # candidate, scored by one Gaussian process. "models": one Gaussian process per objective,
-    # with the weighting applied to their predictions.
+    """Batches to run, unless the run stops sooner."""
+    initial_samples: int | None = Field(default=None, ge=1)
+    """Spread-out candidates evaluated before the models are used. None: 2 × (variables + 1)."""
     method: Literal["parego", "models"] = "parego"
+    """How candidates are chosen. "parego": a random weighting of the scaled objectives per
+    candidate, scored by one Gaussian process. "models": one Gaussian process per objective,
+    with the weighting applied to their predictions."""
 
     @model_validator(mode="before")
     @classmethod

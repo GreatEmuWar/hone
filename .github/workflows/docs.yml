@@ -1,0 +1,70 @@
+name: Docs
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+# Deploys from successive pushes to main go out one at a time, in order.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Builds the site with warnings as errors, so a broken link or include fails the pull request.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: "3.14"
+    - name: Install dependencies
+      run: |
+        python -m pip install --require-hashes -r .github/requirements/build.txt
+        poetry install --only main,docs --no-interaction
+    - name: Build
+      env:
+        NO_MKDOCS_2_WARNING: "1"
+      run: poetry run mkdocs build --strict
+
+  # On main, publishes the site to the gh-pages branch as the version "latest", which GitHub
+  # Pages serves. Only latest is kept for now; see "Docs" in the README for adding versions.
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      # To push to the gh-pages branch.
+      contents: write
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: "3.14"
+    - name: Install dependencies
+      run: |
+        python -m pip install --require-hashes -r .github/requirements/build.txt
+        poetry install --only main,docs --no-interaction
+    # The token is given to git for this step only, rather than kept by checkout for the whole job.
+    - name: Deploy
+      env:
+        GH_TOKEN: ${{ github.token }}
+        NO_MKDOCS_2_WARNING: "1"
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        git fetch "$remote" gh-pages:gh-pages || echo "No gh-pages branch yet; mike creates it"
+        poetry run mike deploy --ignore-remote-status latest
+        poetry run mike set-default --ignore-remote-status latest
+        git push "$remote" gh-pages

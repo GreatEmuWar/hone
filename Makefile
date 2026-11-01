@@ -13,6 +13,16 @@ lint: install
 	@poetry run ruff check hone tests pbt
 	@poetry run mypy
 
+.PHONY: docs
+docs:
+	@poetry install --with docs
+	@NO_MKDOCS_2_WARNING=1 poetry run mkdocs serve
+
+.PHONY: docs-build
+docs-build:
+	@poetry install --with docs
+	@NO_MKDOCS_2_WARNING=1 poetry run mkdocs build --strict
+
 .PHONY: benchmark
 benchmark: install
 	@poetry run python -m hone.benchmarks --jobs 4 --markdown benchmarks/results.md --save benchmarks/full-summaries.json
