@@ -1,5 +1,8 @@
 """NSGA2 and MultiObjectiveBayesian: fronts close to the true ones, with constraints, conditions, noise, workers and checkpoints."""
 import math
+import subprocess
+import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -207,3 +210,11 @@ def test_the_saved_benchmark_backs_choose_pareto_optimizers_rule():
     decided = [(p, b) for p, b in cells if median[p, "bayesian-parego", b] != median[p, "nsga2", b]]
     wins = sum(median[p, "bayesian-parego", b] < median[p, "nsga2", b] for p, b in decided)
     assert len(decided) >= 10 and wins >= 0.8 * len(decided)
+
+
+def test_the_cantilever_example_finds_the_stiffest_light_cheap_beam():
+    """Under 10 kg and 100 the stiffest beam is aluminium, 150 mm deep and as wide as the mass allows: 3.488 mm."""
+    example = Path(__file__).parent.parent / "examples" / "cantilever_beam.py"
+    output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout
+    best = next(line for line in output.splitlines() if line.startswith("stiffest"))
+    assert "aluminium" in best and float(best.split("deflects")[1].split()[0]) < 3.488 * 1.01, output

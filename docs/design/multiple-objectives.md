@@ -1,6 +1,6 @@
 # Multiple objectives: design
 
-Status: signed off. Part 1, the base-class refactor (#37), and part 2, the objectives, fronts, hypervolume and the random baseline, are in, and part 3 adds NSGA2, MultiObjectiveBayesian, `choose_pareto_optimizer` and the benchmark. The benchmark kept ParEGO as the default, with one model per objective as `method="models"`, which did better on three objectives (see benchmarks/README.md). Part 4, the README section, a worked example and 0.12.0, follows.
+Status: done, released in 0.12.0: the base-class refactor (#37), the objectives, fronts, hypervolume and the random baseline (#38), NSGA2, MultiObjectiveBayesian, `choose_pareto_optimizer` and the benchmark (#39), and a README section with an example (#40). The benchmark kept ParEGO as the default, with one model per objective as `method="models"`, which did better on three objectives (see benchmarks/README.md).
 
 ## What users get
 
