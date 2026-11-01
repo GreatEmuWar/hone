@@ -317,6 +317,45 @@ Other settings, such as `seed`, `maximize`, `noise` or `threshold`, are passed o
 
 All four take the same arguments and support `optimize()`, `ask()` and `tell()`. A new optimizer subclasses `Optimizer` and implements `_next_population`, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the `Result`.
 
+### Several objectives
+
+When a design is judged on more than one thing, such as accuracy and cost, or mass and stiffness, a weighted sum forces you to price one against the other before seeing what the trade-off looks like, and some trade-offs no weighting can reach. Name each objective and its direction instead, and have the objective function return a dict of them. The run returns the **front**: every design found for which no other is at least as good on every objective and better on one. You choose from it afterwards.
+
+```python
+from hone import NSGA2, NSGA2Config
+
+config = NSGA2Config(objectives={"accuracy": "maximize", "cost": "minimize"}, max_evaluations=2000, seed=0)
+
+def train(**params):
+    ...
+    return {"accuracy": accuracy, "cost": cost}
+
+result = NSGA2(search_space, config).optimize(train)
+choice = result.front.best("accuracy", where={"cost": 20})  # the most accurate design costing at most 20
+print(choice.params, choice.values)
+```
+
+`optimize()` returns a `ParetoResult`, whose `front` holds `ParetoPoint`s, each with its `params` and `values`. To choose from it:
+
+| Method | Returns |
+| --- | --- |
+| `front.best(objective, where={...})` | The best point on one objective, with the others at most (or, for those maximized, at least) the limits given |
+| `front.closest(weights)` | The point nearest the ideal, by augmented Chebyshev distance on objectives scaled from the front's best value of each to its worst. Unlike a weighted sum it can pick any point, including one in a dent in the front. Weights default to equal |
+| `front.ideal`, `front.nadir` | The best and the worst value of each objective on the front |
+| `front.hypervolume(reference)` | The region the front dominates, up to a reference point: one number that grows as the front gets closer and wider |
+
+| Optimizer | Config | Approach |
+| --- | --- | --- |
+| `MultiObjectiveBayesian` | `MultiObjectiveBayesianConfig` | Each candidate draws random weights for the objectives and goes where a Gaussian process expects the most improvement in their weighted combination. The first choice for 200 evaluations or fewer. `method="parego"`, the default, models the combination; `method="models"` models each objective, which did better on three objectives at 20 evaluations per dimension and costs a few times more computation per candidate. Supports range and choice parameters |
+| `NSGA2` | `NSGA2Config` | A genetic algorithm that ranks the population by fronts and spreads it along them. The choice for larger budgets; breeds as the genetic optimizer does, so it handles every kind of parameter |
+| `MultiObjectiveRandomSearch` | `MultiObjectiveConfig` | Evaluates random points; useful as a baseline |
+
+`choose_pareto_optimizer(search_space, objectives, max_evaluations)` picks `MultiObjectiveBayesian` up to 200 evaluations, unless a choice parameter has `choose_n`, and `NSGA2` otherwise, as the benchmark suggests; other settings are passed on to the chosen optimizer's config. On it, Bayesian optimization's median front beats NSGA2's on 12 of the 13 problem and budget pairs both run on and don't tie.
+
+Everything else works as with one objective: constraints, conditions, workers and time limits, failed evaluations, checkpoints, `ask()` and `tell(trial, {...})`, starting points, `save()`, `load()` and `rebuild_optimizer()`. With `noise=True`, each point on the front is an average, with its number of evaluations and the `standard_error` of each objective. `print_progress` prints the size of the front and its hypervolume. A dict with missing or extra keys, or a value that isn't a number, raises `TypeError`; `maximize`, `threshold` and `final_evaluations` don't apply.
+
+[examples/cantilever_beam.py](examples/cantilever_beam.py) designs a beam in steel, aluminium or carbon fibre that is light, cheap and stiff, three objectives, under a stress limit that depends on the material, and chooses the stiffest design under a mass and a cost limit. Tuning for more than three objectives is out of scope for now: with many objectives nearly every design is on the front, and the search loses its pull.
+
 ### Benchmarks
 
 `hone.benchmarks` runs optimizers on test problems with known optima and reports how close each one gets:
@@ -325,6 +364,7 @@ All four take the same arguments and support `optimize()`, `ask()` and `tell()`.
 python -m hone.benchmarks                  # full suite: 36 problems, 10 seeds each, five budgets
 python -m hone.benchmarks --quick          # 6 problems, 5 seeds, three budgets; takes seconds
 python -m hone.benchmarks --budgets 10 20  # only the budgets you name, in evaluations per dimension
+python -m hone.benchmarks --multi          # several objectives: 7 problems, scored by hypervolume gap
 ```
 
 The suite has five standard continuous functions (sphere, ellipsoid, Rosenbrock, Rastrigin and Ackley) in 2, 5 and 10 dimensions, rotated versions of four of them in which the variables interact, and integer, mixed and categorical problems: 36 in all. Each function is shifted so its optimum is away from the centre of the search space. Every optimizer gets exactly the same number of evaluations. Each problem runs at five budgets, 10, 20, 50, 100 and 1,000 evaluations per dimension, because the best optimizer for a slow simulation that allows a few dozen runs is often not the best one for a cheap function evaluated thousands of times. Latest results are in [benchmarks/results.md](benchmarks/results.md).

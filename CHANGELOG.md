@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 (2026-10-31)
+
+Several objectives at once: a run returns the front of best trade-offs rather than one answer to a weighted score, and the choice between them is made after seeing what each costs. NSGA2 searches for the front on larger budgets and multi-objective Bayesian optimization on small ones, `choose_pareto_optimizer` picks between them, and a multi-objective benchmark suite backs the choice. A README section explains them, and an example designs a beam that is light, cheap and stiff. See [benchmarks/README.md](benchmarks/README.md#multi-objective-problems).
 
 ### Added
 
@@ -9,6 +11,7 @@
 - **MultiObjectiveBayesian**, for budgets of a few hundred evaluations or fewer. Each candidate draws random weights for the objectives and goes where a Gaussian process expects the most improvement in their augmented Chebyshev combination. `method="parego"`, the default, models the combination; `method="models"` models each objective, which did better on the three-objective problem. At 10 evaluations per dimension ParEGO has the lowest gap on every problem any optimizer reaches.
 - **`choose_pareto_optimizer`** picks MultiObjectiveBayesian up to 200 evaluations and NSGA2 beyond, as the benchmark suggests.
 - **A multi-objective benchmark suite.** `python -m hone.benchmarks --multi` runs ZDT1 (also rotated), ZDT2, ZDT3, ZDT4, DTLZ2 and the welded beam's cost against its deflection, scored by hypervolume gap from the true front, against weighted sums of the objectives as the baseline. The summaries include each run's median attainment surface. See [benchmarks/README.md](benchmarks/README.md#multi-objective-problems).
+- **An example**, `examples/cantilever_beam.py`, designing a cantilever beam in steel, aluminium or carbon fibre against its mass, cost and deflection, under a stress limit that depends on the material, and choosing from the front.
 
 ### Internal
 
