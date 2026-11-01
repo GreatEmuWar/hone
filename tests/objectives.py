@@ -97,3 +97,22 @@ def sometimes_slow(x, y):
     """Sphere, taking a third of a second for about one point in four and almost no time for the rest."""
     time.sleep(0.3 if int(abs(x) * 1e6) % 4 == 0 else 0.005)
     return x**2 + y**2
+
+
+def linear_sensitivity(x, y, z):
+    """Linear in each parameter, for sensitivity analysis run in worker processes."""
+    return 3 * x - 2 * y
+
+
+def linear_hangs_right_of_zero(x, y, z):
+    """linear_sensitivity, except that every evaluation with x > 0 hangs."""
+    if x > 0:
+        time.sleep(60)
+    return 3 * x - 2 * y
+
+
+def linear_fails_right_of_zero(x, y, z):
+    """linear_sensitivity, except that every evaluation with x > 0 fails."""
+    if x > 0:
+        raise EvaluationFailed("no convergence")
+    return 3 * x - 2 * y
