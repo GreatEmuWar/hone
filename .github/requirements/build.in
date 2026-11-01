@@ -1,0 +1,4 @@
+# The tools CI and the Docker image install before Poetry takes over.
+# Compile build.txt from this with:
+#   uv pip compile .github/requirements/build.in --universal --python-version 3.12 --generate-hashes -o .github/requirements/build.txt
+poetry==2.5.1

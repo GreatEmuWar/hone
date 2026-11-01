@@ -1,0 +1,45 @@
+# Version updates, weekly, one pull request per ecosystem for minor and patch releases and one per
+# major release, so each major upgrade is tested on its own. Security updates aren't delayed by
+# the cooldown, which keeps a release that's just out, and might yet be pulled, from landing at once.
+version: 2
+updates:
+  # The actions every workflow uses, pinned by commit with the version as a comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        update-types: [ "minor", "patch" ]
+
+  # hone's own dependencies, in pyproject.toml and poetry.lock.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      python:
+        update-types: [ "minor", "patch" ]
+
+  # Poetry and what it needs, installed by hash before Poetry takes over.
+  - package-ecosystem: pip
+    directory: /.github/requirements
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      build:
+        update-types: [ "minor", "patch" ]
+
+  # The Docker image's base, pinned by digest.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

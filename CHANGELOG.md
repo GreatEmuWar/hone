@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Internal
+
+- **CI is hardened against supply-chain attacks.** Every workflow is read-only unless a job needs more, every action is pinned by commit, and checkouts don't keep the token. Poetry is installed from a hash-pinned requirements file, and the Docker image's base is pinned by digest and runs the tests as an ordinary user. Released packages carry a build provenance attestation, which `gh attestation verify` checks, alongside PyPI's own. Pull requests are checked for dependencies with known vulnerabilities, zizmor lints the workflows, and OpenSSF Scorecard scores the repository weekly. Dependabot keeps actions, dependencies, Poetry and the base image current.
+
 ## 0.12.1 (2026-10-31)
 
 ### Added
