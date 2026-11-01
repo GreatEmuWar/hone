@@ -1,0 +1,115 @@
+site_name: hone
+site_description: A Python optimization engine for expensive, noisy and constrained problems.
+site_url: https://greatemuwar.github.io/hone/
+repo_url: https://github.com/GreatEmuWar/hone
+repo_name: GreatEmuWar/hone
+
+# Pages pull their text from the README, CHANGELOG, benchmarks and examples; see docs/hooks.py.
+hooks:
+  - docs/hooks.py
+exclude_docs: |
+  design/
+  *.py
+watch:
+  - README.md
+  - CHANGELOG.md
+  - benchmarks
+  - examples
+  - hone
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - mike:
+      canonical_version: latest
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            extensions:
+              - griffe_pydantic:
+                  schema: false
+              - docs/griffe_fields.py
+            docstring_style: google
+            filters: ["!^_"]
+            heading_level: 2
+            inherited_members: true
+            members_order: source
+            merge_init_into_class: true
+            separate_signature: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            show_source: false
+            show_symbol_type_heading: true
+            signature_crossrefs: true
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Running an optimization: guide/running.md
+      - Search spaces: guide/search-spaces.md
+      - Choosing an optimizer: guide/optimizers.md
+      - Results: guide/results.md
+      - Several objectives: guide/several-objectives.md
+  - Examples:
+      - examples/index.md
+      - Pressure vessel: examples/pressure_vessel.md
+      - Maintenance schedule: examples/maintenance_schedule.md
+      - Choosing a model: examples/choose_a_model.md
+      - Tuning on iris: examples/tune_iris.md
+      - Cantilever beam: examples/cantilever_beam.md
+  - API reference:
+      - Optimizers: api/optimizers.md
+      - Configuration: api/configuration.md
+      - Search spaces: api/search-spaces.md
+      - Results: api/results.md
+      - Benchmarks: api/benchmarks.md
+  - Benchmarks:
+      - benchmarks/index.md
+      - Full suite: benchmarks/results.md
+      - Noisy problems: benchmarks/noisy-results.md
+      - Machine learning: benchmarks/ml-results.md
+      - Constrained problems: benchmarks/constrained-results.md
+      - Conditional problems: benchmarks/conditional-results.md
+      - Several objectives: benchmarks/multi-results.md
+  - Changelog: changelog.md

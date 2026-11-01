@@ -7,23 +7,32 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 class OptimizerConfig(BaseModel):
     """Settings shared by every optimizer."""
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    # use_attribute_docstrings makes each field's docstring its description, in the JSON schema
+    # and in the documentation.
+    model_config = ConfigDict(extra="forbid", frozen=True, use_attribute_docstrings=True)
 
-    population_size: int = Field(default=100, ge=2)  # individuals evaluated per generation
+    population_size: int = Field(default=100, ge=2)
+    """Individuals evaluated per generation."""
     generations: int = Field(default=25, ge=1)
-    max_evaluations: int | None = Field(default=None, ge=1)  # stop after this many evaluations, even mid-generation
+    """Generations to run, unless the run stops sooner."""
+    max_evaluations: int | None = Field(default=None, ge=1)
+    """Stop after this many evaluations, even partway through a generation."""
     maximize: bool = False
-    threshold: float | None = None  # stop once the best fitness reaches this
-    seed: int | None = None  # fixes the random number generator, so runs can be repeated
-    noise: bool = False  # the objective is noisy: evaluating the same point twice can give different values
-    # With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-    # the result is chosen, and its value reported, from averages rather than single lucky values
+    """Maximize the objective instead of minimizing it."""
+    threshold: float | None = None
+    """Stop once the best fitness reaches this."""
+    seed: int | None = None
+    """Fixes the random number generator, so runs can be repeated."""
+    noise: bool = False
+    """The objective is noisy: evaluating the same point twice can give different values."""
     final_evaluations: int = Field(default=0, ge=0)
-    # The share of each generation's evaluations that must finish before the next generation is
-    # bred. Below 1, the slowest evaluations don't hold up the run: they finish in the background,
-    # and their results join the generation under way when they arrive. Results then depend on
-    # timing, so runs are no longer exactly repeatable.
+    """With noise, evaluations kept back to re-evaluate the most promising points at the end, so
+    the result is chosen, and its value reported, from averages rather than single lucky values."""
     min_finished: float = Field(default=1.0, gt=0, le=1)
+    """The share of each generation's evaluations that must finish before the next generation is
+    bred. Below 1, the slowest evaluations don't hold up the run: they finish in the background,
+    and their results join the generation under way when they arrive. Results then depend on
+    timing, so runs are no longer exactly repeatable."""
 
     @model_validator(mode="after")
     def _check_final_evaluations(self):

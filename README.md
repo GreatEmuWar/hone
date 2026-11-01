@@ -1,6 +1,8 @@
 # hone
 Python-based optimization engine.
 
+Documentation: https://greatemuwar.github.io/hone/
+
 ## Install
 
 ```
@@ -413,6 +415,8 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | --- | --- |
 | `make test` | Install the dependencies and run the tests with coverage |
 | `make lint` | Run ruff, then mypy to check types |
+| `make docs` | Serve the documentation site at http://127.0.0.1:8000, rebuilding as files change (see [Docs](#docs)) |
+| `make docs-build` | Build the documentation site into `site/`, failing on any warning, as CI does |
 | `make docker-test` | Build the Docker image and run the tests inside it (see [Running in Docker](#running-in-docker)) |
 | `make benchmark` | Run the full benchmark suite and update `benchmarks/results.md` |
 | `make benchmark-noisy` | Run the noisy problems and update `benchmarks/noisy-results.md` |
@@ -420,6 +424,20 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | `make benchmark-constrained` | Run the constrained problems and update `benchmarks/constrained-results.md` |
 | `make benchmark-conditional` | Run the conditional problems and update `benchmarks/conditional-results.md` |
 | `make benchmark-multi` | Run the multi-objective problems and update `benchmarks/multi-results.md` |
+
+### Docs
+
+The documentation site is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) from `mkdocs.yml` and the pages in `docs/`. Most pages hold no text of their own: a line such as `<!-- include README.md#constraints level=2 -->` pulls in a section of this README, and others pull in `CHANGELOG.md`, the benchmark results and the examples, so each is written once. `docs/hooks.py` does the including and points links at the site's own pages. The API reference is generated from docstrings by mkdocstrings; a config field is documented by a docstring on the line after it. `docs/design/` holds design notes and isn't published.
+
+On every push to `main`, CI builds the site and publishes it to the `gh-pages` branch with [mike](https://github.com/jimporter/mike), as the version `latest`, which GitHub Pages serves. For it to be served, the repository's Pages settings must publish from the `gh-pages` branch.
+
+Only `latest` is kept for now. To keep the docs of each release once that's needed:
+
+1. Add `extra: {version: {provider: mike}}` to `mkdocs.yml`, for the version menu.
+2. Change the deploy step to publish each release as its own version, with `latest` as an alias: `mike deploy --update-aliases 0.13 latest`, run when a version is released.
+3. The first time, run `mike delete latest` just before that deploy, in the same job, since a version and an alias can't share a name.
+
+Links to `/latest/...` keep working throughout, now pointing at the newest release.
 
 ### Running in Docker
 
