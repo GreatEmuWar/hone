@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.12.2 (2026-11-01)
+
+A documentation site, at https://hone-python.dev/, and a hardened supply chain: this is the first release whose packages carry a build provenance attestation, which `gh attestation verify` checks (see [SECURITY.md](SECURITY.md#verifying-a-release)). Nothing in the library changes.
 
 ### Added
 
