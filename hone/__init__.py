@@ -13,6 +13,7 @@ from hone.optimizers import (
     Trial,
     UnsupportedSearchSpace,
     choose_optimizer,
+    choose_pareto_optimizer,
 )
 from hone.parameters import ChoiceParameter, Condition, Constraint, FixedParameter, InfeasibleSearchSpace, RangeParameter, SearchSpace
 from hone.pareto import Front, ParetoGenerationStats, ParetoPoint, ParetoProgress, ParetoResult
@@ -23,6 +24,7 @@ __all__ = [
     "BayesianOptimizer",
     "ChoiceParameter",
     "choose_optimizer",
+    "choose_pareto_optimizer",
     "CMAES",
     "CMAESConfig",
     "Condition",

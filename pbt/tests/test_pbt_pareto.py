@@ -5,7 +5,16 @@ import numpy as np
 from hypothesis import HealthCheck, given, settings, strategies as st
 from hypothesis.extra.numpy import arrays
 
-from hone import MultiObjectiveConfig, MultiObjectiveRandomSearch, RangeParameter
+from hone import (
+    NSGA2,
+    MultiObjectiveBayesian,
+    MultiObjectiveBayesianConfig,
+    MultiObjectiveConfig,
+    MultiObjectiveOptimizer,
+    MultiObjectiveRandomSearch,
+    NSGA2Config,
+    RangeParameter,
+)
 from hone.pareto import hypervolume, non_dominated
 
 EXAMPLES = int(os.environ.get("PBT_EXAMPLES", "25"))
@@ -74,10 +83,14 @@ def test_hypervolume_depends_only_on_the_front(values):
     assert abs(whole - front) <= 1e-6 * max(1.0, whole)
 
 
-# A multi-objective run's front is that of every point it evaluated, and its hypervolume never falls.
+# Every multi-objective optimizer's front is that of every point it evaluated, and its hypervolume never falls.
 @run_settings
-@given(st.integers(0, 2**32 - 1), st.sampled_from([("minimize", "minimize"), ("maximize", "minimize"), ("maximize", "maximize")]))
-def test_a_runs_front_is_that_of_everything_evaluated(seed, directions):
+@given(
+    st.integers(0, 2**32 - 1),
+    st.sampled_from([("minimize", "minimize"), ("maximize", "minimize"), ("maximize", "maximize")]),
+    st.sampled_from(["random", "nsga2", "bayesian"]),
+)
+def test_a_runs_front_is_that_of_everything_evaluated(seed, directions, kind):
     objectives = dict(zip(("f1", "f2"), directions))
     seen = []
 
@@ -87,8 +100,15 @@ def test_a_runs_front_is_that_of_everything_evaluated(seed, directions):
         return values
 
     space = [RangeParameter("x", 0, 1), RangeParameter("y", 0, 1)]
-    config = MultiObjectiveConfig(objectives=objectives, max_evaluations=60, population_size=10, seed=seed)
-    result = MultiObjectiveRandomSearch(space, config).optimize(objective)
+    if kind == "random":
+        optimizer: MultiObjectiveOptimizer = MultiObjectiveRandomSearch(
+            space, MultiObjectiveConfig(objectives=objectives, max_evaluations=60, population_size=10, seed=seed)
+        )
+    elif kind == "nsga2":
+        optimizer = NSGA2(space, NSGA2Config(objectives=objectives, max_evaluations=60, seed=seed))
+    else:
+        optimizer = MultiObjectiveBayesian(space, MultiObjectiveBayesianConfig(objectives=objectives, max_evaluations=12, seed=seed))
+    result = optimizer.optimize(objective)
     signs = np.array([1 if d == "minimize" else -1 for d in directions])
     vectors = np.array([[v["f1"], v["f2"]] for v in seen]) * signs
     expected = sorted(tuple(vectors[i] * signs) for i in non_dominated(vectors))
