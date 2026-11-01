@@ -112,7 +112,10 @@ def test_slow_evaluations_no_longer_hold_up_every_generation():
     waiting, waited = timed(genetic(population_size=8, max_evaluations=64, mutation_scale=0.5))
     moving_on, moved_on = timed(genetic(population_size=8, max_evaluations=64, mutation_scale=0.5, min_finished=0.5))
     assert waiting.evaluations == moving_on.evaluations == 64, "the whole budget is used either way"
-    assert moved_on < 0.8 * waited
+    # Compared in seconds saved rather than as a ratio: starting the workers takes the same time in
+    # both runs, seconds on a slow machine, which would push a ratio toward 1. Here the saving is
+    # about 1.2 seconds, on a fast machine and a slow one alike.
+    assert waited - moved_on > 0.6
 
 
 def test_stopping_early_does_not_wait_for_stragglers():
