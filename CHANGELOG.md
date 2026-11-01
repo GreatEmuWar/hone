@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Sensitivity analysis.** `sensitivity(objective, space, max_evaluations=500)` measures which parameters matter, before optimizing or instead of it, through the same workers, time limits and failure handling as `optimize()`. On small budgets it uses Morris screening, about 10 × (parameters + 1) evaluations, which ranks the parameters by `mu_star`, the mean size of each one's effect across its range. When the budget allows, at least 64 × (parameters + 2), it uses Sobol indices, the share of the objective's variance each parameter accounts for alone (`first`) and with its interactions (`total`). `method=` chooses either. Each index comes with a bootstrap confidence interval. Every kind of parameter is measured on the scale the optimizers search it on, conditional parameters included; search spaces with constraints aren't supported yet. The indices match the published values for the Ishigami function and Sobol's G-function. See [docs/design/sensitivity.md](docs/design/sensitivity.md).
+
 ## 0.12.2 (2026-11-01)
 
 A documentation site, at https://hone-python.dev/, and a hardened supply chain: this is the first release whose packages carry a build provenance attestation, which `gh attestation verify` checks (see [SECURITY.md](SECURITY.md#verifying-a-release)). Nothing in the library changes.

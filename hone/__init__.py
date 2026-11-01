@@ -18,6 +18,7 @@ from hone.optimizers import (
 from hone.parameters import ChoiceParameter, Condition, Constraint, FixedParameter, InfeasibleSearchSpace, RangeParameter, SearchSpace
 from hone.pareto import Front, ParetoGenerationStats, ParetoPoint, ParetoProgress, ParetoResult
 from hone.result import GenerationStats, Progress, Result, RunInfo, print_progress
+from hone.sensitivity_analysis import Interval, ParameterSensitivity, SensitivityReport, sensitivity
 
 __all__ = [
     "BayesianConfig",
@@ -36,6 +37,7 @@ __all__ = [
     "GeneticOptimizer",
     "GeneticOptimizerConfig",
     "InfeasibleSearchSpace",
+    "Interval",
     "MultiObjectiveBayesian",
     "MultiObjectiveBayesianConfig",
     "MultiObjectiveConfig",
@@ -45,6 +47,7 @@ __all__ = [
     "NSGA2Config",
     "Optimizer",
     "OptimizerConfig",
+    "ParameterSensitivity",
     "ParetoGenerationStats",
     "ParetoPoint",
     "ParetoProgress",
@@ -57,6 +60,8 @@ __all__ = [
     "RunInfo",
     "SearchSpace",
     "SelectionMethod",
+    "sensitivity",
+    "SensitivityReport",
     "Trial",
     "UnsupportedSearchSpace",
 ]
