@@ -3,7 +3,7 @@ import math
 import operator
 import os
 
-from hypothesis import HealthCheck, given, settings, strategies as st
+from hypothesis import HealthCheck, assume, given, settings, strategies as st
 
 from hone import (
     NSGA2,
@@ -45,6 +45,8 @@ def expressions(draw, depth=3):
         return number, lambda point, outputs, number=number: number
     op = draw(st.sampled_from(OPERATORS))
     (left, f), (right, g) = draw(expressions(depth - 1)), draw(expressions(depth - 1))
+    if isinstance(left, float) and isinstance(right, float):
+        assume(not (op is operator.truediv and right == 0))  # two plain numbers are computed by Python as they're built
     return op(left, right), lambda point, outputs: op(f(point, outputs), g(point, outputs))
 
 

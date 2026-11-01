@@ -335,7 +335,9 @@ def _limit(value: float, scale: float) -> float:
     """value as a violation: 0 within the tolerance, infinity when it couldn't be computed."""
     if isinstance(value, complex) or math.isnan(value):
         return math.inf
-    return 0.0 if value <= TOLERANCE * max(1.0, abs(scale)) else float(value)
+    # An infinite limit, such as from an overflow, gives no scale for the tolerance: compare exactly.
+    tolerance = TOLERANCE * max(1.0, abs(scale)) if math.isfinite(scale) else 0.0
+    return 0.0 if value <= tolerance else float(value)
 
 
 def _usable(value: Any) -> float | None:
