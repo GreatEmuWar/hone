@@ -32,7 +32,8 @@ class Problem(BaseModel):
     search_space: SearchSpace
     optimum: float
     tags: frozenset[str]
-    noise: float = 0.0  # standard deviation of Gaussian noise the benchmark adds to each evaluation
+    noise: float = 0.0  # standard deviation of Gaussian noise the benchmark adds to each evaluation's value
+    output_noise: dict[str, float] = {}  # the same for each output the objective reports, by name; none for outputs left out
 
     @property
     def dimensions(self) -> int:

@@ -3,6 +3,7 @@ from .conditional import conditional_problems
 from .constrained import constrained_problems
 from .ml import ml_problems
 from .multi import MultiProblem, multi_problems, run_multi_benchmark, summarize_multi
+from .outputs import noisy_output_problems, output_problems
 from .problems import Problem, noisy_problems, quick_problems, standard_problems
 from .runner import (
     BUDGETS,
@@ -10,6 +11,7 @@ from .runner import (
     Run,
     SkipBudget,
     Summary,
+    batch_optimizers,
     load_summaries,
     regressions,
     run_benchmark,
