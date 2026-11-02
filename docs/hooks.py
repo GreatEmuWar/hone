@@ -32,6 +32,7 @@ PAGES = {
     "benchmarks/noisy-results.md": "benchmarks/noisy-results.md",
     "benchmarks/ml-results.md": "benchmarks/ml-results.md",
     "benchmarks/constrained-results.md": "benchmarks/constrained-results.md",
+    "benchmarks/outputs-results.md": "benchmarks/outputs-results.md",
     "benchmarks/conditional-results.md": "benchmarks/conditional-results.md",
     "benchmarks/multi-results.md": "benchmarks/multi-results.md",
     "examples/cantilever_beam.py": "examples/cantilever_beam.md",

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Measuring how output constraints are handled, before improving it; see [docs/design/output-constraints-quality.md](docs/design/output-constraints-quality.md).
+
+### Added
+
+- **A benchmark suite for constraints on outputs.** `python -m hone.benchmarks --outputs` (or `make benchmark-outputs`) runs the three engineering designs with their limits reported by the objective, and eleven new problems chosen for what they say about finding a feasible design: balls whose feasible fraction of the box is exact, from one in ten to one in a thousand; two limits whose boundaries cross at the optimum; a deceptive pocket, where the violation falls toward the objective's own minimum but never reaches zero there; and g06, g07 and g10 from the CEC 2006 suite. Bayesian optimization runs at batch sizes 1, 4 and 8 on it, and `--batch-sizes` adds batch sizes to any suite.
+- **Benchmark summaries say how often a feasible design was found, and how soon.** On a problem with constraints on outputs, each `Summary` has `feasible`, the share of runs that found a design satisfying every limit, and `median_first_feasible`, the median evaluations to the first one, with a run that found none counting as infinity. Each `Run` records its `first_feasible`. The results tables have a feasibility table for such problems.
+- **Noisy problems with constraints on outputs.** A benchmark `Problem` takes `output_noise`, a standard deviation per output, and the runner scores each run by the true value and the true feasibility of the design it returns. `noisy_output_problems()` has the engineering designs with about 1% noise on everything they report. The optimizers still refuse noise with output constraints, so these problems run only with an optimizer that doesn't average, until that is built.
+
 ### Internal
 
 - **The tests run on every core.** pytest-xdist is a dev dependency and `-n auto` the default, which takes the full suite from about 11 minutes to under 3 on 16 cores. The tests that measure wall-clock time, in `test_stragglers.py` and `test_workers.py`, are marked `timing`, skipped on a parallel worker, and run on their own afterwards by `make test`, CI and the Docker image, since beside every other test on a loaded machine their timings don't hold. Coverage is measured in CI only.

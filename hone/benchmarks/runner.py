@@ -7,7 +7,7 @@ import statistics
 import zlib
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -64,6 +64,23 @@ def random_search(problem: Problem, budget: int, seed: int) -> Optimizer:
     return RandomSearch(problem.search_space, config)
 
 
+def bayesian_batch(size: int) -> OptimizerFactory:
+    """A factory for Bayesian optimization choosing size candidates per batch, as it would with that many workers."""
+
+    def factory(problem: Problem, budget: int, seed: int) -> Optimizer:
+        if budget > BAYESIAN_MAX_EVALUATIONS:
+            raise SkipBudget(f"{budget} evaluations is more than Bayesian optimization is run with")
+        config = BayesianConfig(max_evaluations=budget, population_size=size, seed=seed, noise=problem.noise > 0)
+        return BayesianOptimizer(problem.search_space, config)
+
+    return factory
+
+
+def batch_optimizers(sizes: Iterable[int]) -> dict[str, OptimizerFactory]:
+    """Bayesian optimization at each batch size, named bayesian-4 and so on, to add to the optimizers of a run."""
+    return {f"bayesian-{size}": bayesian_batch(size) for size in sizes}
+
+
 DEFAULT_OPTIMIZERS: dict[str, OptimizerFactory] = {
     "genetic": genetic,
     "cma-es": cma_es,
@@ -83,6 +100,8 @@ class Run(BaseModel):
     error: float  # best value found minus the problem's optimum; 0 means the optimum was found, infinity that nothing feasible was
     evaluations: int
     trace: list[tuple[int, float]]  # (evaluations so far, error of the best so far), once per generation
+    output_constrained: bool = False  # whether the problem has constraints on outputs, so a feasible design has to be found
+    first_feasible: int | None = None  # evaluations up to the end of the generation that first found a feasible design; None if none did
 
 
 class Summary(BaseModel):
@@ -97,11 +116,19 @@ class Summary(BaseModel):
     lower_quartile: float
     upper_quartile: float
     solved: float  # share of runs whose error is at most the tolerance
+    # With constraints on outputs: the share of runs that found a feasible design, and the median
+    # evaluations to the first one, with a run that found none counting as infinity. None without.
+    feasible: float | None = None
+    median_first_feasible: float | None = None
 
     @classmethod
     def of(cls, runs: list[Run], tolerance: float) -> "Summary":
         errors = sorted(run.error for run in runs)
         quartiles = [_quantile(errors, q) for q in (0.25, 0.5, 0.75)]
+        feasible = median_first_feasible = None
+        if runs[0].output_constrained:
+            feasible = sum(math.isfinite(run.error) for run in runs) / len(runs)
+            median_first_feasible = statistics.median(math.inf if run.first_feasible is None else run.first_feasible for run in runs)
         return cls(
             problem=runs[0].problem,
             optimizer=runs[0].optimizer,
@@ -111,6 +138,8 @@ class Summary(BaseModel):
             lower_quartile=quartiles[0],
             upper_quartile=quartiles[2],
             solved=sum(error <= tolerance for error in errors) / len(errors),
+            feasible=feasible,
+            median_first_feasible=median_first_feasible,
         )
 
 
@@ -175,37 +204,64 @@ def _task(task: tuple[int, str, int, int]) -> Run:
 
 
 def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: Optimizer) -> Run:
-    result = optimizer.optimize(_with_noise(problem, seed) if problem.noise else problem.function)
+    noisy = problem.noise > 0 or bool(problem.output_noise)
+    result = optimizer.optimize(_with_noise(problem, seed) if noisy else problem.function)
+    constrained = bool(problem.search_space.output_constraints)
 
-    def true_value(fitness: float, params: dict) -> float:
-        # A noisy run is scored by the noise-free value of the point it chose, not by the
-        # noisy value it saw there, which is likely to be a lucky one.
-        return problem.function(**params) if problem.noise else fitness
+    def truth(fitness: float, params: dict, feasible: bool) -> tuple[float, bool]:
+        # A noisy run is scored by the noise-free value of the point it chose, not by the noisy
+        # value it saw there, which is likely to be a lucky one, and by whether the point truly
+        # satisfies the constraints on outputs, not by whether it seemed to.
+        return _true(problem, params) if noisy else (fitness, feasible)
 
     # With constraints on outputs, generations' bests are of feasible points only, so the trace is too.
-    trace, best = [], float("inf")
+    trace, best, first_feasible = [], float("inf"), None
     for generation in result.generations:
         if generation.best_fitness is not None and generation.best_params is not None:
-            best = min(best, true_value(generation.best_fitness, generation.best_params) - problem.optimum)
+            value, feasible = truth(generation.best_fitness, generation.best_params, True)
+            if feasible:
+                best = min(best, value - problem.optimum)
+                if first_feasible is None:
+                    first_feasible = generation.evaluations
         trace.append((generation.evaluations, max(best, 0.0)))
+    value, feasible = truth(result.best_fitness, result.best_params, result.feasible)
     return Run(
         problem=problem.name,
         optimizer=name,
         budget_per_dimension=per_dimension,
         seed=seed,
-        error=max(true_value(result.best_fitness, result.best_params) - problem.optimum, 0.0) if result.feasible else math.inf,
+        error=max(value - problem.optimum, 0.0) if feasible else math.inf,
         evaluations=result.evaluations,
         trace=trace,
+        output_constrained=constrained,
+        first_feasible=first_feasible if constrained else None,
     )
 
 
-def _with_noise(problem: Problem, seed: int) -> Callable[..., float]:
-    """problem's function plus Gaussian noise of standard deviation problem.noise, repeatable for the seed."""
+def _true(problem: Problem, params: dict) -> tuple[float, bool]:
+    """The noise-free value at params, and whether params satisfies the problem's constraints on outputs."""
+    value = problem.function(**params)
+    if not isinstance(value, dict):
+        return float(value), True
+    outputs = {name: float(value[name]) for name in problem.search_space.outputs}
+    return float(value["objective"]), problem.search_space.output_violation(params, outputs) == 0
+
+
+def _with_noise(problem: Problem, seed: int) -> Callable[..., Any]:
+    """problem's function plus Gaussian noise, repeatable for the seed.
+
+    The noise has standard deviation problem.noise on the value and problem.output_noise[name]
+    on each output the objective reports, each drawn independently.
+    """
     rng = np.random.default_rng([seed, zlib.crc32(problem.name.encode())])
 
     @functools.wraps(problem.function)
     def noisy(**params):
-        return problem.function(**params) + problem.noise * rng.standard_normal()
+        value = problem.function(**params)
+        if not isinstance(value, dict):
+            return value + problem.noise * rng.standard_normal()
+        noise = {"objective": problem.noise, **problem.output_noise}
+        return {name: v + noise.get(name, 0.0) * rng.standard_normal() for name, v in value.items()}
 
     return noisy
 
@@ -270,12 +326,40 @@ def to_markdown(summaries: list[Summary], tolerance: float = 1e-4) -> str:
                 s = by_key.get((problem, o, budget))
                 cells += [f"{s.median_error:.3g}", f"{s.solved:.0%}"] if s else ["n/a", "n/a"]
             lines.append(f"| {problem} | " + " | ".join(cells) + " |")
+        constrained = [p for p in problems if any(_feasibility(by_key.get((p, o, budget))) for o in optimizers)]
+        if constrained:
+            lines += [
+                "",
+                "Finding a feasible design:",
+                "",
+                "| Problem | " + " | ".join(f"{o} feasible | {o} first" for o in optimizers) + " |",
+                "| --- | " + " | ".join("---: | ---:" for _ in optimizers) + " |",
+            ]
+            for problem in constrained:
+                cells = []
+                for o in optimizers:
+                    cells += _feasibility(by_key.get((problem, o, budget))) or ["n/a", "n/a"]
+                lines.append(f"| {problem} | " + " | ".join(cells) + " |")
     lines += [
         "",
         f"Median error over the runs (best value found minus the optimum); solved means error ≤ {tolerance:g}. "
         "n/a: the optimizer does not support the problem's parameters, or isn't run at this budget.",
     ]
+    if any(s.feasible is not None for s in summaries):
+        lines += [
+            "",
+            "Feasible: the share of runs that found a design satisfying every constraint on the outputs. First: the median "
+            "evaluations to the first such design, counting a run that found none as infinity, so none means most runs found none.",
+        ]
     return "\n".join(lines) + "\n"
+
+
+def _feasibility(s: Summary | None) -> list[str] | None:
+    """The feasible and first cells for a summary of a problem with constraints on outputs, else None."""
+    if s is None or s.feasible is None or s.median_first_feasible is None:
+        return None
+    first = "none" if math.isinf(s.median_first_feasible) else f"{s.median_first_feasible:.0f}"
+    return [f"{s.feasible:.0%}", first]
 
 
 def save_summaries(summaries: list[Summary], path: str | Path) -> None:

@@ -12,6 +12,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `ml-summaries.json` | The same results as data |
 | [constrained-results.md](constrained-results.md) | The constrained problems' results, from `make benchmark-constrained` |
 | `constrained-summaries.json` | The same results as data |
+| [outputs-results.md](outputs-results.md) | The results on problems with constraints on outputs, from `make benchmark-outputs` |
+| `outputs-summaries.json` | The same results as data |
 | [conditional-results.md](conditional-results.md) | The conditional problems' results, from `make benchmark-conditional` |
 | `conditional-summaries.json` | The same results as data |
 | [multi-results.md](multi-results.md) | The multi-objective problems' results, from `make benchmark-multi` |
@@ -160,6 +162,29 @@ Median error over 10 seeds, with each limit known before evaluating against repo
 - **The genetic optimizer and CMA-ES lose a lot at small and middle budgets.** They only learn which designs ranked lower, so most of their evaluations go to designs that break a limit. Their errors are 1.3 to 31 times larger at 10 to 100 evaluations per dimension. At 1,000, CMA-ES finds the best welded beam in every run either way, and its pressure vessel is as good. The genetic optimizer's welded beam stays 50 times worse, since it can no longer repair a child back inside the limits before evaluating it.
 - **Random search finds no feasible spring in most runs at 10 evaluations per dimension.** Only 0.8% of the box satisfies every limit, and 30 evaluations seldom land there.
 - **`choose_optimizer`'s rule still holds** on the thirteen problems. Its test passes on the new results: Bayesian optimization up to 200 evaluations, then the genetic optimizer or CMA-ES. At 1,000 evaluations per dimension CMA-ES is the better of the two on all three problems with reported limits; at 100 the two are level on the spring.
+
+## Problems with constraints on outputs
+
+`python -m hone.benchmarks --outputs` runs fourteen problems whose limits are reported by the objective, at the same five budgets, with Bayesian optimization at batch sizes 1, 4 and 8 (as `bayesian`, `bayesian-4` and `bayesian-8`), since batches are how it runs with several workers. Besides the three engineering designs above, the problems are chosen for what they say about finding a feasible design at all, which the results report for each problem as the share of runs that found one and the median evaluations to the first.
+
+| Problem | Feasible share of the box | What it tests |
+| --- | ---: | --- |
+| ball-2d-1in10, ball-2d-1in100, ball-5d-1in100, ball-5d-1in1000 | 10%, 1%, 1% and 0.1%, exactly | Feasible inside a ball of known volume; the objective is a sphere centred one unit outside it, so the optimum is on the surface, at a value of 1 |
+| corner-2d, corner-5d | 9.8% and 3.3%, measured | Two linear limits whose boundaries cross at the optimum, so the active limit switches along the way there and the total violation has a kink |
+| pocket-2d-1in100, pocket-5d-1in100 | 1%, exactly | Deceptive: the reported quantity falls toward the objective's own minimum but bottoms out at 0.5 over the limit there, in a wide basin; the only feasible designs are a small ball elsewhere, at worse values |
+| g06 | 0.0063% | CEC 2006 g06: a cubic in two variables, feasible in a sliver between two circles |
+| g07 | 0.00013% | CEC 2006 g07: a quadratic in ten variables under eight limits |
+| g10 | 0.00056% | CEC 2006 g10: a heat exchanger network, eight variables under six limits with values up to a million |
+
+The measured fractions are from 2 million uniform samples of the box for the corners and 20 to 100 million for the CEC problems; the published designs break their active limits by about 1e-6 through rounding, within the 1e-4 the CEC rules allow.
+
+Latest results are in [outputs-results.md](outputs-results.md). What they show, at 0.14.0, before any of the planned improvements:
+
+- **Bayesian optimization finds a feasible design where nothing else does.** On g06, g07 and g10, whose feasible regions are less than a hundredth of a percent of the box, every one of its runs finds one, after a median of 11, 28 and 24 evaluations at 10 evaluations per dimension, while the genetic optimizer, CMA-ES and random search find none at 10 or 20 evaluations per dimension and the first two need 300 to 600 evaluations. On ball-5d-1in1000 it finds one in every run by 20 evaluations, against one run in ten for random search. Its rule for searching before any design is feasible, maximizing the probability that one is, drifts toward the corners in theory, but in practice it has the lowest median error on 13 of the 14 problems at 10 and 20 evaluations per dimension. Any replacement has a high bar.
+- **The deceptive pocket is where every optimizer fails.** On pocket-2d-1in100 no optimizer finds the pocket in most runs at 10 or 20 evaluations per dimension; Bayesian optimization needs 50, and its median first feasible design comes at 58 evaluations, four times what the ball of the same size takes. At 1,000 evaluations per dimension CMA-ES and the genetic optimizer still miss it in 4 runs of 10, and CMA-ES's first feasible design comes at a median of 1,821 of its 2,000 evaluations, while random search finds it in every run by 125: following the violation downhill leads into the basin, where the violation sits flat at half the limit and CMA-ES's flat-run restart, which looks only at feasible bests, never fires. In 5 dimensions the pocket is a larger ball and every optimizer finds it.
+- **Batches cost a lot at small budgets.** At 10 evaluations per dimension, Bayesian optimization choosing 8 candidates per batch has median errors 10 to 300 times those of one at a time (0.623 against 0.00227 on ball-5d-1in100, 0.438 against 0.00264 on corner-5d), finds no feasible design on g06, and misses the spring in 6 runs of 10; batches of 4 are 2 to 50 times worse. By 50 evaluations per dimension the three are within a factor of 3. A batch's candidates are chosen from a model that pretends the earlier ones came out as predicted, which keeps the mean where it is and only shrinks the variance, so the candidates land together.
+- **At 1,000 evaluations per dimension CMA-ES solves every ball and corner exactly, and g06**; the genetic optimizer gets within 0.002 to 0.04 of the balls and corners but stays 837 above g06's optimum. On g07 and g10 CMA-ES is 0.03 and 81 above the best known values.
+
 
 ## Multi-objective problems
 

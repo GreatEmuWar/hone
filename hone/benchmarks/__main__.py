@@ -9,12 +9,24 @@ from . import ml
 from .conditional import conditional_problems
 from .multi import multi_markdown, multi_problems, run_multi_benchmark, summarize_multi
 from .constrained import constrained_problems
+from .outputs import output_problems
 from .problems import noisy_problems, quick_problems, standard_problems
-from .runner import BUDGETS, load_summaries, regressions, run_benchmark, save_summaries, summarize, to_markdown
+from .runner import (
+    BUDGETS,
+    DEFAULT_OPTIMIZERS,
+    batch_optimizers,
+    load_summaries,
+    regressions,
+    run_benchmark,
+    save_summaries,
+    summarize,
+    to_markdown,
+)
 
 
 QUICK_BUDGETS = (10, 50, 200)
 NOISY_BUDGETS = (10, 40, 200)
+OUTPUT_BATCH_SIZES = (4, 8)  # Bayesian optimization's batch sizes run on the problems with constraints on outputs, besides 1
 
 
 def _join(numbers: list[int]) -> str:
@@ -31,6 +43,9 @@ def main(argv: list[str] | None = None) -> int:
     suite.add_argument("--noisy", action="store_true", help="run the problems with noise added to every evaluation instead")
     suite.add_argument("--constrained", action="store_true", help="run the problems with constraints instead")
     suite.add_argument(
+        "--outputs", action="store_true", help="run the problems with constraints on outputs instead, with Bayesian optimization at batch sizes 1, 4 and 8"
+    )
+    suite.add_argument(
         "--multi", action="store_true", help="run the problems with several objectives instead, scored by hypervolume"
     )
     suite.add_argument(
@@ -44,6 +59,13 @@ def main(argv: list[str] | None = None) -> int:
         help=f"evaluations per dimension, one run per budget (default {' '.join(map(str, BUDGETS))}, "
         f"{' '.join(map(str, QUICK_BUDGETS))} with --quick, {' '.join(map(str, ml.BUDGETS))} with --ml, "
         f"or {' '.join(map(str, NOISY_BUDGETS))} with --noisy)",
+    )
+    parser.add_argument(
+        "--batch-sizes",
+        type=int,
+        nargs="+",
+        metavar="SIZE",
+        help="also run Bayesian optimization choosing this many candidates per batch, as bayesian-SIZE (default 4 8 with --outputs)",
     )
     parser.add_argument("--jobs", type=int, default=1, help="share the runs among this many processes (Linux only)")
     parser.add_argument("--tolerance", type=float, default=1e-4, help="error at or below which a run counts as solved")
@@ -63,15 +85,20 @@ def main(argv: list[str] | None = None) -> int:
         problems, default_budgets = noisy_problems(), NOISY_BUDGETS
     elif args.constrained:
         problems, default_budgets = constrained_problems(), BUDGETS
+    elif args.outputs:
+        problems, default_budgets = output_problems(), BUDGETS
     elif args.conditional:
         problems, default_budgets = conditional_problems(), BUDGETS
     else:
         problems, default_budgets = standard_problems(), BUDGETS
     seeds = args.seeds or (5 if args.quick else 10)
     budgets = sorted(set(args.budgets or default_budgets))
+    batch_sizes = args.batch_sizes if args.batch_sizes is not None else OUTPUT_BATCH_SIZES if args.outputs else ()
+    optimizers = {**DEFAULT_OPTIMIZERS, **batch_optimizers(batch_sizes)}
 
     start = time.perf_counter()
-    summaries = summarize(run_benchmark(problems, seeds=range(seeds), budgets_per_dimension=budgets, jobs=args.jobs), args.tolerance)
+    runs = run_benchmark(problems, optimizers, seeds=range(seeds), budgets_per_dimension=budgets, jobs=args.jobs)
+    summaries = summarize(runs, args.tolerance)
     elapsed = time.perf_counter() - start
 
     table = to_markdown(summaries, args.tolerance)

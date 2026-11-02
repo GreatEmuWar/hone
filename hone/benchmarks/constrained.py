@@ -265,8 +265,3 @@ def constrained_problems(dimensions: tuple[int, ...] = (2, 5, 10)) -> list[Probl
         tension_spring_outputs(),
         welded_beam_outputs(),
     ]
-
-
-def output_problems() -> list[Problem]:
-    """The engineering designs with their limits on outputs only, for a quick comparison with the parameter versions."""
-    return [pressure_vessel_outputs(), tension_spring_outputs(), welded_beam_outputs()]
