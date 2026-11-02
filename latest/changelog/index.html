@@ -1419,6 +1419,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1515,7 +1526,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#internal" class="md-nav__link">
+  <a href="#internal_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Internal
@@ -1582,7 +1593,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#internal_1" class="md-nav__link">
+  <a href="#internal_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Internal
@@ -2027,6 +2038,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2123,7 +2145,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#internal" class="md-nav__link">
+  <a href="#internal_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Internal
@@ -2190,7 +2212,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#internal_1" class="md-nav__link">
+  <a href="#internal_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Internal
@@ -2607,6 +2629,10 @@
 <li><strong>Benchmark summaries say how often a feasible design was found, and how soon.</strong> On a problem with constraints on outputs, each <code>Summary</code> has <code>feasible</code>, the share of runs that found a design satisfying every limit, and <code>median_first_feasible</code>, the median evaluations to the first one, with a run that found none counting as infinity. Each <code>Run</code> records its <code>first_feasible</code>. The results tables have a feasibility table for such problems.</li>
 <li><strong>Noisy problems with constraints on outputs.</strong> A benchmark <code>Problem</code> takes <code>output_noise</code>, a standard deviation per output, and the runner scores each run by the true value and the true feasibility of the design it returns. <code>noisy_output_problems()</code> has the engineering designs with about 1% noise on everything they report. The optimizers still refuse noise with output constraints, so these problems run only with an optimizer that doesn't average, until that is built.</li>
 </ul>
+<h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>The tests run on every core.</strong> pytest-xdist is a dev dependency and <code>-n auto</code> the default, which takes the full suite from about 11 minutes to under 3 on 16 cores. The tests that measure wall-clock time, in <code>test_stragglers.py</code> and <code>test_workers.py</code>, are marked <code>timing</code>, skipped on a parallel worker, and run on their own afterwards by <code>make test</code>, CI and the Docker image, since beside every other test on a loaded machine their timings don't hold. Coverage is measured in CI only.</li>
+</ul>
 <h2 id="0140-2026-11-02">0.14.0 (2026-11-02)<a class="headerlink" href="#0140-2026-11-02" title="Permanent link">&para;</a></h2>
 <p>Constraints on outputs: limits on what an evaluation reports, such as the peak stress a simulation computes, written with <code>Output</code> in the same <code>constraints=</code> list as limits on the parameters. A README section explains them, an example designs a welded beam whose stresses come from an analysis, and the constrained benchmark gains output versions of its three engineering problems. See <a href="https://github.com/GreatEmuWar/hone/blob/main/docs/design/output-constraints.md">docs/design/output-constraints.md</a>.</p>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
@@ -2636,7 +2662,7 @@
 <ul>
 <li><strong>A documentation site</strong>, at https://hone-python.dev/, built with MkDocs Material. Its guide, examples, benchmark results and changelog are pulled from the README, the example scripts and the benchmark files, so each is still written once, and its API reference is generated from the docstrings. Every config field now has a docstring, which also becomes its description in the config's JSON schema. CI builds the site on every pull request and publishes it on every push to <code>main</code>; see "Docs" in the README.</li>
 </ul>
-<h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
+<h3 id="internal_1">Internal<a class="headerlink" href="#internal_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>CI is hardened against supply-chain attacks.</strong> Every workflow is read-only unless a job needs more, every action is pinned by commit, and checkouts don't keep the token. Poetry is installed from a hash-pinned requirements file, and the Docker image's base is pinned by digest and runs the tests as an ordinary user. Released packages carry a build provenance attestation, which <code>gh attestation verify</code> checks, alongside PyPI's own. Pull requests are checked for dependencies with known vulnerabilities, zizmor lints the workflows, and OpenSSF Scorecard scores the repository weekly. Dependabot keeps actions, dependencies, Poetry and the base image current.</li>
 </ul>
@@ -2656,7 +2682,7 @@
 <li><strong>A multi-objective benchmark suite.</strong> <code>python -m hone.benchmarks --multi</code> runs ZDT1 (also rotated), ZDT2, ZDT3, ZDT4, DTLZ2 and the welded beam's cost against its deflection, scored by hypervolume gap from the true front, against weighted sums of the objectives as the baseline. The summaries include each run's median attainment surface. See <a href="../benchmarks/#multi-objective-problems">benchmarks/README.md</a>.</li>
 <li><strong>An example</strong>, <code>examples/cantilever_beam.py</code>, designing a cantilever beam in steel, aluminium or carbon fibre against its mass, cost and deflection, under a stress limit that depends on the material, and choosing from the front.</li>
 </ul>
-<h3 id="internal_1">Internal<a class="headerlink" href="#internal_1" title="Permanent link">&para;</a></h3>
+<h3 id="internal_2">Internal<a class="headerlink" href="#internal_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The optimizer base class is split into <code>OptimizerCore</code>, the generation loop, ask and tell, workers, checkpoints and run records shared by every optimizer, and <code>Optimizer</code>, which adds what a single objective needs. This makes room for multiple objectives (see <a href="https://github.com/GreatEmuWar/hone/blob/main/docs/design/multiple-objectives.md">docs/design/multiple-objectives.md</a>). Results don't change, and checkpoints saved by 0.11.0 still load.</li>
 </ul>
