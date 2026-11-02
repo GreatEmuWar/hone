@@ -10,6 +10,10 @@ Measuring how output constraints are handled, before improving it; see [docs/des
 - **Benchmark summaries say how often a feasible design was found, and how soon.** On a problem with constraints on outputs, each `Summary` has `feasible`, the share of runs that found a design satisfying every limit, and `median_first_feasible`, the median evaluations to the first one, with a run that found none counting as infinity. Each `Run` records its `first_feasible`. The results tables have a feasibility table for such problems.
 - **Noisy problems with constraints on outputs.** A benchmark `Problem` takes `output_noise`, a standard deviation per output, and the runner scores each run by the true value and the true feasibility of the design it returns. `noisy_output_problems()` has the engineering designs with about 1% noise on everything they report. The optimizers still refuse noise with output constraints, so these problems run only with an optimizer that doesn't average, until that is built.
 
+### Internal
+
+- **The tests run on every core.** pytest-xdist is a dev dependency and `-n auto` the default, which takes the full suite from about 11 minutes to under 3 on 16 cores. The tests that measure wall-clock time, in `test_stragglers.py` and `test_workers.py`, are marked `timing`, skipped on a parallel worker, and run on their own afterwards by `make test`, CI and the Docker image, since beside every other test on a loaded machine their timings don't hold. Coverage is measured in CI only.
+
 ## 0.14.0 (2026-11-02)
 
 Constraints on outputs: limits on what an evaluation reports, such as the peak stress a simulation computes, written with `Output` in the same `constraints=` list as limits on the parameters. A README section explains them, an example designs a welded beam whose stresses come from an analysis, and the constrained benchmark gains output versions of its three engineering problems. See [docs/design/output-constraints.md](docs/design/output-constraints.md).

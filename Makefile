@@ -7,6 +7,7 @@ install:
 .PHONY: test
 test: install
 	@poetry run pytest
+	@poetry run pytest -n 0 -m timing
 
 .PHONY: lint
 lint: install

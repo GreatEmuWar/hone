@@ -1,3 +1,5 @@
+import pytest
+
 from hone.config import GeneticOptimizerConfig
 from hone.optimizers import GeneticOptimizer, Individual
 from hone.parameters import RangeParameter
@@ -26,3 +28,14 @@ def run(objective_function=sphere, search_space=None, **config):
 
 def individual(fitness, generation=0, **params):
     return Individual(params=params or {"x": fitness}, generation=generation, fitness=fitness)
+
+
+def pytest_collection_modifyitems(config, items):
+    """On a pytest-xdist worker, skip the tests that measure wall-clock time: beside every other test
+    on a loaded machine their timings don't hold. They run on their own with -n 0 -m timing."""
+    if getattr(config, "workerinput", None) is None:
+        return
+    skip = pytest.mark.skip(reason="measures wall-clock time: run with pytest -n 0 -m timing")
+    for item in items:
+        if "timing" in item.keywords:
+            item.add_marker(skip)

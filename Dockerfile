@@ -24,4 +24,4 @@ RUN poetry install --only-root --no-interaction --no-ansi
 RUN useradd --create-home hone && chown -R hone:hone /src
 USER hone
 
-CMD ["pytest"]
+CMD ["sh", "-c", "pytest && pytest -n 0 -m timing"]
