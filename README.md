@@ -87,7 +87,7 @@ def good_enough_or_overnight(progress):
     return good_enough or progress.elapsed > 8 * 3600
 ```
 
-With [constraints on outputs](#constraints-on-outputs), the best so far can break one while nothing has satisfied them all; check `progress.feasible` too before stopping on its value.
+With constraints on outputs (see "Constraints on outputs" under Constraints), the best so far can break one while nothing has satisfied them all; check `progress.feasible` too before stopping on its value.
 
 Pressing Ctrl+C stops the run too. Either way, `optimize()` stops the workers and returns the best result so far, with `stopped` set.
 
