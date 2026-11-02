@@ -10,6 +10,9 @@ from hone.optimizers._pool import EvaluationPool
 from conftest import make_optimizer
 import objectives
 
+# These tests time real waits, so they run on their own; see addopts in pyproject.toml.
+pytestmark = pytest.mark.timing
+
 SETTINGS = dict(generations=2, population_size=8)
 
 

@@ -41,7 +41,8 @@ dev = [
     "mypy (>=2.4.1,<3.0.0)",
     "types-pyyaml (>=6.0.12.20261030,<7.0.0.0)",
     "scipy-stubs (>=1.18.1.1,<2.0.0.0)",
-    "hypothesis (>=6.170,<7.0)"
+    "hypothesis (>=6.170,<7.0)",
+    "pytest-xdist (>=3.6,<4)"
 ]
 docs = [
     "mkdocs-material (>=9.8.0,<10.0.0)",
@@ -53,7 +54,11 @@ docs = [
 [tool.pytest.ini_options]
 testpaths = ["tests", "pbt/tests"]
 xfail_strict = true
-addopts = "--cov=hone --cov-report=term-missing"
+# The tests share every core, through pytest-xdist, except those that measure wall-clock time, which
+# are skipped on a parallel worker and run on their own: pytest -n 0 -m timing, as make test
+# does. Coverage is measured in CI only, since tracing slows every run.
+addopts = "-n auto"
+markers = ["timing: measures wall-clock time, so it runs on its own rather than beside every other test"]
 
 [tool.ruff]
 target-version = "py312"

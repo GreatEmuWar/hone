@@ -10,6 +10,9 @@ from hone import CMAES, BayesianConfig, BayesianOptimizer, CMAESConfig, GeneticO
 from conftest import bounded_parameters, sphere
 import objectives
 
+# These tests time real waits, so they run on their own; see addopts in pyproject.toml.
+pytestmark = pytest.mark.timing
+
 
 def genetic(**config):
     config.setdefault("seed", 0)

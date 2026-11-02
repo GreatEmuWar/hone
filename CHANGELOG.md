@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Internal
+
+- **The tests run on every core.** pytest-xdist is a dev dependency and `-n auto` the default, which takes the full suite from about 11 minutes to under 3 on 16 cores. The tests that measure wall-clock time, in `test_stragglers.py` and `test_workers.py`, are marked `timing`, skipped on a parallel worker, and run on their own afterwards by `make test`, CI and the Docker image, since beside every other test on a loaded machine their timings don't hold. Coverage is measured in CI only.
+
 ## 0.14.0 (2026-11-02)
 
 Constraints on outputs: limits on what an evaluation reports, such as the peak stress a simulation computes, written with `Output` in the same `constraints=` list as limits on the parameters. A README section explains them, an example designs a welded beam whose stresses come from an analysis, and the constrained benchmark gains output versions of its three engineering problems. See [docs/design/output-constraints.md](docs/design/output-constraints.md).

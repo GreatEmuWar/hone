@@ -33,7 +33,9 @@ jobs:
     - name: Type check
       run: poetry run mypy
     - name: Test
-      run: poetry run pytest
+      run: poetry run pytest --cov=hone --cov-report=term-missing
+    - name: Run the tests that measure wall-clock time, on their own
+      run: poetry run pytest -n 0 -m timing
 
   benchmark:
     runs-on: ubuntu-latest
