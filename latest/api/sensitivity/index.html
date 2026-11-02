@@ -548,6 +548,8 @@
       
         
       
+        
+      
     
     
     
@@ -617,6 +619,34 @@
     
   
     Pressure vessel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/welded_beam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welded beam
   
 
     
@@ -2102,7 +2132,9 @@ evaluation. Failed evaluations are left out of the indices.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The parameters, with any conditions; constraints aren't supported yet.</p>
+                <p>The parameters, with any conditions. Constraints on outputs are allowed and
+ignored: the objective returns its dict, and only its "objective" is measured.
+Constraints on the parameters aren't supported yet.</p>
               </div>
             </td>
             <td>
@@ -2494,7 +2526,8 @@ function must be defined at the top level of a module.</p>
 
     <div class="doc doc-contents ">
 
-        <p>The best point evaluated, as the objective was called with it; None if every evaluation failed.</p>
+        <p>The best point evaluated, as the objective was called with it; None if every evaluation failed.
+With constraints on outputs, the best that satisfies them all, if any does.</p>
 
     </div>
 

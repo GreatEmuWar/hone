@@ -548,6 +548,8 @@
       
         
       
+        
+      
     
     
     
@@ -617,6 +619,34 @@
     
   
     Pressure vessel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/welded_beam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welded beam
   
 
     
@@ -3542,6 +3572,9 @@ settings are passed on to the chosen optimizer's config.</p>
 each candidate is the point where a Gaussian process model of the objective predicts the
 largest expected improvement on the best value so far. Failed evaluations are modelled as
 the worst value seen, which steers the search away from them.</p>
+<p>With constraints on outputs, each one's margin gets a Gaussian process of its own, and the
+expected improvement on the best feasible value is multiplied by the probability that every
+constraint holds. Until a feasible point is found, candidates maximize that probability.</p>
 <p>Range parameters, integer or not, and choice parameters are supported, but not choice
 parameters with choose_n. Fixed parameters are passed through.</p>
 
@@ -5189,7 +5222,9 @@ including any dent in it. With method "parego" one Gaussian process models the c
 (ParEGO, Knowles 2006); with "models" one models each objective, and the combination is
 applied to their predictions.</p>
 <p>Range and choice parameters are supported, as in BayesianOptimizer, with constraints and
-conditions. Each candidate takes a fraction of a second or more to choose, so it suits
+conditions. With constraints on outputs, each one's margin gets a model, as in
+BayesianOptimizer, the improvement is measured from the feasible points, and it is
+multiplied by the probability that every constraint holds. Each candidate takes a fraction of a second or more to choose, so it suits
 expensive objectives and budgets of a few hundred evaluations.</p>
 
 
@@ -5565,6 +5600,9 @@ distance, so the front stays spread out. Parents are chosen from the survivors b
 tournaments of two, won by the better front and then the more isolated point. Children are
 bred as in the genetic optimizer, with its crossover, mutation, repeat avoidance, repair
 for constraints, conditions and niches.</p>
+<p>With constraints on outputs, domination is constrained (Deb et al., 2002): points that
+satisfy every one are sorted into fronts as above, and come before every point that
+doesn't, which rank by their total violation, smallest first.</p>
 <p>The result's front is that of every point evaluated, not only the survivors, so a
 trade-off found early is never lost when crowding drops it from the population.
 Ties are broken by the order points were created, so a seeded run repeats exactly, and
@@ -6421,6 +6459,11 @@ the conditions switch off at its point, so an optimizer can keep them to use aga
 base class leaves them out of what it hands out and reports: trials, results and progress.</p>
 <p>The objective returns a number. To record an evaluation as failed instead, it can raise
 EvaluationFailed or return NaN or infinity.</p>
+<p>With constraints on outputs, the objective returns a dict instead: its value under
+"objective", and a number for each output the constraints use. Evaluations are then ranked
+by Deb's feasibility rule: a point that satisfies every output constraint beats one that
+doesn't, feasible points rank by value, and the others by their total violation, so no
+penalty weight is needed. Failed evaluations rank below them all.</p>
 
 
 
@@ -6796,6 +6839,9 @@ evaluation as failed; failed evaluations are never on the front.</p>
 <p>The front is that of every point evaluated, not only the latest generation, so a trade-off
 found early is never lost. With noise, each point's values are the averages of all its
 evaluations, and the front comes with their standard errors.</p>
+<p>With constraints on outputs, the dict also holds a number for each output they use; a name
+can be both an objective and an output. Only points that satisfy every one join the front,
+and the optimizers rank the others behind them by their total violation.</p>
 
 
 

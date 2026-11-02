@@ -548,6 +548,8 @@
       
         
       
+        
+      
     
     
     
@@ -617,6 +619,34 @@
     
   
     Pressure vessel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/welded_beam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welded beam
   
 
     
@@ -1430,6 +1460,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Constrained problems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#constraints-on-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constraints on outputs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1818,7 +1865,7 @@ python -m hone.benchmarks --multi          # several objectives: 7 problems, sco
 </ul>
 <p>The machine learning suite has a conditional problem too: model-selection-breast-cancer, choosing a support vector classifier, a random forest or k nearest neighbours and that model's settings (see <a href="#machine-learning-tuning">Machine learning tuning</a>).</p>
 <h2 id="constrained-problems">Constrained problems<a class="headerlink" href="#constrained-problems" title="Permanent link">&para;</a></h2>
-<p><code>python -m hone.benchmarks --constrained</code> runs ten problems whose optimum lies on a constraint's boundary, as it usually does in engineering, at the same five budgets:</p>
+<p><code>python -m hone.benchmarks --constrained</code> runs thirteen problems whose optimum lies on a constraint's boundary, as it usually does in engineering, at the same five budgets. Ten have their limits on the parameters; the other three are engineering problems with their limits on outputs, described <a href="#constraints-on-outputs">below</a>.</p>
 <table>
 <thead>
 <tr>
@@ -1849,12 +1896,83 @@ python -m hone.benchmarks --multi          # several objectives: 7 problems, sco
 </tr>
 </tbody>
 </table>
-<p>The engineering problems are scored against the best designs published for them. Every optimizer only ever asks for feasible points, so each evaluation counts.</p>
+<p>The engineering problems are scored against the best designs published for them. With limits on the parameters, every optimizer only ever asks for feasible points, so each evaluation counts. The findings below are for those ten problems.</p>
 <ul>
 <li><strong>Bayesian optimization is the best at small budgets</strong>, more clearly than without constraints: it has the lowest median error on all ten problems at 10 and 20 evaluations per dimension, and all six it runs on at 50. On the pressure vessel with 40 evaluations its median cost is 266 above the best known design, against 10,010 for CMA-ES and 19,140 for random search.</li>
 <li><strong>CMA-ES is the best at 1,000 evaluations per dimension</strong>, on all ten problems. It finds the best known design of nine of them in every run, and of the pressure vessel in three of ten. When a candidate breaks a constraint, it draws again from the same distribution. Ranking such candidates below every feasible one without evaluating them was also tried, and did worse at every budget (×1.17 to ×1.59).</li>
 <li><strong>The genetic optimizer is behind CMA-ES under constraints</strong>, but it is the optimizer for constrained problems with choice or integer parameters, which CMA-ES can't search or handles less well. A child that breaks a constraint is moved back toward its fitter parent, halving the gap ten times, so it lands near the boundary. Against breeding a new child instead, this cut its geometric-mean error to ×0.84, ×0.68, ×0.74, ×0.46 and ×0.44 at 10 to 1,000 evaluations per dimension; on the welded beam at 1,000 it went from 0.080 to 0.0058. It beats random search on every problem at 50 and 1,000 evaluations per dimension, and on nine of ten at 100, losing on rosenbrock-disk-2d.</li>
 <li><strong><code>choose_optimizer</code>'s rule holds without change.</strong> Its pick is 1.04 times the best optimizer's error on geometric mean, and the best on 45 of the 50 problem and budget pairs.</li>
+</ul>
+<h3 id="constraints-on-outputs">Constraints on outputs<a class="headerlink" href="#constraints-on-outputs" title="Permanent link">&para;</a></h3>
+<p>pressure-vessel-outputs, tension-spring-outputs and welded-beam-outputs are the three engineering problems with their limits reported by the objective, as a simulation would report them, instead of written on the parameters. The welded beam keeps its two geometric limits on the parameters, since they need no analysis. Each design and its score are the same as in the parameter version; only when the optimizer learns of a limit differs. A run that finds no design satisfying every limit scores infinity.</p>
+<p>Median error over 10 seeds, with each limit known before evaluating against reported after:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">Evaluations per dimension</th>
+<th style="text-align: right;">Bayesian</th>
+<th style="text-align: right;">Genetic</th>
+<th style="text-align: right;">CMA-ES</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure vessel</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">191 → 36.7</td>
+<td style="text-align: right;">15,400 → 19,500</td>
+<td style="text-align: right;">7,920 → 16,100</td>
+</tr>
+<tr>
+<td>pressure vessel</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">180 → 31.6</td>
+<td style="text-align: right;">1,120 → 4,650</td>
+<td style="text-align: right;">1,470 → 6,290</td>
+</tr>
+<tr>
+<td>tension spring</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">7.3e-05 → 6.5e-05</td>
+<td style="text-align: right;">0.0053 → 0.030</td>
+<td style="text-align: right;">0.0069 → 0.046</td>
+</tr>
+<tr>
+<td>tension spring</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">6.6e-05 → 8.8e-06</td>
+<td style="text-align: right;">0.00097 → 0.021</td>
+<td style="text-align: right;">0.0019 → 0.023</td>
+</tr>
+<tr>
+<td>welded beam</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.0176 → 0.0195</td>
+<td style="text-align: right;">0.506 → 1.37</td>
+<td style="text-align: right;">0.489 → 1.34</td>
+</tr>
+<tr>
+<td>welded beam</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">0.0104 → 0.0112</td>
+<td style="text-align: right;">0.328 → 1.08</td>
+<td style="text-align: right;">0.205 → 0.706</td>
+</tr>
+<tr>
+<td>welded beam</td>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.0058 → 0.286</td>
+<td style="text-align: right;">3.1e-07 → 3.1e-07</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Bayesian optimization loses almost nothing when limits are only reported, and sometimes gains.</strong> Its models of the limits learn where the infeasible designs lie from the evaluations that broke one. On the welded beam its error grows by at most 11% at 20 and 50 evaluations per dimension, though from 0.041 to 0.071 at 10, and on the tension spring it solves 90% of runs at 20 evaluations per dimension and all of them at 50. On the pressure vessel it does better with reported limits, 31.6 against 180 at 50: with the limits on the parameters, it only ever considers candidates inside them, while a model of the limits can also step across the boundary to find better designs along it.</li>
+<li><strong>The genetic optimizer and CMA-ES lose a lot at small and middle budgets.</strong> They only learn which designs ranked lower, so most of their evaluations go to designs that break a limit. Their errors are 1.3 to 31 times larger at 10 to 100 evaluations per dimension. At 1,000, CMA-ES finds the best welded beam in every run either way, and its pressure vessel is as good. The genetic optimizer's welded beam stays 50 times worse, since it can no longer repair a child back inside the limits before evaluating it.</li>
+<li><strong>Random search finds no feasible spring in most runs at 10 evaluations per dimension.</strong> Only 0.8% of the box satisfies every limit, and 30 evaluations seldom land there.</li>
+<li><strong><code>choose_optimizer</code>'s rule still holds</strong> on the thirteen problems. Its test passes on the new results: Bayesian optimization up to 200 evaluations, then the genetic optimizer or CMA-ES. At 1,000 evaluations per dimension CMA-ES is the better of the two on all three problems with reported limits; at 100 the two are level on the spring.</li>
 </ul>
 <h2 id="multi-objective-problems">Multi-objective problems<a class="headerlink" href="#multi-objective-problems" title="Permanent link">&para;</a></h2>
 <p><code>python -m hone.benchmarks --multi</code> runs seven problems with two or three objectives, at the same five budgets. A run is scored by the <strong>hypervolume gap</strong>: the true front's hypervolume less that of the front the run found, with each objective scaled from 0 at the true front's best value to 1 at its worst and a reference point of 1.1. 0 is the true front; lower is better. The scale is fixed per problem, so gaps compare across optimizers and seeds.</p>

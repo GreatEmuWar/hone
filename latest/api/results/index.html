@@ -548,6 +548,8 @@
       
         
       
+        
+      
     
     
     
@@ -617,6 +619,34 @@
     
   
     Pressure vessel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/welded_beam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welded beam
   
 
     
@@ -1896,6 +1926,8 @@
               Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
 
         <p>Outcome of an optimization run. Save it with save() and read it back with load().</p>
+<p>With constraints on outputs, best_params is the best point that satisfies them all. If no
+evaluation did, it is the point that came closest, by total violation, and feasible is False.</p>
 <p>Two results are equal when they found the same things; their run records are not compared,
 since a repeated run differs in its timing.</p>
 
@@ -1916,6 +1948,14 @@ since a repeated run differs in its timing.</p>
                 (<code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>)
             </li>
             <li>
+              <code><span title="hone.result.Result.best_outputs">best_outputs</span></code>
+                (<code><span title="dict">dict</span>[<span title="str">str</span>, <span title="float">float</span>] | None</code>)
+            </li>
+            <li>
+              <code><span title="hone.result.Result.feasible">feasible</span></code>
+                (<code><span title="bool">bool</span></code>)
+            </li>
+            <li>
               <code><span title="hone.result.Result.generations">generations</span></code>
                 (<code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            GenerationStats
 
@@ -1930,6 +1970,10 @@ since a repeated run differs in its timing.</p>
             </li>
             <li>
               <code><span title="hone.result.Result.failures">failures</span></code>
+                (<code><span title="int">int</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.result.Result.infeasible">infeasible</span></code>
                 (<code><span title="int">int</span></code>)
             </li>
             <li>
@@ -2015,10 +2059,11 @@ one, pass each such constraint's function by name, as functions={"stress": stres
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code><span title="hone.result._Unpickles">_Unpickles</span></code></p>
 
-        <p>Summary of one generation's fitness, over its successful evaluations.</p>
-<p>The fitness fields are None when every evaluation in the generation failed.</p>
+        <p>Summary of one generation's fitness, over its successful evaluations that satisfy any constraints on outputs.</p>
+<p>The fitness fields are None when every evaluation in the generation failed or broke an
+output constraint.</p>
 
     
       <p>Config:</p>
@@ -2038,6 +2083,10 @@ one, pass each such constraint's function by name, as functions={"stress": stres
             </li>
             <li>
               <code><span title="hone.result.GenerationStats.failures">failures</span></code>
+                (<code><span title="int">int</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.result.GenerationStats.infeasible">infeasible</span></code>
                 (<code><span title="int">int</span></code>)
             </li>
             <li>
@@ -2141,6 +2190,10 @@ one, pass each such constraint's function by name, as functions={"stress": stres
             <li>
               <code><span title="hone.result.Progress.elapsed">elapsed</span></code>
                 (<code><span title="float">float</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.result.Progress.feasible">feasible</span></code>
+                (<code><span title="bool">bool</span></code>)
             </li>
         </ul>
 
@@ -2314,6 +2367,8 @@ one, pass each such constraint's function by name, as functions={"stress": stres
               Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
 
         <p>Outcome of a multi-objective run: the front of everything evaluated. Save it with save() and read it back with load().</p>
+<p>With constraints on outputs, the front holds only points that satisfy them all; while none
+has, it is empty and feasible is False.</p>
 <p>Two results are equal when they found the same things; their run records are not compared.</p>
 
     
@@ -2349,6 +2404,14 @@ one, pass each such constraint's function by name, as functions={"stress": stres
             <li>
               <code><span title="hone.pareto.ParetoResult.failures">failures</span></code>
                 (<code><span title="int">int</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.pareto.ParetoResult.infeasible">infeasible</span></code>
+                (<code><span title="int">int</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.pareto.ParetoResult.feasible">feasible</span></code>
+                (<code><span title="bool">bool</span></code>)
             </li>
             <li>
               <code><span title="hone.pareto.ParetoResult.stopped">stopped</span></code>
@@ -2651,6 +2714,10 @@ A better front always has a larger hypervolume.</p>
               <code><span title="hone.pareto.ParetoPoint.standard_error">standard_error</span></code>
                 (<code><span title="dict">dict</span>[<span title="str">str</span>, <span title="float">float</span>] | None</code>)
             </li>
+            <li>
+              <code><span title="hone.pareto.ParetoPoint.outputs">outputs</span></code>
+                (<code><span title="dict">dict</span>[<span title="str">str</span>, <span title="float">float</span>] | None</code>)
+            </li>
         </ul>
 
 
@@ -2692,7 +2759,7 @@ A better front always has a larger hypervolume.</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code><span title="hone.result._Unpickles">_Unpickles</span></code></p>
 
         <p>Summary of one generation of a multi-objective run.</p>
 
@@ -2714,6 +2781,10 @@ A better front always has a larger hypervolume.</p>
             </li>
             <li>
               <code><span title="hone.pareto.ParetoGenerationStats.failures">failures</span></code>
+                (<code><span title="int">int</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.pareto.ParetoGenerationStats.infeasible">infeasible</span></code>
                 (<code><span title="int">int</span></code>)
             </li>
             <li>
@@ -2802,6 +2873,10 @@ A better front always has a larger hypervolume.</p>
             <li>
               <code><span title="hone.pareto.ParetoProgress.elapsed">elapsed</span></code>
                 (<code><span title="float">float</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.pareto.ParetoProgress.feasible">feasible</span></code>
+                (<code><span title="bool">bool</span></code>)
             </li>
         </ul>
 
