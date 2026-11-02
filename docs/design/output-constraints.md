@@ -1,6 +1,6 @@
 # Output constraints: design
 
-Status: implemented, pending review.
+Status: done, released in 0.14.0 (#53), after an applied-mathematics review and a software-engineering review.
 
 ## What users get
 
@@ -119,19 +119,6 @@ The constrained suite gains output-constraint versions of the pressure vessel, t
 - Ranking alone costs CMA-ES accuracy: on a 5-dimensional quadratic with a linear limit and 1,500 evaluations, its median error was 3.2e-6 with the limit on the parameters and 2.9e-5 with it as an output.
 - Batches of Bayesian optimization can land within 0.001 of each other, with output constraints or without. This was already the case before output constraints; the believer on the constraints' models doesn't cause it.
 
-## Planned for the next version: quality improvements
-
-The version after output constraints ship takes up the weaknesses above and the choices left open, in this order:
-
-1. **Bayesian optimization before anything is feasible.** Measure the probability of feasibility against expected improvement in the total violation, or in the smallest predicted margin, on problems whose feasible region is tiny, and keep whichever finds a feasible design sooner.
-2. **Noise with output constraints.** Average each point's outputs over its evaluations, as its value is averaged, judge feasibility on the averages, and let only feasible points be finalists in the final re-evaluation. Feasibility as a probability, from each output's standard error, stays for later.
-3. **A scale for limits that aren't numbers.** An optional `scale=` on a constraint, for function constraints and limits that vary with the point, so their violations compare with the others. Added only if needed after 1 and 2.
-4. **`choose_optimizer` with output constraints.** Benchmark Bayesian optimization at 100 evaluations per dimension on the problems with limits on outputs, where it pulls furthest ahead, and pick it past 200 evaluations if the cost per candidate is worth it.
-5. **CMA-ES's flat-run restart while nothing is feasible**, judged on the best violation instead of only feasible bests.
-6. **Batches of Bayesian optimization that bunch together**, with or without output constraints: keep each batch's candidates apart, for example with a local penalty around those already chosen.
-
-Each item is measured on the constrained benchmark before and after, as the rest of hone is.
-
 ## Out of scope for now
 
-Equality constraints, soft tolerances, tests on outputs, and constraint values that come from a different, cheaper evaluation than the objective.
+Noise with output constraints, equality constraints, soft tolerances, tests on outputs, and constraint values that come from a different, cheaper evaluation than the objective.
