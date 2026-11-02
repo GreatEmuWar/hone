@@ -1254,6 +1254,8 @@
       
         
       
+        
+      
     
     
     
@@ -1407,6 +1409,34 @@
     
   
     Constrained problems
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/outputs-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constraints on outputs
   
 
     
@@ -1993,6 +2023,10 @@ with every setting always searched, as before conditions, to show what they are 
               <code><span title="hone.benchmarks.problems.Problem.noise">noise</span></code>
                 (<code><span title="float">float</span></code>)
             </li>
+            <li>
+              <code><span title="hone.benchmarks.problems.Problem.output_noise">output_noise</span></code>
+                (<code><span title="dict">dict</span>[<span title="str">str</span>, <span title="float">float</span>]</code>)
+            </li>
         </ul>
 
 
@@ -2073,6 +2107,14 @@ with every setting always searched, as before conditions, to show what they are 
             <li>
               <code><span title="hone.benchmarks.runner.Run.trace">trace</span></code>
                 (<code><span title="list">list</span>[<span title="tuple">tuple</span>[<span title="int">int</span>, <span title="float">float</span>]]</code>)
+            </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Run.output_constrained">output_constrained</span></code>
+                (<code><span title="bool">bool</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Run.first_feasible">first_feasible</span></code>
+                (<code><span title="int">int</span> | None</code>)
             </li>
         </ul>
 
@@ -2158,6 +2200,14 @@ with every setting always searched, as before conditions, to show what they are 
             <li>
               <code><span title="hone.benchmarks.runner.Summary.solved">solved</span></code>
                 (<code><span title="float">float</span></code>)
+            </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Summary.feasible">feasible</span></code>
+                (<code><span title="float">float</span> | None</code>)
+            </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Summary.median_first_feasible">median_first_feasible</span></code>
+                (<code><span title="float">float</span> | None</code>)
             </li>
         </ul>
 

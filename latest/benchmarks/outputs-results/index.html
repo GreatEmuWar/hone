@@ -1,0 +1,4077 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Python optimization engine for expensive, noisy and constrained problems.">
+      
+      
+      
+        <link rel="canonical" href="https://hone-python.dev/latest/benchmarks/outputs-results/">
+      
+      
+        <link rel="prev" href="../constrained-results/">
+      
+      
+        <link rel="next" href="../conditional-results/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Constraints on outputs - hone</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#constraints-on-outputs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="hone" class="md-header__button md-logo" aria-label="hone" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            hone
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Constraints on outputs
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/GreatEmuWar/hone" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GreatEmuWar/hone
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="hone" class="md-nav__button md-logo" aria-label="hone" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    hone
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/GreatEmuWar/hone" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GreatEmuWar/hone
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running an optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/search-spaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Search spaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/optimizers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Choosing an optimizer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/several-objectives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Several objectives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/sensitivity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Which parameters matter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../examples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/pressure_vessel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pressure vessel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/welded_beam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welded beam
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/maintenance_schedule/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance schedule
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/choose_a_model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Choosing a model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/tune_iris/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tuning on iris
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/cantilever_beam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cantilever beam
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/heat_sink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heat sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/optimizers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/search-spaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Search spaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/sensitivity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensitivity analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Benchmarks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Full suite
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../noisy-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Noisy problems
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ml-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Machine learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../constrained-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constrained problems
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constraints on outputs
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constraints on outputs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#50-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        50 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        100 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1000-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1000 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../conditional-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conditional problems
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../multi-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Several objectives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#50-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        50 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        100 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1000-evaluations-per-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1000 evaluations per dimension
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="constraints-on-outputs">Constraints on outputs<a class="headerlink" href="#constraints-on-outputs" title="Permanent link">&para;</a></h1>
+<p>Generated by <code>python -m hone.benchmarks</code> with hone 0.14.0: 14 problems, 10 seeds, budgets of 10, 20, 50, 100 and 1,000 evaluations per dimension.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Problems on which each optimizer has the lowest median error, at each budget. Ties count for each optimizer in them, and errors below 1e-08 count as equal.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Evaluations per dimension</th>
+<th style="text-align: right;">genetic</th>
+<th style="text-align: right;">cma-es</th>
+<th style="text-align: right;">bayesian</th>
+<th style="text-align: right;">random</th>
+<th style="text-align: right;">bayesian-4</th>
+<th style="text-align: right;">bayesian-8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td style="text-align: right;">1000</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="10-evaluations-per-dimension">10 evaluations per dimension<a class="headerlink" href="#10-evaluations-per-dimension" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic median</th>
+<th style="text-align: right;">genetic solved</th>
+<th style="text-align: right;">cma-es median</th>
+<th style="text-align: right;">cma-es solved</th>
+<th style="text-align: right;">bayesian median</th>
+<th style="text-align: right;">bayesian solved</th>
+<th style="text-align: right;">random median</th>
+<th style="text-align: right;">random solved</th>
+<th style="text-align: right;">bayesian-4 median</th>
+<th style="text-align: right;">bayesian-4 solved</th>
+<th style="text-align: right;">bayesian-8 median</th>
+<th style="text-align: right;">bayesian-8 solved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">3.62e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.67e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">117</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">3.78e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">191</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">325</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">0.0725</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.126</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00148</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0429</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">1.85</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.98</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.071</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.57</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.09</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">6.2</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.13</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00114</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">5.02</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0199</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.101</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0123</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.554</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.69</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">7.96</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00227</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0158</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.623</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">9.99</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00253</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0133</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.645</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">10.6</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">5.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00107</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">10.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00428</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.43</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">13.4</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">19.8</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00264</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">39.5</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0241</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.438</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">23.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.362</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">60.1</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">8.05</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">10.8</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">207</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.18e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0725</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.159</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.38</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">676</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">613</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.86e+03</td>
+<td style="text-align: right;">0%</td>
+</tr>
+</tbody>
+</table>
+<p>Finding a feasible design:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic feasible</th>
+<th style="text-align: right;">genetic first</th>
+<th style="text-align: right;">cma-es feasible</th>
+<th style="text-align: right;">cma-es first</th>
+<th style="text-align: right;">bayesian feasible</th>
+<th style="text-align: right;">bayesian first</th>
+<th style="text-align: right;">random feasible</th>
+<th style="text-align: right;">random first</th>
+<th style="text-align: right;">bayesian-4 feasible</th>
+<th style="text-align: right;">bayesian-4 first</th>
+<th style="text-align: right;">bayesian-8 feasible</th>
+<th style="text-align: right;">bayesian-8 first</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">50%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">none</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">50%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">28</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">42</td>
+</tr>
+</tbody>
+</table>
+<h2 id="20-evaluations-per-dimension">20 evaluations per dimension<a class="headerlink" href="#20-evaluations-per-dimension" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic median</th>
+<th style="text-align: right;">genetic solved</th>
+<th style="text-align: right;">cma-es median</th>
+<th style="text-align: right;">cma-es solved</th>
+<th style="text-align: right;">bayesian median</th>
+<th style="text-align: right;">bayesian solved</th>
+<th style="text-align: right;">random median</th>
+<th style="text-align: right;">random solved</th>
+<th style="text-align: right;">bayesian-4 median</th>
+<th style="text-align: right;">bayesian-4 solved</th>
+<th style="text-align: right;">bayesian-8 median</th>
+<th style="text-align: right;">bayesian-8 solved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">1.95e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.61e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">24.5</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.42e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">46.6</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">107</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">0.0298</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0461</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">5.99e-05</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">0.0607</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000202</td>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">0.00249</td>
+<td style="text-align: right;">10%</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">1.37</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.34</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0195</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0313</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0643</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">2.31</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.335</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000458</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.56</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000602</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000832</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">1.23</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.24</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000548</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000968</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0146</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">3.11</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">3.56</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000882</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00102</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00223</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">3.72</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">3.2</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00135</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00135</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00238</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">2.88</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.55</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000735</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">5.95</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000776</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00119</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">4.88</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">6.92</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00104</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">17.4</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00138</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00245</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">7.97</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">4.83</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00316</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0173</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.206</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">31.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">130</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.6e+03</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0303</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0385</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0434</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">407</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">352</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">760</td>
+<td style="text-align: right;">0%</td>
+</tr>
+</tbody>
+</table>
+<p>Finding a feasible design:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic feasible</th>
+<th style="text-align: right;">genetic first</th>
+<th style="text-align: right;">cma-es feasible</th>
+<th style="text-align: right;">cma-es first</th>
+<th style="text-align: right;">bayesian feasible</th>
+<th style="text-align: right;">bayesian first</th>
+<th style="text-align: right;">random feasible</th>
+<th style="text-align: right;">random first</th>
+<th style="text-align: right;">bayesian-4 feasible</th>
+<th style="text-align: right;">bayesian-4 first</th>
+<th style="text-align: right;">bayesian-8 feasible</th>
+<th style="text-align: right;">bayesian-8 first</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">28</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">38</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">42</td>
+</tr>
+</tbody>
+</table>
+<h2 id="50-evaluations-per-dimension">50 evaluations per dimension<a class="headerlink" href="#50-evaluations-per-dimension" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic median</th>
+<th style="text-align: right;">genetic solved</th>
+<th style="text-align: right;">cma-es median</th>
+<th style="text-align: right;">cma-es solved</th>
+<th style="text-align: right;">bayesian median</th>
+<th style="text-align: right;">bayesian solved</th>
+<th style="text-align: right;">random median</th>
+<th style="text-align: right;">random solved</th>
+<th style="text-align: right;">bayesian-4 median</th>
+<th style="text-align: right;">bayesian-4 solved</th>
+<th style="text-align: right;">bayesian-8 median</th>
+<th style="text-align: right;">bayesian-8 solved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">4.65e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">6.29e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">8.25</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.52e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">31.6</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">23.9</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">0.0212</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0225</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">8.2e-06</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">0.0314</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">8.94e-06</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">1.23e-05</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">1.08</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.706</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0112</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.29</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0103</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0109</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">0.207</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.104</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000169</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.17</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000199</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000236</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">0.181</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.144</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000192</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000221</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000304</td>
+<td style="text-align: right;">10%</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">0.413</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.175</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">0.355</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.247</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">0.868</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.434</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000339</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">4.3</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000337</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000393</td>
+<td style="text-align: right;">10%</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">1.54</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.771</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">13.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0416</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0238</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">1.36</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.857</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">20.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">4.6e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">9.52</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">9.62</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">17.8</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">1.04e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">550</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.56e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+</tbody>
+</table>
+<p>Finding a feasible design:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic feasible</th>
+<th style="text-align: right;">genetic first</th>
+<th style="text-align: right;">cma-es feasible</th>
+<th style="text-align: right;">cma-es first</th>
+<th style="text-align: right;">bayesian feasible</th>
+<th style="text-align: right;">bayesian first</th>
+<th style="text-align: right;">random feasible</th>
+<th style="text-align: right;">random first</th>
+<th style="text-align: right;">bayesian-4 feasible</th>
+<th style="text-align: right;">bayesian-4 first</th>
+<th style="text-align: right;">bayesian-8 feasible</th>
+<th style="text-align: right;">bayesian-8 first</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">75</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">50%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">62</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">80%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">38</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">404</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">300</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">50%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">290</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+</tbody>
+</table>
+<h2 id="100-evaluations-per-dimension">100 evaluations per dimension<a class="headerlink" href="#100-evaluations-per-dimension" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic median</th>
+<th style="text-align: right;">genetic solved</th>
+<th style="text-align: right;">cma-es median</th>
+<th style="text-align: right;">cma-es solved</th>
+<th style="text-align: right;">bayesian median</th>
+<th style="text-align: right;">bayesian solved</th>
+<th style="text-align: right;">random median</th>
+<th style="text-align: right;">random solved</th>
+<th style="text-align: right;">bayesian-4 median</th>
+<th style="text-align: right;">bayesian-4 solved</th>
+<th style="text-align: right;">bayesian-8 median</th>
+<th style="text-align: right;">bayesian-8 solved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">2.87e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.3e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">1.42e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">0.0114</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0118</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.0243</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">0.625</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.322</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">1.08</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">0.0602</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.00657</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">8.64e-05</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">0.963</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">9.77e-05</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">0.00011</td>
+<td style="text-align: right;">20%</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">0.0545</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0049</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">8.72e-05</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">1.64</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000105</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">0.000118</td>
+<td style="text-align: right;">20%</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">0.0786</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0148</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">8.79</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">0.104</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0108</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">0.186</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.052</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000182</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">2.26</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000177</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000173</td>
+<td style="text-align: right;">10%</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0662</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">9.54</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000394</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">9.6</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000449</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000385</td>
+<td style="text-align: right;">10%</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">0.487</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0775</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">13.2</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">3.66e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">6.95</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">7.19</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">9.65</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">396</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">32.9</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">1.26e+04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">5.14e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+</tbody>
+</table>
+<p>Finding a feasible design:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic feasible</th>
+<th style="text-align: right;">genetic first</th>
+<th style="text-align: right;">cma-es feasible</th>
+<th style="text-align: right;">cma-es first</th>
+<th style="text-align: right;">bayesian feasible</th>
+<th style="text-align: right;">bayesian first</th>
+<th style="text-align: right;">random feasible</th>
+<th style="text-align: right;">random first</th>
+<th style="text-align: right;">bayesian-4 feasible</th>
+<th style="text-align: right;">bayesian-4 first</th>
+<th style="text-align: right;">bayesian-8 feasible</th>
+<th style="text-align: right;">bayesian-8 first</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">75</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">82</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">125</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">62</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">50%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">102</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">38</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">478</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">300</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">616</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">290</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1000-evaluations-per-dimension">1000 evaluations per dimension<a class="headerlink" href="#1000-evaluations-per-dimension" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic median</th>
+<th style="text-align: right;">genetic solved</th>
+<th style="text-align: right;">cma-es median</th>
+<th style="text-align: right;">cma-es solved</th>
+<th style="text-align: right;">bayesian median</th>
+<th style="text-align: right;">bayesian solved</th>
+<th style="text-align: right;">random median</th>
+<th style="text-align: right;">random solved</th>
+<th style="text-align: right;">bayesian-4 median</th>
+<th style="text-align: right;">bayesian-4 solved</th>
+<th style="text-align: right;">bayesian-8 median</th>
+<th style="text-align: right;">bayesian-8 solved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">481</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">193</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">3.92e+03</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">0.00156</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.000323</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.00454</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">0.286</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">3.06e-07</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.506</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">0.00193</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.224</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">0.00444</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.288</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">0.0102</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">3.04</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">0.00888</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">4.15</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">0.00829</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.512</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">0.0395</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">3.77</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">0.011</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">5.26</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0.795</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">0.041</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">6.06</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">837</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">3.1</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0.0327</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">693</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">80.7</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+</tbody>
+</table>
+<p>Finding a feasible design:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th style="text-align: right;">genetic feasible</th>
+<th style="text-align: right;">genetic first</th>
+<th style="text-align: right;">cma-es feasible</th>
+<th style="text-align: right;">cma-es first</th>
+<th style="text-align: right;">bayesian feasible</th>
+<th style="text-align: right;">bayesian first</th>
+<th style="text-align: right;">random feasible</th>
+<th style="text-align: right;">random first</th>
+<th style="text-align: right;">bayesian-4 feasible</th>
+<th style="text-align: right;">bayesian-4 first</th>
+<th style="text-align: right;">bayesian-8 feasible</th>
+<th style="text-align: right;">bayesian-8 first</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pressure-vessel-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>tension-spring-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">75</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>welded-beam-outputs</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-2d-1in10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-2d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">95</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">95</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>ball-5d-1in1000</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">118</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">975</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-2d</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>corner-5d</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-2d-1in100</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">208</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">1821</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">125</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>pocket-5d-1in100</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g06</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">500</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">102</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g07</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">478</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">300</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>g10</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">545</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">290</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">none</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+</tbody>
+</table>
+<p>Median error over the runs (best value found minus the optimum); solved means error ≤ 0.0001. n/a: the optimizer does not support the problem's parameters, or isn't run at this budget.</p>
+<p>Feasible: the share of runs that found a design satisfying every constraint on the outputs. First: the median evaluations to the first such design, counting a run that found none as infinity, so none means most runs found none.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../constrained-results/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Constrained problems">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Constrained problems
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../conditional-results/" class="md-footer__link md-footer__link--next" aria-label="Next: Conditional problems">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Conditional problems
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.footer", "navigation.indexes", "navigation.sections", "navigation.top", "search.highlight", "toc.follow"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
