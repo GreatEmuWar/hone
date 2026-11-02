@@ -1,5 +1,9 @@
 # Changelog
 
+## Next: quality improvements (planned)
+
+Not released. The version after output constraints takes up what they left open: how Bayesian optimization searches before any design satisfies the limits; noise with output constraints, by averaging each point's outputs; an optional `scale=` for limits that aren't numbers, if needed; whether `choose_optimizer` should prefer Bayesian optimization past 200 evaluations when limits are on outputs; CMA-ES's flat-run restart while nothing is feasible; and batches of Bayesian optimization that bunch together. See "Planned for the next version" in [docs/design/output-constraints.md](docs/design/output-constraints.md).
+
 ## Unreleased
 
 Constraints on outputs: limits on what an evaluation reports, such as the peak stress a simulation computes, written with `Output` in the same `constraints=` list as limits on the parameters. A README section explains them, an example designs a welded beam whose stresses come from an analysis, and the constrained benchmark gains output versions of its three engineering problems. See [docs/design/output-constraints.md](docs/design/output-constraints.md).
