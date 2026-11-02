@@ -10,6 +10,11 @@ parameter becomes one column per choice, holding 1 for the chosen one and 0 for 
 A parameter a condition switches off is encoded the same way whatever value it holds: a range at
 INACTIVE, and a choice with every column 0. So points that differ only where parameters are
 switched off are the same point to the model, and the values they happen to hold add no noise.
+
+With constraints on outputs, a Gaussian process models each one's margin, which is zero or less
+where it is satisfied. The acquisition is multiplied by the probability that every one holds,
+so the search learns where the infeasible region is from the evaluations that broke a limit
+(Gardner et al., 2014; Gelbart, Snoek and Adams, 2014).
 """
 import math
 from typing import Any, Callable, List
@@ -23,7 +28,7 @@ from hone.config import BayesianConfig
 from hone.optimizers._gp import GaussianProcess
 from hone.optimizers.base import Individual, Optimizer, UnsupportedSearchSpace
 from hone.parameters import ChoiceParameter, Parameter, RangeParameter, SearchSpace
-from hone.parameters.conditions import ChoiceTest, holds
+from hone.parameters.conditions import ChoiceTest, ConditionalConstraint, holds
 
 GLOBAL_CANDIDATES = 1000  # random candidates per search of the model
 LOCAL_CANDIDATES = 500  # candidates near the best points found so far
@@ -31,16 +36,93 @@ REFINED = 5  # the best candidates are refined by gradient search
 REFIT_EVERY = 5  # past FIT_EVERY_UNTIL observations, refit the model's hyperparameters only this often
 FIT_EVERY_UNTIL = 50
 INACTIVE = 0.5  # where a range switched off by a condition is encoded
+UNCOMPUTED_MARGIN = 1.0  # the least relative margin, 100% over, modelled where a constraint couldn't be computed
 
 
 class _ModelSearch:
     """Searching an acquisition function for the next candidate, over the encoded space, keeping to constraints.
 
-    Shared by single- and multi-objective Bayesian optimization.
+    Shared by single- and multi-objective Bayesian optimization, which also share the models of
+    constraints on outputs: _absorb_outputs records each evaluation's margins, and
+    _constraint_models and _log_feasibility turn them into the probability that a point
+    satisfies every one.
     """
     search_space: SearchSpace
     rng: np.random.Generator
     _encoding: "_Encoding"
+
+    def _reset_outputs(self) -> None:
+        self._margins: list[list[float | None] | None] = []  # each evaluated point's margins, or None if it failed
+        self._violations: list[float] = []  # each evaluated point's total violation; infinity if it failed
+        self._constraint_thetas: dict[int, np.ndarray] = {}  # each constraint model's hyperparameters, kept between fits
+        self._constraint_fitted_at: dict[int, int] = {}
+
+    def _absorb_outputs(self, individual: Individual) -> None:
+        """Record an evaluated individual's margins and violation, alongside its row of X."""
+        if individual.failed or individual.outputs is None:
+            self._margins.append(None)
+        else:
+            self._margins.append(self.search_space.output_margins(individual.params, individual.outputs))
+        self._violations.append(math.inf if individual.failed else individual.violation)
+
+    def _constraint_models(self, X: np.ndarray, pending: list[np.ndarray]) -> list[tuple[int, GaussianProcess]]:
+        """A Gaussian process of each output constraint's margin, by the constraint's position, with pending points believed.
+
+        Each is fitted to the points where its constraint applies, to its relative margin
+        through the bilog transform, sign(m) log(1 + |m|) (Eriksson and Poloczek, 2021), which
+        keeps the sign, so the limit stays at zero, and tames the far tails that stresses and
+        the like have near a design's edges. A margin that couldn't be computed counts as the
+        largest seen, and at least UNCOMPUTED_MARGIN, so it is never taken for feasible. A constraint with fewer than two such points has no model yet.
+        """
+        models = []
+        for j in range(len(self.search_space.output_constraints)):
+            rows = [i for i, margins in enumerate(self._margins) if margins is not None and margins[j] is not None]
+            if len(rows) < 2:
+                continue
+            values = np.array([_margin(self._margins[i], j) for i in rows], dtype=np.float64)
+            finite = np.isfinite(values)
+            if not finite.any():
+                continue
+            # A margin that couldn't be computed counts as infeasible: at least 100% over, or the worst seen.
+            values[~finite] = max(values[finite].max(), UNCOMPUTED_MARGIN)
+            values = _bilog(values)
+            theta = self._constraint_thetas.get(j)
+            model = GaussianProcess(X[rows], values, theta)
+            if theta is None or len(rows) <= FIT_EVERY_UNTIL or len(rows) - self._constraint_fitted_at.get(j, 0) >= REFIT_EVERY:
+                model.fit(restarts=2 if theta is None else 0, rng=self.rng)
+                self._constraint_thetas[j], self._constraint_fitted_at[j] = model.theta, len(rows)
+            for x in pending:
+                model = _believed(model, x)
+            models.append((j, model))
+        return models
+
+    def _log_feasibility(self, models: list[tuple[int, GaussianProcess]]) -> Callable[[np.ndarray], np.ndarray]:
+        """log P(every output constraint holds) at each row of X, by the constraints' models, treated as independent.
+
+        A conditional constraint counts only at points where it applies.
+        """
+        constraints = self.search_space.output_constraints
+        conditional = self.search_space.conditions or any(isinstance(c, ConditionalConstraint) for c in constraints)
+
+        def log_probability(X: np.ndarray) -> np.ndarray:
+            total = np.zeros(len(X))
+            params = [self._encoding.decode(x) for x in X] if conditional and models else []
+            for j, model in models:
+                mean, sd = model.predict(X)
+                log_p = log_ndtr((float(model.standardize(0.0)) - mean) / sd)
+                if conditional:
+                    applies = np.array([constraints[j].applies(self.search_space.active(p)) for p in params], dtype=bool)
+                    log_p = np.where(applies, log_p, 0.0)
+                total += log_p
+            return total
+
+        return log_probability
+
+    def _feasible_leaders(self, X: np.ndarray, scores: np.ndarray, count: int = 5) -> np.ndarray:
+        """The count best rows of X: feasible points by score, lowest first, then the rest by violation."""
+        violations = np.array(self._violations) if self._violations else np.zeros(len(X))
+        order = np.lexsort((scores, violations))
+        return X[order[:count]]
 
     def _search(self, acquisition: Callable[[np.ndarray], np.ndarray], leaders: np.ndarray, seen: np.ndarray) -> np.ndarray:
         """The candidate with the highest acquisition not yet evaluated: from random points, points near the leaders, and the best of those refined."""
@@ -59,7 +141,7 @@ class _ModelSearch:
             scores = np.append(scores, self._only_feasible(refined, acquisition(refined)))
 
         for index in np.argsort(-scores):
-            if scores[index] == -np.inf and self.search_space.constraints:
+            if scores[index] == -np.inf and self.search_space.parameter_constraints:
                 break  # the rest break a constraint
             if not np.any(np.all(np.abs(seen - candidates[index]) < 1e-9, axis=1)):
                 return candidates[index]
@@ -70,15 +152,15 @@ class _ModelSearch:
     def _feasible_spread(self, count: int) -> np.ndarray:
         """count points spread over the space, any that break a constraint replaced by random feasible points."""
         X = self._encoding.spread(self.rng, count)
-        if self.search_space.constraints:
+        if self.search_space.parameter_constraints:
             for i, x in enumerate(X):
                 if not self.search_space.feasible(self._encoding.decode(x)):
                     X[i] = self._encoding.encode(self.search_space.sample(self.rng))
         return X
 
     def _only_feasible(self, X: np.ndarray, scores: np.ndarray) -> np.ndarray:
-        """scores, with those of points that break a constraint set to minus infinity."""
-        if not self.search_space.constraints:
+        """scores, with those of points that break a constraint on the parameters set to minus infinity."""
+        if not self.search_space.parameter_constraints:
             return scores
         feasible = np.array([self.search_space.feasible(self._encoding.decode(x)) for x in X], dtype=bool)
         return np.where(feasible, scores, -np.inf)
@@ -91,6 +173,10 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
     each candidate is the point where a Gaussian process model of the objective predicts the
     largest expected improvement on the best value so far. Failed evaluations are modelled as
     the worst value seen, which steers the search away from them.
+
+    With constraints on outputs, each one's margin gets a Gaussian process of its own, and the
+    expected improvement on the best feasible value is multiplied by the probability that every
+    constraint holds. Until a feasible point is found, candidates maximize that probability.
 
     Range parameters, integer or not, and choice parameters are supported, but not choice
     parameters with choose_n. Fixed parameters are passed through.
@@ -124,6 +210,7 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
         self._y: list[float | None] = []  # its value to minimize, or None if it failed
         self._theta: np.ndarray | None = None  # the model's hyperparameters, kept between fits
         self._fitted_at = 0  # observations at the last hyperparameter fit
+        self._reset_outputs()
 
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         if previous is None:
@@ -145,6 +232,7 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
                 self._X.append(self._encoding.encode(individual.params))
                 value = individual.fitness if not self.config.maximize else -individual.fitness
                 self._y.append(None if individual.failed else value)
+                self._absorb_outputs(individual)
         # The model's matrices are small, and splitting their arithmetic across threads makes it many
         # times slower. One thread also makes results the same on every machine.
         with threadpool_limits(limits=1, user_api="blas"):
@@ -164,25 +252,64 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
             model.fit(restarts=2 if self._theta is None else 0, rng=self.rng)
             self._theta, self._fitted_at = model.theta, len(X)
 
-        # The best value so far. With noise, the best observation is likely a lucky one, so use the
-        # lowest the model predicts at any evaluated point instead.
-        best = float(model.predict(X)[0].min()) if self.config.noise else float(model.z.min())
         # Candidates still being evaluated are assumed to come out as predicted, so none is proposed again.
-        for individual in self._outstanding():
-            x = self._encoding.encode(individual.params)
-            model = model.with_observation(x, float(model.predict(x)[0][0]))
+        pending = [self._encoding.encode(individual.params) for individual in self._outstanding()]
+        constraints = self._constraint_models(X, pending) if self.search_space.output_constraints else []
+        feasible = np.array(self._violations) == 0 if self.search_space.output_constraints else np.ones(len(X), dtype=bool)
+        best: float | None
+        if self.config.noise:
+            # The best value so far. With noise, the best observation is likely a lucky one, so use the
+            # lowest the model predicts at any evaluated point instead.
+            best = float(model.predict(X)[0].min())
+        elif feasible.any():
+            best = float(model.z[feasible].min())  # the best value of a point that satisfies every output constraint
+        else:
+            best = None if constraints else float(model.z.min())
+        # With output constraints, search near the best observed points that satisfy them.
+        leaders = self._feasible_leaders(X, model.z) if self.search_space.output_constraints else None
+        for x in pending:
+            model = _believed(model, x)
         chosen = []
         for _ in range(count):
-            x = self._maximize_improvement(model, best)
+            x = self._maximize_improvement(model, best, constraints, leaders)
             chosen.append(x)
-            # Pretend the model's prediction came true, so the next candidate of the batch goes elsewhere.
-            mean, _ = model.predict(x)
-            model = model.with_observation(x, float(mean[0]))
+            # Pretend the models' predictions came true, so the next candidate of the batch goes elsewhere.
+            model = _believed(model, x)
+            constraints = [(j, _believed(m, x)) for j, m in constraints]
         return chosen
 
-    def _maximize_improvement(self, model: GaussianProcess, best: float) -> np.ndarray:
-        leaders = model.X[np.argsort(model.z)[:5]]
-        return self._search(lambda X: _log_expected_improvement(model, X, best), leaders, model.X)
+    def _maximize_improvement(
+        self, model: GaussianProcess, best: float | None, constraints: list[tuple[int, GaussianProcess]], leaders: np.ndarray | None
+    ) -> np.ndarray:
+        """The candidate with the largest expected improvement on best, times the probability it satisfies the output constraints.
+
+        With no feasible point yet, best is None, and the candidate is the one likeliest to be feasible.
+        Without leaders, the search starts near the lowest values the model holds, believed ones included.
+        """
+        if leaders is None:
+            leaders = model.X[np.argsort(model.z)[:5]]
+        if not constraints:
+            assert best is not None
+            return self._search(lambda X: _log_expected_improvement(model, X, best), leaders, model.X)
+        log_feasibility = self._log_feasibility(constraints)
+        if best is None:
+            return self._search(log_feasibility, leaders, model.X)
+        return self._search(lambda X: _log_expected_improvement(model, X, best) + log_feasibility(X), leaders, model.X)
+
+
+def _bilog(values: np.ndarray) -> np.ndarray:
+    """sign(v) log(1 + |v|): the same sign, the same near zero, and logarithmic far from it."""
+    return np.sign(values) * np.log1p(np.abs(values))
+
+
+def _margin(margins: list[float | None] | None, j: int) -> float:
+    assert margins is not None and margins[j] is not None
+    return float(margins[j])  # type: ignore[arg-type]
+
+
+def _believed(model: GaussianProcess, x: np.ndarray) -> GaussianProcess:
+    """model with an observation at x of what it predicts there: the kriging believer, for points not yet evaluated."""
+    return model.with_observation(x, float(model.predict(x)[0][0]))
 
 
 def _refine(acquisition: Callable[[np.ndarray], np.ndarray], starts: np.ndarray, columns: np.ndarray) -> np.ndarray:

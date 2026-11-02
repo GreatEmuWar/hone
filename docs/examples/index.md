@@ -5,6 +5,7 @@ Each example is a complete script in the repository's [`examples`](https://githu
 | Example | Shows |
 | --- | --- |
 | [Pressure vessel](pressure_vessel.md) | Integer and continuous parameters under expression constraints, with `choose_optimizer` |
+| [Welded beam](welded_beam.md) | Constraints on outputs: limits on what an analysis reports, modelled by Bayesian optimization |
 | [Maintenance schedule](maintenance_schedule.md) | A noisy simulation, a choice parameter and a function constraint |
 | [Choosing a model](choose_a_model.md) | Conditional parameters: a classifier and its settings in one search |
 | [Tuning on iris](tune_iris.md) | Bayesian optimization of log-scale hyperparameters |

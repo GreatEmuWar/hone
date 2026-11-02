@@ -2,7 +2,7 @@ from functools import partial
 from typing import Callable
 
 from hone.config import GeneticOptimizerConfig, SelectionMethod
-from hone.optimizers.base import Individual, Optimizer, _fitness
+from hone.optimizers.base import Individual, Optimizer
 
 from . import selection
 from .breeding import CONDITIONAL_NICHE_SHARE, MAX_STEP, MIN_STEP, REPAIR_STEPS, REPEAT_TRIES, STEP_SPREAD, Breeding
@@ -75,10 +75,13 @@ class GeneticOptimizer(Optimizer, Breeding):
         return select(individuals, self.rng, maximize=self.config.maximize)
 
     def _fitter(self, first: Individual, second: Individual) -> Individual:
-        return first if (_fitness(first) > _fitness(second)) == self.config.maximize else second
+        first_rank, second_rank = self._rank(first), self._rank(second)
+        if first_rank != second_rank:
+            return first if first_rank < second_rank else second
+        return second if self.config.maximize else first  # a tie, broken as it always has been
 
     def _ranked_niches(self, niches: list[list[Individual]]) -> list[list[Individual]]:
-        return sorted(niches, key=lambda members: _fitness(self._ranked(members)[0]), reverse=self.config.maximize)
+        return sorted(niches, key=lambda members: self._rank(self._ranked(members)[0]))
 
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         size = self.config.population_size

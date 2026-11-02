@@ -12,6 +12,8 @@ See [Search spaces](../guide/search-spaces.md) in the guide for how these fit to
 
 ::: hone.Constraint
 
+::: hone.Output
+
 ::: hone.Condition
 
 ::: hone.InfeasibleSearchSpace

@@ -9,7 +9,7 @@ from hone.parameters import Parameter, SearchSpace
 from hone.pareto import AUGMENTATION, _minimizing
 
 from ._gp import GaussianProcess
-from .bayesian import FIT_EVERY_UNTIL, REFIT_EVERY, _Encoding, _log_expected_improvement, _ModelSearch
+from .bayesian import FIT_EVERY_UNTIL, REFIT_EVERY, _believed, _Encoding, _log_expected_improvement, _ModelSearch
 from .core import Individual
 from .multi import MultiObjectiveOptimizer
 
@@ -29,7 +29,9 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
     applied to their predictions.
 
     Range and choice parameters are supported, as in BayesianOptimizer, with constraints and
-    conditions. Each candidate takes a fraction of a second or more to choose, so it suits
+    conditions. With constraints on outputs, each one's margin gets a model, as in
+    BayesianOptimizer, the improvement is measured from the feasible points, and it is
+    multiplied by the probability that every constraint holds. Each candidate takes a fraction of a second or more to choose, so it suits
     expensive objectives and budgets of a few hundred evaluations.
     """
     config_class = MultiObjectiveBayesianConfig
@@ -56,6 +58,7 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
         self._Y: list[np.ndarray | None] = []  # its values to minimize, or None if it failed
         self._thetas: dict[int, np.ndarray] = {}  # each model's hyperparameters, kept between fits
         self._fitted_at: dict[int, int] = {}  # observations at each model's last hyperparameter fit
+        self._reset_outputs()
 
     def _next_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         if previous is None:
@@ -75,6 +78,7 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
             if individual.evaluated:
                 self._X.append(self._encoding.encode(individual.params))
                 self._Y.append(None if individual.failed else _minimizing(individual.values or {}, self._objectives))
+                self._absorb_outputs(individual)
         with threadpool_limits(limits=1, user_api="blas"):
             proposals = self._propose(self.batch_size)
         return [Individual(params=self._encoding.decode(x), generation=generation) for x in proposals]
@@ -91,20 +95,37 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
         low, high = Y.min(axis=0), Y.max(axis=0)
         scaled = (Y - low) / np.where(high > low, high - low, 1.0)
         pending = [self._encoding.encode(ind.params) for ind in self._outstanding()]
+        constrained = bool(self.search_space.output_constraints)
+        # Improvement counts only from points that satisfy every output constraint.
+        feasible = np.array(self._violations) == 0 if constrained else np.ones(len(X), dtype=bool)
+        # The constraints' models don't depend on the weights, so they are fitted once and believe each candidate chosen.
+        constraints = self._constraint_models(X, pending) if constrained else []
         chosen: list[np.ndarray] = []
         for _ in range(count):
             weights = self.rng.dirichlet(np.ones(len(self._objectives)))
             combined = _chebyshev(scaled, weights)
-            leaders = X[np.argsort(combined, kind="stable")[:5]]
             seen = np.vstack([X, *pending, *chosen]) if pending or chosen else X
-            if self.config.method == "parego":
+            log_feasibility = self._log_feasibility(constraints) if constraints else None
+            if constrained:
+                leaders = self._feasible_leaders(X, combined)
+            else:
+                leaders = X[np.argsort(combined, kind="stable")[:5]]
+            if constrained and not feasible.any() and log_feasibility is not None:
+                acquisition = log_feasibility  # nothing feasible yet: find somewhere that is
+            elif self.config.method == "parego":
                 model = self._model(0, X, combined, [*pending, *chosen])
-                x = self._search(_improvement(model), leaders, seen)
+                best = float(model.standardize(combined[feasible].min())) if feasible.any() else float(model.z.min())
+                acquisition = _improvement(model, best)
             else:
                 models = [self._model(j, X, scaled[:, j], [*pending, *chosen]) for j in range(scaled.shape[1])]
                 draws = self.rng.standard_normal((SAMPLES, len(models)))
-                x = self._search(_sampled_improvement(models, weights, float(combined.min()), draws), leaders, seen)
+                best = float(combined[feasible].min()) if feasible.any() else float(combined.min())
+                acquisition = _sampled_improvement(models, weights, best, draws)
+            if log_feasibility is not None and acquisition is not log_feasibility:
+                acquisition = _times(acquisition, log_feasibility)
+            x = self._search(acquisition, leaders, seen)
             chosen.append(x)
+            constraints = [(j, _believed(m, x)) for j, m in constraints]
         return chosen
 
     def _model(self, index: int, X: np.ndarray, y: np.ndarray, pending: list[np.ndarray]) -> GaussianProcess:
@@ -123,10 +144,15 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
         return model
 
 
-def _improvement(model: GaussianProcess) -> Callable[[np.ndarray], np.ndarray]:
-    """The log expected improvement of model on the best value it has seen."""
-    best = float(model.z.min())
-    return lambda C: _log_expected_improvement(model, C, best)
+def _improvement(model: GaussianProcess, best: float | None = None) -> Callable[[np.ndarray], np.ndarray]:
+    """The log expected improvement of model on best, in its standardized units: by default the best value it has seen."""
+    target = float(model.z.min()) if best is None else best
+    return lambda C: _log_expected_improvement(model, C, target)
+
+
+def _times(log_a: Callable[[np.ndarray], np.ndarray], log_b: Callable[[np.ndarray], np.ndarray]) -> Callable[[np.ndarray], np.ndarray]:
+    """The product of two functions given by their logarithms, as its logarithm."""
+    return lambda C: log_a(C) + log_b(C)
 
 
 def _chebyshev(scaled: np.ndarray, weights: np.ndarray) -> np.ndarray:

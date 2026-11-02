@@ -27,9 +27,10 @@ REFERENCE_MARGIN = 0.1  # the default reference point lies this share of each ob
 class _Observed:
     """Every evaluation of one point: the sums for its averages, and where it was first seen."""
 
-    def __init__(self, params: dict[str, Any], first: int) -> None:
+    def __init__(self, params: dict[str, Any], first: int, outputs: dict[str, float] | None = None) -> None:
         self.params = params
         self.first = first
+        self.outputs = outputs
         self.count = 0
         self.total: np.ndarray | None = None
         self.squares: np.ndarray | None = None
@@ -65,6 +66,10 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
     The front is that of every point evaluated, not only the latest generation, so a trade-off
     found early is never lost. With noise, each point's values are the averages of all its
     evaluations, and the front comes with their standard errors.
+
+    With constraints on outputs, the dict also holds a number for each output they use; a name
+    can be both an objective and an output. Only points that satisfy every one join the front,
+    and the optimizers rank the others behind them by their total violation.
     """
     config_class = MultiObjectiveConfig
     config: MultiObjectiveConfig
@@ -77,6 +82,9 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
         self._means: list[np.ndarray] = []  # each observed point's values to minimize, in the same order
         self._front: list[int] = []  # the observed points on the front, by position in that order
         self._front_stale = False  # with noise, an average changed, so the front must be worked out again
+        self._succeeded = 0  # successful evaluations, feasible or not
+        self._infeasible = 0  # evaluations that broke a constraint on the outputs
+        self._infeasible_values: list[np.ndarray] = []  # their values to minimize, for the reference point
         self._reference: np.ndarray | None = None if self.config.reference is None else _minimizing(self.config.reference, self._objectives)
 
     # --- what a value is ---------------------------------------------------
@@ -86,12 +94,15 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
             return True
         if value is None:
             raise ValueError("pass the trial's values, or failed=True")
+        outputs = [name for name in self.search_space.outputs if name not in self._objectives]
         if not isinstance(value, dict):
             raise TypeError(f"the value must be a dict with a number for each objective ({', '.join(self._objectives)}), got {value!r}")
-        missing, extra = sorted(set(self._objectives) - set(value)), sorted(set(value) - set(self._objectives))
+        expected = [*self._objectives, *outputs]
+        missing, extra = [n for n in expected if n not in value], sorted(set(value) - set(expected))
         if missing or extra:
-            problems = [f"missing {', '.join(missing)}"] * bool(missing) + [f"unknown {', '.join(extra)}"] * bool(extra)
-            raise TypeError(f"the values must have exactly the objectives {', '.join(self._objectives)}: {'; '.join(problems)}")
+            problems = [f"missing {', '.join(missing)}"] * bool(missing) + [f"unknown {', '.join(map(str, extra))}"] * bool(extra)
+            what = "the objectives" + (f" and the outputs {', '.join(outputs)}" if outputs else "")
+            raise TypeError(f"the values must have exactly {what} ({', '.join(expected)}): {'; '.join(problems)}")
         for name, number in value.items():
             if isinstance(number, bool) or not isinstance(number, numbers.Real):
                 raise TypeError(f"the value of {name} must be a number, got {number!r}")
@@ -102,11 +113,21 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
 
     def _record(self, individual: Individual, value: Any) -> None:
         values = {name: float(value[name]) for name in self._objectives}
+        self._succeeded += 1
+        if self.search_space.output_constraints:
+            individual.outputs = {name: float(value[name]) for name in self.search_space.outputs}
+            individual.violation = self.search_space.output_violation(individual.params, individual.outputs)
+            if individual.violation > 0:
+                # A point that breaks a limit never joins the front, but its values still teach a model.
+                self._infeasible += 1
+                self._infeasible_values.append(_minimizing(values, self._objectives))
+                individual.values = values
+                return
         key = self._key(individual.params)
         observed = self._observed.get(key)
         new = observed is None
         if observed is None:
-            observed = self._observed[key] = _Observed(self.search_space.active(individual.params), individual.id)
+            observed = self._observed[key] = _Observed(self.search_space.active(individual.params), individual.id, individual.outputs)
         observed.add(_minimizing(values, self._objectives))
         if self.config.noise:
             values = self._values(observed.mean)
@@ -122,7 +143,7 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
         individual.values = values
 
     def _has_result(self) -> bool:
-        return bool(self._observed)
+        return self._succeeded > 0
 
     def _values(self, vector: np.ndarray) -> dict[str, float]:
         """A vector to minimize as values by objective, with maximized objectives the right way round."""
@@ -151,6 +172,7 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
                     values=self._values(observed[i].mean),
                     evaluations=observed[i].count,
                     standard_error=None if error is None else {name: float(e) for name, e in zip(self._objectives, error)},
+                    outputs=_copy(observed[i].outputs),
                 )
             )
         return Front(objectives=self._objectives, points=points)
@@ -161,7 +183,8 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
             return None
         if self._reference is None:
             # Frozen from the first generation, so hypervolume is comparable through the run.
-            values = np.array([o.mean for o in observed])
+            # With output constraints, infeasible points count too, so a front of one early point doesn't pin it there.
+            values = np.array([o.mean for o in observed] + self._infeasible_values)
             worst, best = values.max(axis=0), values.min(axis=0)
             self._reference = worst + REFERENCE_MARGIN * np.maximum(worst - best, np.maximum(np.abs(worst), 1.0) * 1e-9)
         return hypervolume(np.array([observed[i].mean for i in indices]), self._reference)
@@ -170,13 +193,15 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
 
     def result(self) -> ParetoResult:
         """The front of everything evaluated so far, with a summary of every completed generation."""
-        if not self._observed:
+        if not self._succeeded:
             raise RuntimeError("no successful evaluations yet")
         return ParetoResult(
             front=self.front(),
             generations=self._history,
             evaluations=self._evaluations,
             failures=self._failures,
+            infeasible=self._infeasible,
+            feasible=bool(self._observed),
             stopped=self._stopped,
             run=self._run_info(),
         )
@@ -187,6 +212,7 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
             generation=generation,
             evaluations=evaluations,
             failures=sum(ind.failed for ind in evaluated),
+            infeasible=sum(not ind.failed and ind.violation > 0 for ind in evaluated),
             front_size=len(self._front_indices()[1]),
             hypervolume=self._hypervolume(),
         )
@@ -196,7 +222,9 @@ class MultiObjectiveOptimizer(OptimizerCore[ParetoResult]):
             return len(self._history)
         front = self.front()
         for stats in self._history[reported:]:
-            progress = ParetoProgress(generation=stats, evaluations=stats.evaluations, front=front, elapsed=self._elapsed())
+            progress = ParetoProgress(
+                generation=stats, evaluations=stats.evaluations, front=front, elapsed=self._elapsed(), feasible=bool(self._observed)
+            )
             if callback(progress) and not self._done:
                 self._finish(stopped=True)
                 break
@@ -228,3 +256,7 @@ def builtin() -> list[type[MultiObjectiveOptimizer]]:
     from .multi_bayesian import MultiObjectiveBayesian
 
     return [NSGA2, MultiObjectiveBayesian, MultiObjectiveRandomSearch]
+
+
+def _copy(outputs: dict[str, float] | None) -> dict[str, float] | None:
+    return None if outputs is None else dict(outputs)

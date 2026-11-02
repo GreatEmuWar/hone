@@ -21,7 +21,8 @@ from pydantic import BaseModel, ConfigDict
 from scipy.stats import qmc
 
 from hone.objective_function import ObjectiveFunction
-from hone.optimizers.core import UnsupportedSearchSpace, _evaluate
+from hone.optimizers.base import _check_outputs
+from hone.optimizers.core import OBJECTIVE, UnsupportedSearchSpace, _evaluate
 from hone.optimizers._pool import EvaluationPool
 from hone.parameters import ChoiceParameter, FixedParameter, Parameter, RangeParameter, SearchSpace
 
@@ -95,7 +96,8 @@ class SensitivityReport(BaseModel):
     confidence: float
     """The confidence level of the intervals."""
     best_params: dict[str, Any] | None
-    """The best point evaluated, as the objective was called with it; None if every evaluation failed."""
+    """The best point evaluated, as the objective was called with it; None if every evaluation failed.
+    With constraints on outputs, the best that satisfies them all, if any does."""
     best_value: float | None
     """The objective's value at best_params; None if every evaluation failed."""
     maximize: bool
@@ -233,7 +235,9 @@ def sensitivity(
 
     Args:
         objective_function: The function to measure.
-        search_space: The parameters, with any conditions; constraints aren't supported yet.
+        search_space: The parameters, with any conditions. Constraints on outputs are allowed and
+            ignored: the objective returns its dict, and only its "objective" is measured.
+            Constraints on the parameters aren't supported yet.
         max_evaluations: The most evaluations to make.
         method: "morris" or "sobol", rather than choosing from max_evaluations.
         maximize: Whether higher values are better, which only decides best_params.
@@ -246,10 +250,10 @@ def sensitivity(
     function must be defined at the top level of a module.
     """
     space = search_space if isinstance(search_space, SearchSpace) else SearchSpace(search_space)
-    if space.constraints:
+    if space.parameter_constraints:
         raise UnsupportedSearchSpace(
-            "sensitivity() doesn't support constraints yet: Morris and Sobol assume each parameter can take any of its "
-            "values whatever the others are"
+            "sensitivity() doesn't support constraints on the parameters yet: Morris and Sobol assume each parameter can "
+            "take any of its values whatever the others are"
         )
     if workers < 1:
         raise ValueError(f"workers must be at least 1, got {workers}")
@@ -285,7 +289,7 @@ def sensitivity(
         units = _sobol_design(n, k, rng)
 
     points = [_point(space, measured, row) for row in units]
-    values = _evaluate_all(objective_function, space, points, workers, timeout)
+    values, feasible = _evaluate_all(objective_function, space, points, workers, timeout)
     ok = np.isfinite(values)
 
     if method == "morris":
@@ -296,7 +300,9 @@ def sensitivity(
 
     best_params, best_value = None, None
     if ok.any():
-        best = int(np.nanargmax(values) if maximize else np.nanargmin(values))
+        # The best point satisfies the constraints on outputs, if any evaluated point does, so reduced() holds others there.
+        eligible = np.where(feasible & ok, values, np.nan) if (feasible & ok).any() else values
+        best = int(np.nanargmax(eligible) if maximize else np.nanargmin(eligible))
         best_params, best_value = space.active(points[best]), float(values[best])
     return SensitivityReport(
         method=method,
@@ -362,8 +368,8 @@ def _unrank_combination(rank: int, n: int, k: int) -> list[int]:
 
 def _evaluate_all(
     objective_function: Callable, space: SearchSpace, points: list[dict[str, Any]], workers: int, timeout: float | None
-) -> np.ndarray:
-    """Each point's value, NaN where the evaluation failed, as optimize() evaluates them."""
+) -> tuple[np.ndarray, np.ndarray]:
+    """Each point's value, NaN where the evaluation failed, as optimize() evaluates them, and whether it satisfied any output constraints."""
     objective = ObjectiveFunction(
         name=getattr(objective_function, "__name__", "objective"), function=objective_function, search_space=space
     )
@@ -374,9 +380,16 @@ def _evaluate_all(
     else:
         with EvaluationPool(evaluate, workers, timeout) as pool:
             outcomes = pool.map(called)
+    feasible = np.ones(len(points), dtype=bool)
+    if space.output_constraints:
+        # The objective returns a dict with its outputs, which don't change where the points are.
+        for i, outcome in enumerate(outcomes):
+            if outcome is not None and _check_outputs(outcome, [OBJECTIVE, *space.outputs], f"{objective.name}()'s value"):
+                feasible[i] = space.output_violation(called[i], {name: float(outcome[name]) for name in space.outputs}) == 0
+        outcomes = [None if outcome is None else outcome[OBJECTIVE] for outcome in outcomes]
     values = np.array([math.nan if outcome is None else outcome for outcome in outcomes], dtype=float)
     values[~np.isfinite(values)] = math.nan
-    return values
+    return values, feasible
 
 
 # --- Morris screening ------------------------------------------------------------

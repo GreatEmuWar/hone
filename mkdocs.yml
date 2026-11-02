@@ -95,6 +95,7 @@ nav:
   - Examples:
       - examples/index.md
       - Pressure vessel: examples/pressure_vessel.md
+      - Welded beam: examples/welded_beam.md
       - Maintenance schedule: examples/maintenance_schedule.md
       - Choosing a model: examples/choose_a_model.md
       - Tuning on iris: examples/tune_iris.md

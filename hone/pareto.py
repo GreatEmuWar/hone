@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Self
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from hone.result import RunInfo
+from hone.result import RunInfo, _Unpickles
 
 if TYPE_CHECKING:
     from hone.optimizers.multi import MultiObjectiveOptimizer
@@ -29,6 +29,7 @@ class ParetoPoint(BaseModel):
     values: dict[str, float]  # with noise, the average of every evaluation of the point
     evaluations: int = 1  # how many times the point was evaluated
     standard_error: dict[str, float] | None = None  # with noise, of each average, once evaluated twice
+    outputs: dict[str, float] | None = None  # with constraints on outputs, what the evaluation reported
 
 
 class Front(BaseModel):
@@ -115,13 +116,14 @@ class Front(BaseModel):
             raise ValueError(f"no objective is named {', '.join(map(repr, unknown))}; the objectives are {', '.join(self.objectives)}")
 
 
-class ParetoGenerationStats(BaseModel):
+class ParetoGenerationStats(_Unpickles):
     """Summary of one generation of a multi-objective run."""
     model_config = ConfigDict(frozen=True)
 
     generation: int
     evaluations: int  # evaluations up to the end of this generation, failed ones included
     failures: int = 0  # failed evaluations in this generation
+    infeasible: int = 0  # evaluations in this generation that broke a constraint on the outputs
     front_size: int = 0  # points on the front of everything evaluated so far
     hypervolume: float | None = None  # of that front, up to the run's reference point
 
@@ -134,10 +136,14 @@ class ParetoProgress(BaseModel):
     evaluations: int  # evaluations made so far, failed ones included
     front: Front  # the front of everything evaluated so far
     elapsed: float  # seconds since the run started
+    feasible: bool = True  # whether any point has satisfied every constraint on the outputs, so the front isn't empty
 
 
 class ParetoResult(BaseModel):
     """Outcome of a multi-objective run: the front of everything evaluated. Save it with save() and read it back with load().
+
+    With constraints on outputs, the front holds only points that satisfy them all; while none
+    has, it is empty and feasible is False.
 
     Two results are equal when they found the same things; their run records are not compared.
     """
@@ -147,6 +153,8 @@ class ParetoResult(BaseModel):
     generations: list[ParetoGenerationStats]
     evaluations: int  # evaluations made, failed ones included
     failures: int = 0
+    infeasible: int = 0  # evaluations that broke a constraint on the outputs
+    feasible: bool = True  # whether any evaluation satisfied every constraint on the outputs
     stopped: bool = False  # whether the run was stopped before it finished, by its callback or Ctrl+C
     run: RunInfo | None = None
 

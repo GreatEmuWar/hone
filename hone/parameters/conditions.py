@@ -18,6 +18,7 @@ the test holds:
 Conditions and tests are pydantic models, so a search space with conditions saves and loads
 like any other.
 """
+import math
 import numbers
 from typing import Annotated, Any, Literal, Union, overload
 
@@ -40,6 +41,9 @@ class ChoiceTest(BaseModel):
 
     def names(self) -> set[str]:
         return {self.name}
+
+    def output_names(self) -> set[str]:
+        return set()
 
     def describe(self) -> str:
         return f"{self.name} is {' or '.join(map(repr, self.values))}"
@@ -95,11 +99,23 @@ class ConditionalConstraint(Constraint):
     when: Test
     constraint: "AnyConstraint"
 
-    def violation(self, params: dict[str, Any]) -> float:
-        return self.constraint.violation(params) if holds(self.when, params) else 0.0
+    def margin(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
+        return self.constraint.margin(params, outputs) if holds(self.when, params) else -math.inf
+
+    def size(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
+        return self.constraint.size(params, outputs) if holds(self.when, params) else 0.0
+
+    def violation(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
+        return self.constraint.violation(params, outputs) if holds(self.when, params) else 0.0
+
+    def relative_violation(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> float:
+        return self.constraint.relative_violation(params, outputs) if holds(self.when, params) else 0.0
 
     def names(self) -> set[str]:
         return self.when.names() | self.constraint.names()
+
+    def output_names(self) -> set[str]:
+        return self.when.output_names() | self.constraint.output_names()
 
     def applies(self, params: dict[str, Any]) -> bool:
         return holds(self.when, params) and self.constraint.applies(params)
