@@ -114,6 +114,7 @@ nav:
       - Noisy problems: benchmarks/noisy-results.md
       - Machine learning: benchmarks/ml-results.md
       - Constrained problems: benchmarks/constrained-results.md
+      - Constraints on outputs: benchmarks/outputs-results.md
       - Conditional problems: benchmarks/conditional-results.md
       - Several objectives: benchmarks/multi-results.md
   - Changelog: changelog.md

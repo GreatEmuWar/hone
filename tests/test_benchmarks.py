@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 
@@ -7,7 +9,10 @@ from hone.benchmarks import (
     SkipBudget,
     Run,
     Summary,
+    batch_optimizers,
     load_summaries,
+    noisy_output_problems,
+    output_problems,
     quick_problems,
     regressions,
     run_benchmark,
@@ -18,6 +23,7 @@ from hone.benchmarks import (
     wins,
 )
 from hone.benchmarks import problems as p
+from hone.benchmarks import runner
 from hone.benchmarks.__main__ import main
 from hone.optimizers import RandomSearch
 from hone.config import OptimizerConfig
@@ -334,3 +340,138 @@ def test_rotation_keeps_the_function_value_at_the_same_distance():
     turned = p._vector_problem("check-5d", p.sphere, 5, rotate=True)
     params = {f"x{i}": 0.1 * i for i in range(5)}
     assert turned.function(**params) == pytest.approx(plain.function(**params))
+
+
+# --- constraints on outputs: finding a feasible design ----------------------
+
+
+SPRING = next(problem for problem in output_problems() if problem.name == "tension-spring-outputs")
+NOISY_SPRING = next(problem for problem in noisy_output_problems() if problem.name == "noisy-tension-spring-outputs")
+
+
+def random_search_without_noise_handling(problem, budget, seed):
+    """Random search that doesn't average, so it can run on a noisy problem with output constraints, which the optimizers refuse."""
+    return RandomSearch(problem.search_space, OptimizerConfig(population_size=10, generations=budget, max_evaluations=budget, seed=seed))
+
+
+@pytest.fixture(scope="module")
+def spring_runs():
+    return run_benchmark([SPRING], optimizers={"random": random_search_without_noise_handling}, seeds=range(4), budgets_per_dimension=[10])
+
+
+def test_runs_record_when_a_feasible_design_was_first_found(spring_runs):
+    assert all(r.output_constrained for r in spring_runs)
+    for r in spring_runs:
+        if r.first_feasible is None:
+            assert r.error == math.inf and all(error == math.inf for _, error in r.trace)
+        else:
+            assert r.first_feasible % 10 == 0 and r.first_feasible <= r.evaluations
+            # The trace is infinite before the generation that found it, and finite from it on.
+            assert all((error == math.inf) == (evaluations < r.first_feasible) for evaluations, error in r.trace)
+
+
+def test_runs_without_output_constraints_have_nothing_to_find(runs):
+    assert all(not r.output_constrained and r.first_feasible is None for r in runs)
+    assert all(s.feasible is None and s.median_first_feasible is None for s in summarize(runs))
+
+
+def test_summary_counts_feasible_runs_and_the_median_evaluations_to_the_first():
+    found = [run(0.5, seed=0), run(math.inf, seed=1), run(0.1, seed=2)]
+    found = [r.model_copy(update={"output_constrained": True, "first_feasible": f}) for r, f in zip(found, [20, None, 40])]
+    summary = Summary.of(found, tolerance=1e-4)
+    assert summary.feasible == pytest.approx(2 / 3)
+    assert summary.median_first_feasible == 40  # the miss counts as infinity, so the median is the 40, not the 20
+    missed = [r.model_copy(update={"first_feasible": None, "error": math.inf}) for r in found[:2]] + found[2:]
+    assert Summary.of(missed, tolerance=1e-4).median_first_feasible == math.inf
+
+
+def test_markdown_has_a_feasibility_table_only_for_problems_with_output_constraints(spring_runs, runs):
+    with_table = to_markdown(summarize(spring_runs))
+    assert "Finding a feasible design:" in with_table
+    assert "| Problem | random feasible | random first |" in with_table
+    assert "Feasible: the share of runs" in with_table
+    without = to_markdown(summarize(runs))
+    assert "Finding a feasible design" not in without and "Feasible:" not in without
+
+
+def test_markdown_writes_none_when_most_runs_found_nothing():
+    missed = [run(math.inf, seed=i).model_copy(update={"output_constrained": True}) for i in range(3)]
+    table = to_markdown([Summary.of(missed, 1e-4)])
+    assert "| sphere-2d | 0% | none |" in table
+
+
+def test_summaries_with_feasibility_round_trip(tmp_path, spring_runs):
+    summaries = summarize(spring_runs)
+    save_summaries(summaries, tmp_path / "outputs.json")
+    assert load_summaries(tmp_path / "outputs.json") == summaries
+
+
+def test_older_summaries_load_without_feasibility():
+    assert all(s.feasible is None for s in load_summaries("benchmarks/constrained-summaries.json"))
+
+
+def test_noise_is_added_to_the_value_and_each_output_separately():
+    point = SPRING.search_space.sample(np.random.default_rng(0))
+    clean = SPRING.function(**point)
+    noisy = runner._with_noise(NOISY_SPRING, seed=0)
+    first, second = noisy(**point), noisy(**point)
+    assert set(first) == set(clean) == {"objective", "deflection", "shear", "surge"}
+    for name in clean:
+        assert first[name] != clean[name] and second[name] != clean[name] and first[name] != second[name]
+        assert abs(first[name] - clean[name]) < 6 * (NOISY_SPRING.noise if name == "objective" else NOISY_SPRING.output_noise[name])
+    # The same seed gives the same noise.
+    assert runner._with_noise(NOISY_SPRING, seed=0)(**point) == first
+    assert runner._with_noise(NOISY_SPRING, seed=1)(**point) != first
+
+
+def test_an_output_without_noise_listed_is_reported_exactly():
+    problem = NOISY_SPRING.model_copy(update={"output_noise": {"shear": 0.01}})
+    point = problem.search_space.sample(np.random.default_rng(0))
+    clean, noisy = problem.function(**point), runner._with_noise(problem, seed=0)(**point)
+    assert noisy["deflection"] == clean["deflection"] and noisy["surge"] == clean["surge"]
+    assert noisy["shear"] != clean["shear"] and noisy["objective"] != clean["objective"]
+
+
+def test_a_noisy_run_is_scored_by_the_true_value_and_the_true_feasibility():
+    runs = run_benchmark([NOISY_SPRING], optimizers={"random": random_search_without_noise_handling}, seeds=range(6), budgets_per_dimension=[20])
+    assert all(r.output_constrained for r in runs)
+    for r in runs:
+        if r.error < math.inf:
+            # The error is from the noise-free value of a point that truly satisfies every limit.
+            assert r.error >= 0
+    # Check against the optimizer's own view: a run's design that only seemed feasible scores infinity.
+    seen_infeasible_by_truth = 0
+    for seed in range(6):
+        optimizer = random_search_without_noise_handling(NOISY_SPRING, 60, seed)
+        result = optimizer.optimize(runner._with_noise(NOISY_SPRING, seed))
+        true_value, truly_feasible = runner._true(NOISY_SPRING, result.best_params)
+        r = next(r for r in runs if r.seed == seed)
+        if result.feasible and not truly_feasible:
+            seen_infeasible_by_truth += 1
+            assert r.error == math.inf
+        elif result.feasible:
+            assert r.error == pytest.approx(max(true_value - NOISY_SPRING.optimum, 0.0))
+    assert seen_infeasible_by_truth >= 0  # how often depends on the seeds; the branch above is what's checked
+
+
+def test_bayesian_batch_factories_set_the_batch_size():
+    factories = batch_optimizers([4, 8])
+    assert list(factories) == ["bayesian-4", "bayesian-8"]
+    optimizer = factories["bayesian-4"](quick_problems()[0], 40, 0)
+    assert optimizer.config.population_size == 4 and optimizer.config.max_evaluations == 40
+    with pytest.raises(SkipBudget):
+        factories["bayesian-8"](quick_problems()[0], 1000, 0)
+
+
+def test_cli_runs_the_outputs_suite_with_batch_sizes(tmp_path, capsys):
+    results = tmp_path / "outputs.md"
+    assert main(["--outputs", "--seeds", "1", "--budgets", "2", "--batch-sizes", "2", "--markdown", str(results)]) == 0
+    text = results.read_text()
+    assert "14 problems, 1 seeds, budgets of 2 evaluations per dimension" in text
+    assert "| bayesian-2 median |" in text and "| bayesian-4" not in text
+    assert "Finding a feasible design:" in text and "| g07 |" in text
+
+
+def test_cli_batch_sizes_default_to_none_outside_the_outputs_suite(capsys):
+    assert main(["--quick", "--seeds", "1", "--budgets", "2"]) == 0
+    assert "bayesian-4" not in capsys.readouterr().out
