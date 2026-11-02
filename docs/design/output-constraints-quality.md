@@ -7,7 +7,7 @@ Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the c
 ## Decisions taken at the start
 
 1. **The final round defaults to on when noise and output constraints combine.** Otherwise `Result.feasible` rests on one noisy draw of the chosen point. It costs budget, and on ordinary noisy runs the final round hasn't paid for itself, so its cost is measured here too.
-2. **Noise with output constraints is for a single objective at first.** The multi-objective optimizers keep their refusal; `nsga2.py` and `multi.py` have noise paths of their own.
+2. **Noise with output constraints covers one objective and several, in this release.** A single objective comes first, as item 2, to settle the averaging rules and measure the final round's cost; several objectives follow in a pull request of their own, item 2b, since `multi.py`, `nsga2.py` and `multi_bayesian.py` need their own averaging, a final round that doesn't exist yet, and a benchmark.
 3. **Pass criteria.** A change to how a feasible design is found (item 1) ships if it finds one more often or sooner without worsening final error by more than ×1.1. `scale=` (item 3) ships only if the test shows a factor of 2 or more. Decisions are made over 30 seeds rather than the usual 10.
 
 ## Step 0: measuring tools, no optimizer changes
@@ -42,6 +42,25 @@ With every margin positive, the probability that a design is feasible is Φ(−�
 - B: quasi-Monte Carlo expected improvement in the total violation from the existing per-limit models. Bounded integrand; needs fixed samples or the noise swamps the finite differences in `_refine`; exactly zero where no sample improves.
 
 The simplest method that finds a feasible design more often or sooner, without worsening final error by more than ×1.1, is kept. The current method may survive: it already handles the spring at 10 evaluations per dimension.
+
+### The test, fixed before any alternative was run
+
+Written before A or B existed. The only results seen by then were step 0's 10 seeds of the current method, which is why the deceptive pocket is named above.
+
+**Runs.** The current method, A and B, in Bayesian optimization only, on all 14 problems of `output_problems()`, at batch sizes 1 and 4, at 10, 20, 50 and 100 evaluations per dimension up to its limit of 200 evaluations, with seeds 0 to 29. The same seed gives each method the same first points, so the seeds are paired. A cell is one problem, batch size and budget.
+
+**Noise check.** The current method also runs with seeds 30 to 59, and is scored against itself on seeds 0 to 29 by the guard below. If it fails its own guard, ×1.1 is finer than 30 seeds can resolve: no decision is made from the guard, and the user is asked.
+
+**Gain.** An alternative needs at least one cell where both hold:
+
+- It finds a feasible design sooner across seeds: an exact two-sided sign test on the paired evaluations to the first feasible design, a miss counting as infinity and ties dropped, is significant at 0.05 after Holm's correction over all of that alternative's cells, and favours the alternative.
+- The gain is large enough to matter: its median first feasible design comes at least 20% sooner, or it finds one in at least 0.1 more of the runs.
+
+**Guard.** For every problem at each batch size, the geometric mean over budgets of the alternative's median error divided by the current method's is at most 1.1. Errors below the benchmark's tolerance of 1e-4 count as 1e-4, so two solved runs tie. In a cell where both medians are infinite, or only the current method's is, the ratio counts as 1; a cell where only the alternative's is infinite fails the guard outright.
+
+**Decision.** An alternative that shows a gain and passes every guard ships; if both do, A, the simpler. Otherwise the current method stays, and this section records why. Seconds per candidate are reported but don't decide. These numbers aren't changed after the results are seen: a result that seems to call for it goes to the user.
+
+If an alternative ships, `MultiObjectiveBayesian` takes it too, since it searches on the same probability until something is feasible. No multi-objective benchmark has output constraints yet, so there it is tested for working rather than measured; item 2b's benchmark measures it.
 
 ## 2. Noise with output constraints
 
