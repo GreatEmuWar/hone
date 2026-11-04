@@ -16,6 +16,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `outputs-summaries.json` | The same results as data |
 | [cost-results.md](cost-results.md) | Seconds per Bayesian candidate against evaluations and limits on outputs, with a profiled run, from `make benchmark-cost` |
 | `cost-summaries.json` | The same table as data, the ceiling later changes are held to |
+| [infeasible-search-results.md](infeasible-search-results.md) | The test of how to search before anything is feasible, from `benchmarks/infeasible_search.py` |
+| `infeasible-search-runs.json` | Every run of that test |
 | [conditional-results.md](conditional-results.md) | The conditional problems' results, from `make benchmark-conditional` |
 | `conditional-summaries.json` | The same results as data |
 | [multi-results.md](multi-results.md) | The multi-objective problems' results, from `make benchmark-multi` |

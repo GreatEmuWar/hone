@@ -1,14 +1,15 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar, and item 7, a margin of safety for limits under noise, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar, and item 7, a margin of safety for limits under noise, is built; item 1 was measured and closed, the current method staying, and item 5 was measured and not shipped. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
 ## Decisions taken at the start
 
 1. **The final round defaults to on when noise and output constraints combine.** Otherwise `Result.feasible` rests on one noisy draw of the chosen point. It costs budget, and on ordinary noisy runs the final round hasn't paid for itself, so its cost is measured here too.
-2. **Noise with output constraints covers one objective and several, in this release.** A single objective comes first, as item 2, to settle the averaging rules and measure the final round's cost; several objectives follow in a pull request of their own, item 2b, since `multi.py`, `nsga2.py` and `multi_bayesian.py` need their own averaging, a final round that doesn't exist yet, and a benchmark.
+2. **Noise with output constraints covers one objective and several, in this release.** A single objective comes first, as item 2, to settle the averaging rules and measure the final round's cost; several objectives follow in a pull request of their own, after item 7, since `multi.py`, `nsga2.py` and `multi_bayesian.py` need their own averaging, a final round that doesn't exist yet, and a benchmark.
 3. **Pass criteria.** A change to how a feasible design is found (item 1) ships if it finds one more often or sooner without worsening final error by more than ×1.1. `scale=` (item 3) ships only if the test shows a factor of 2 or more. Decisions are made over 30 seeds rather than the usual 10.
+4. **Criteria are set above measured noise.** Item 1 found that 30 unpaired seeds can't resolve ×1.1 between a method and itself, so later criteria are set above a paired noise floor, or judge by absolute outcomes such as lost designs and first-feasible rates.
 
 ## Step 0: measuring tools, no optimizer changes
 
@@ -32,9 +33,9 @@ Each cell is the mean over 3 seeds. One seed alone varies by up to about 15% bet
 
 Measured on an Apple M2 under macOS 27.2 at 0.14.0 with item 2 (details in `benchmarks/README.md`): at 500 evaluations a candidate takes 0.08 seconds with no limits and 0.78 with eight, about the same in batches of 8, and the cold fit about 10 seconds with eight limits. Searching the models costs more than fitting them: about four fifths of a profiled run of g07 at 200 evaluations, and most of the steady-state time at 500 with eight limits, where refitting takes about a third. An operating system update on the same machine moved the times by 3% to 25%, so the table is remeasured whenever the system changes. That bears on 0.16.0's first step, whose first planned change is refitting less often.
 
-## 1. ~~Before anything is feasible~~ Set aside
+## 1. Before anything is feasible: measured, the current method stays
 
-Set aside after step 0's baseline: the current rule found a feasible design in every run on every problem with a tiny feasible region, and the alternatives tried didn't beat it. The deceptive pocket, the one problem where an alternative could show a gain, is item 5's test instead. The hypothesis and the alternatives stay below for whoever picks it up.
+Step 0's baseline already pointed this way: the current rule found a feasible design in every run on every problem with a tiny feasible region. The full test below, over 30 paired seeds, confirmed it, and neither alternative ships. The hypothesis and the alternatives stay below, with their numbers, as the record of what was tried.
 
 With every margin positive, the probability that a design is feasible is Φ(−μ/σ) for each limit, and log Φ(−μ/σ) ≈ −μ²/(2σ²) in the tail, so a large σ wins and the search goes to the corners, where the models are least sure. Two alternatives are compared over 30 paired seeds:
 
@@ -60,7 +61,36 @@ Written before A or B existed. The only results seen by then were step 0's 10 se
 
 **Decision.** An alternative that shows a gain and passes every guard ships; if both do, A, the simpler. Otherwise the current method stays, and this section records why. Seconds per candidate are reported but don't decide. These numbers aren't changed after the results are seen: a result that seems to call for it goes to the user.
 
-If an alternative ships, `MultiObjectiveBayesian` takes it too, since it searches on the same probability until something is feasible. No multi-objective benchmark has output constraints yet, so there it is tested for working rather than measured; item 2b's benchmark measures it.
+If an alternative ships, `MultiObjectiveBayesian` takes it too, since it searches on the same probability until something is feasible. No multi-objective benchmark has output constraints yet, so there it is tested for working rather than measured; the benchmark for noise with several objectives measures it.
+
+### Result: the current method stays
+
+Neither alternative ships, and no optimizer code changed. All 9,840 runs finished; they are in `benchmarks/infeasible-search-runs.json`, the report is in `benchmarks/infeasible-search-results.md`, and `benchmarks/infeasible_search.py` reproduces both.
+
+The rule didn't reach this verdict by itself. The noise check failed, below, so the rule made no decision from the guard and the user was asked. The user chose to keep the current method without a run with more seeds, on the evidence that follows. A 2-seed smoke test of the script was also seen after the test was committed; it changed nothing here.
+
+| | A | B |
+| --- | --- | --- |
+| Cells with a gain, of 82 | 4 | 7 |
+| Cells significantly later | 20 | 8 |
+| Guard rows failed, of 28 | 11 | 9 |
+| Cells that lost the feasible design | 17 | 5 |
+
+- **The gains are real and narrow.** On ball-2d-1in100 at batch size 1, A and B both reach a first feasible design at a median of 9 evaluations against 14.5. On tension-spring-outputs at batch size 4, B does at 16 against 20. The gain cells are these results at different budgets, since a first feasible design doesn't depend on the budget once it is found.
+- **The deceptive pocket defeats both.** On pocket-2d-1in100 at 100 evaluations per dimension, the current method finds a feasible design in every run at both batch sizes. A and B find one in 1 run of 30 (3%) at every budget: the same seed, whose first spread of points landed in the pocket, so neither ever found it by searching. The likely reason is the one the problem was built to expose: following the falling violation into the basin.
+- **A also misses thin regions.** On g06 at batch size 1, A finds a feasible design in 0%, 0%, 3% and 7% of runs at 10, 20, 50 and 100 evaluations per dimension, and at batch size 4 in 0%, 0%, 13% and 43%; the current method finds one in 100% at batch size 1 and in 93% to 100% at batch size 4. On g10, A finds none in any run at either batch size, against 100%; on g07 at batch size 4, 23% and 80% against 100%. A possible reason, not tested: a model of the total violation can't predict below zero, so it has no reason to aim inside a thin region.
+- **B loses less, but still loses.** Beyond the pocket, it finds a design in 37% of runs on g06 at batch size 4 and 10 evaluations per dimension, against 93%, and comes later on g07 (a median of 32.5 against 28 at batch size 1, and 42 against 34 at batch size 4).
+- **Cost didn't decide.** At 30 seeds on 14 processes, the batch size 1 stages took 2,528 s for the current method, 2,185 s for A and 2,478 s for B; the batch size 4 stages took 2,381 s, 1,807 s and 2,356 s. These are whole stages on a shared machine, not seconds per candidate.
+
+Lost designs are the evidence the verdict rests on, rather than the ×1.1 ratios. No lost cell appeared in the noise check, against 17 for A and 5 for B. That comparison was made after the results were seen, and isn't part of the rule fixed beforehand.
+
+### Finding: what 30 seeds can resolve
+
+Separately from the verdict: the current method on seeds 30 to 59, scored against itself on seeds 0 to 29, failed its own ×1.1 guard on 5 of 28 rows: tension-spring-outputs ×1.40, welded-beam-outputs ×1.36, ball-2d-1in10 ×1.24 and pocket-2d-1in100 ×1.20 at batch size 4, and welded-beam-outputs ×1.13 at batch size 1. So a median-error ratio near ×1.1 can't be resolved at 30 seeds, especially at batch size 4.
+
+This is one comparison, between unpaired sets of seeds, while the methods' comparisons are paired, so it may overstate the noise they face; this data can't say by how much.
+
+For the items that follow, the noise estimate is designed in from the start. Both methods run on the same seeds, and the unchanged method also runs against itself on a paired draw: the same seed and first generation, with a different random stream for the search after it, since an identical seed would otherwise repeat the run exactly. Each ratio is then set above that floor, or the criterion uses absolute outcomes, such as lost designs and first-feasible rates, where a ratio can't be resolved.
 
 ## 2. Noise with output constraints
 
@@ -196,4 +226,4 @@ What it doesn't do. Feasibility as a probability from the models, which would us
 
 ## Delivery
 
-Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) item 7, the margin of safety, added on 8 Nov 2026; (7) noise with several objectives, which reuses it; (8) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, measured, the current method staying; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) item 7, the margin of safety, added on 8 Nov 2026; (7) noise with several objectives, which reuses it; (8) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
