@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, is done, and item 2, noise with output constraints, is built; item 1 is set aside. The rest are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, is done, and item 2, noise with output constraints, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -73,6 +73,8 @@ Track the best violation while infeasible with the same flatness test. `_recent_
 
 Pass criteria, fixed before measuring: over 30 seeds on the outputs suite at every budget, CMA-ES finds a feasible design on pocket-2d-1in100 in more runs, or as often and sooner, at 1,000 evaluations per dimension, and its median error on no other problem and budget worsens by more than ×1.1. Without output constraints every violation is 0, so nothing changes, which a test checks.
 
+Measured, and not shipped. Over 30 seeds on the seventeen problems at all five budgets, the change altered one result: pocket-2d-1in100 at 1,000 evaluations per dimension. There, runs that found the pocket found it sooner, a median of 1,263 evaluations against 1,803, but fewer found it, 16 of 30 against 19, and the median error rose from 4.8 to 8.7. That fails the criterion. Seed by seed, both versions restarted twice per run on average: the restart for a step size collapsed already fired in the basin, and the flat violation only fires it earlier. Earlier restarts reshuffle which runs happen to start near the pocket, 9 seeds finding it only before the change and 6 only after, rather than finding it more often. What would help is a restart that avoids the basin it left, not one that leaves sooner; that is a change to the restart strategy and is left for later. The known weakness stands: CMA-ES's flat-run restart looks only at feasible bests.
+
 ## 6. Batches that bunch together
 
 Hypothesis: the kriging believer keeps the mean at x and only shrinks the variance; where μ is far below the best, expected improvement is about best − μ, nearly independent of σ, so the next candidate lands adjacent. A large learned noise term worsens it. Confirm by logging u at the chosen points before picking a fix. Candidates: the constant liar (Ginsbourger et al., 2010), local penalization (González et al., 2016), a minimum distance in length scales. Measure the smallest pairwise distance in a batch and the error at sizes 4 and 8. Guard: batch size 1 with nothing pending must be exactly unchanged.
@@ -81,4 +83,4 @@ Pass criteria, fixed before measuring: over 30 seeds on the outputs suite and th
 
 ## Delivery
 
-Separate pull requests: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) item 2, done; (4) items 5 and 6; (5) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) item 2, done; (4) items 5 and 6, of which item 5 didn't pass; (5) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
