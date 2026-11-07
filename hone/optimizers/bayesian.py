@@ -275,16 +275,26 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
             best = None if constraints else float(model.z.min())
         # With output constraints, search near the best observed points that satisfy them.
         leaders = self._feasible_leaders(X, model.z) if self.search_space.output_constraints else None
+        if leaders is None and self._batch_strategy != "believer":
+            leaders = X[np.argsort(model.z)[:5]]  # evaluated points only, never ones believed
         for x in pending:
-            model = _believed(model, x)
+            model = self._lie(model, x, best)
         chosen = []
         for _ in range(count):
             x = self._maximize_improvement(model, best, constraints, leaders)
             chosen.append(x)
             # Pretend the models' predictions came true, so the next candidate of the batch goes elsewhere.
-            model = _believed(model, x)
+            model = self._lie(model, x, best)
             constraints = [(j, _believed(m, x)) for j, m in constraints]
         return chosen
+
+    _batch_strategy = "believer"  # temporary, for measuring item 6: believer, liar, capped or leaders
+
+    def _lie(self, model: GaussianProcess, x: np.ndarray, best: float | None) -> GaussianProcess:
+        if best is None or self._batch_strategy in ("believer", "leaders"):
+            return _believed(model, x)
+        mean = float(model.predict(x)[0][0])
+        return model.with_observation(x, best if self._batch_strategy == "liar" else max(mean, best))
 
     def _maximize_improvement(
         self, model: GaussianProcess, best: float | None, constraints: list[tuple[int, GaussianProcess]], leaders: np.ndarray | None
