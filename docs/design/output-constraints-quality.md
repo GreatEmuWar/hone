@@ -30,7 +30,7 @@ Added by the roadmap's review of 2 Nov 2026. A timing harness, `python -m hone.b
 
 Each cell is the mean over 3 seeds. One seed alone varies by up to about 15% between seeds at 500 evaluations, which is too close to ×1.2 for a change that moves the run the way a new seed does; the same seed repeats within about 5%.
 
-Measured on an Apple M2 at 0.14.0 with item 2 (details in `benchmarks/README.md`): at 500 evaluations a candidate takes 0.08 seconds with no limits and 1.0 with eight, about the same in batches of 8, and the cold fit 12 seconds with eight limits. Searching the models costs more than fitting them: about three quarters of a profiled run of g07 at 200 evaluations, and most of the steady-state time at 500 with eight limits, where refitting takes about 40%. That bears on 0.16.0's first step, whose first planned change is refitting less often.
+Measured on an Apple M2 under macOS 27.2 at 0.14.0 with item 2 (details in `benchmarks/README.md`): at 500 evaluations a candidate takes 0.08 seconds with no limits and 0.78 with eight, about the same in batches of 8, and the cold fit about 10 seconds with eight limits. Searching the models costs more than fitting them: about four fifths of a profiled run of g07 at 200 evaluations, and most of the steady-state time at 500 with eight limits, where refitting takes about a third. An operating system update on the same machine moved the times by 3% to 25%, so the table is remeasured whenever the system changes. That bears on 0.16.0's first step, whose first planned change is refitting less often.
 
 ## 1. ~~Before anything is feasible~~ Set aside
 

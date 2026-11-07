@@ -195,13 +195,14 @@ Latest results are in [outputs-results.md](outputs-results.md). What they show, 
 
 The table sets a ceiling: a later change may not raise seconds per candidate past ×1.2 of it at 500 evaluations without sign-off. `--baseline benchmarks/cost-summaries.json` checks that and exits 1 past it. Times depend on the machine, which the file records, so the check is only fair on the same one.
 
-Latest results are in [cost-results.md](cost-results.md), on an Apple M2. What they show, at 0.14.0 with noise and output constraints:
+Latest results are in [cost-results.md](cost-results.md), on an Apple M2 under macOS 27.2. What they show, at 0.14.0 with noise and output constraints:
 
-- **Each limit costs about as much as the objective.** Every candidate fits and searches k + 1 Gaussian processes. At 500 evaluations, one at a time, a candidate takes 0.08 seconds with no limits, 0.18 with one and 1.0 with eight.
-- **Cost grows about as the square of the evaluations between 200 and 500.** With eight limits it rises from 0.18 to 1.0 seconds per candidate, ×5.5 for 2.5 times the evaluations. At 50 and 100 evaluations every cell is under a tenth of a second.
-- **Batches save nothing per candidate.** Batches of 8 cost 0.89 seconds per candidate at 500 evaluations with eight limits, against 1.0 one at a time: each candidate of a batch is still a full search of every model.
-- **The cold fit is the largest single cost.** Fitting every model from scratch takes 12 seconds at 500 evaluations with eight limits. A run pays it once, and again when a checkpoint is resumed.
-- **Searching the models costs more than fitting them.** In the profiled run of g07, about three quarters of the 59 seconds go to the search: refining the best candidates by gradient, which predicts with every limit's model at each step. Fitting the hyperparameters takes about a tenth. At 500 evaluations with eight limits, a profile of the timed candidates puts about 40% in refitting and most of the rest in the search, so refitting less often helps more as the evaluations grow, but the search is the larger share at every size measured.
+- **An operating system update moves the times about as much as the ceiling allows.** The same machine, Python and libraries measured 3% to 25% slower at 500 evaluations under macOS 14.4 than under 27.2, about 11% across the table, so the table is remeasured whenever the operating system changes, before any change is checked against it.
+- **Each limit costs about as much as the objective.** Every candidate fits and searches k + 1 Gaussian processes. At 500 evaluations, one at a time, a candidate takes 0.08 seconds with no limits, 0.15 with one and 0.78 with eight.
+- **Cost rises about fourfold from 200 to 500 evaluations.** With eight limits it goes from 0.18 to 0.78 seconds per candidate, ×4.4 for 2.5 times the evaluations. At 50 and 100 evaluations every cell is under a tenth of a second.
+- **Batches save nothing per candidate.** Batches of 8 cost 0.77 seconds per candidate at 500 evaluations with eight limits, against 0.78 one at a time: each candidate of a batch is still a full search of every model.
+- **The cold fit is the largest single cost.** Fitting every model from scratch takes about 10 seconds at 500 evaluations with eight limits. A run pays it once, and again when a checkpoint is resumed.
+- **Searching the models costs more than fitting them.** In the profiled run of g07, about four fifths of the 70 seconds go to the search: refining the best candidates by gradient, which predicts with every limit's model at each step. Fitting the hyperparameters takes under a tenth. At 500 evaluations with eight limits, a profile of the timed candidates puts about a third in refitting and most of the rest in the search, so refitting less often helps more as the evaluations grow, but the search is the larger share at every size measured.
 
 
 ## Multi-objective problems
