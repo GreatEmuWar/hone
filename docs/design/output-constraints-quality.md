@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, is done, and item 2, noise with output constraints, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, and item 2, noise with output constraints, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -23,6 +23,14 @@ What the first run of the suite showed, at 0.14.0 (details in `benchmarks/README
 - Maximizing the probability of feasibility already finds a feasible design on every problem with a tiny region, g06, g07 and g10 included, in every run within about 30 evaluations, where no other optimizer finds one at the same budgets. Item 1's alternative has to beat that, so its pass criterion stands as written and the likely outcome is that the current method survives.
 - The deceptive pocket defeats everything at small budgets, and CMA-ES at large ones: it follows the violation into the basin and sits there without restarting. That makes pocket-2d-1in100 the direct test for item 5, and the problem on which item 1's alternatives would have to show a gain.
 - Batches of 8 are 10 to 300 times worse than one at a time at 10 evaluations per dimension, confirming item 6's cost; the hypothesis about the believer is unchanged and still to be confirmed by logging u.
+
+## Step 1b: the cost of a Bayesian candidate
+
+Added by the roadmap's review of 2 Nov 2026. A timing harness, `python -m hone.benchmarks --cost`, gives seconds per candidate against evaluations (50 to 500) and limits on outputs (0 to 8), at batch sizes 1 and 8, with one profiled run, saved as `benchmarks/cost-summaries.json`. It sets a ceiling: every later item reports its seconds per candidate against the table, and may not raise it past ×1.2 at 500 evaluations without sign-off. `--baseline benchmarks/cost-summaries.json` checks it. 0.16.0's first step starts from this table rather than measuring its own.
+
+Each cell is the mean over 3 seeds. One seed alone varies by up to about 15% between seeds at 500 evaluations, which is too close to ×1.2 for a change that moves the run the way a new seed does; the same seed repeats within about 5%.
+
+Measured on an Apple M2 at 0.14.0 with item 2 (details in `benchmarks/README.md`): at 500 evaluations a candidate takes 0.08 seconds with no limits and 1.0 with eight, about the same in batches of 8, and the cold fit 12 seconds with eight limits. Searching the models costs more than fitting them: about three quarters of a profiled run of g07 at 200 evaluations, and most of the steady-state time at 500 with eight limits, where refitting takes about 40%. That bears on 0.16.0's first step, whose first planned change is refitting less often.
 
 ## 1. ~~Before anything is feasible~~ Set aside
 

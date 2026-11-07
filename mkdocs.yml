@@ -115,6 +115,7 @@ nav:
       - Machine learning: benchmarks/ml-results.md
       - Constrained problems: benchmarks/constrained-results.md
       - Constraints on outputs: benchmarks/outputs-results.md
+      - Cost of a Bayesian candidate: benchmarks/cost-results.md
       - Conditional problems: benchmarks/conditional-results.md
       - Several objectives: benchmarks/multi-results.md
   - Changelog: changelog.md

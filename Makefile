@@ -48,6 +48,10 @@ benchmark-conditional: install
 benchmark-constrained: install
 	@poetry run python -m hone.benchmarks --constrained --jobs 4 --markdown benchmarks/constrained-results.md --save benchmarks/constrained-summaries.json
 
+.PHONY: benchmark-cost
+benchmark-cost: install
+	@poetry run python -m hone.benchmarks --cost --markdown benchmarks/cost-results.md --save benchmarks/cost-summaries.json
+
 .PHONY: benchmark-outputs
 benchmark-outputs: install
 	@poetry run python -m hone.benchmarks --outputs --jobs 4 --markdown benchmarks/outputs-results.md --save benchmarks/outputs-summaries.json

@@ -14,6 +14,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `constrained-summaries.json` | The same results as data |
 | [outputs-results.md](outputs-results.md) | The results on problems with constraints on outputs, from `make benchmark-outputs` |
 | `outputs-summaries.json` | The same results as data |
+| [cost-results.md](cost-results.md) | Seconds per Bayesian candidate against evaluations and limits on outputs, with a profiled run, from `make benchmark-cost` |
+| `cost-summaries.json` | The same table as data, the ceiling later changes are held to |
 | [conditional-results.md](conditional-results.md) | The conditional problems' results, from `make benchmark-conditional` |
 | `conditional-summaries.json` | The same results as data |
 | [multi-results.md](multi-results.md) | The multi-objective problems' results, from `make benchmark-multi` |
@@ -186,6 +188,20 @@ Latest results are in [outputs-results.md](outputs-results.md). What they show, 
 - **Batches cost a lot at small budgets.** At 10 evaluations per dimension, Bayesian optimization choosing 8 candidates per batch has median errors 10 to 300 times those of one at a time (0.623 against 0.00227 on ball-5d-1in100, 0.438 against 0.00264 on corner-5d), finds no feasible design on g06, and misses the spring in 6 runs of 10; batches of 4 are 2 to 50 times worse. By 50 evaluations per dimension the three are within a factor of 3. A batch's candidates are chosen from a model that pretends the earlier ones came out as predicted, which keeps the mean where it is and only shrinks the variance, so the candidates land together.
 - **With noise on every output, the final round is what keeps a result honest.** On the three noisy engineering designs, measured over 30 seeds (details in [docs/design/output-constraints-quality.md](../docs/design/output-constraints-quality.md), item 2), averaging the outputs and judging each limit on the averages changes little on its own, because Bayesian optimization, CMA-ES and random search never evaluate a point twice during the search. The final round, on by default with noise and output constraints, is what catches a design that passed a limit by luck: Bayesian optimization's share of truly feasible results rises from 17% to 43% on the pressure vessel and from 40% to 70% on the welded beam at 50 evaluations per dimension, and CMA-ES's from 73% to 100% on both at 100. It costs budget: on the spring at 10 evaluations per dimension its floor of 10 evaluations is a third of the 30, and the other optimizers find a feasible spring in 40% of runs rather than 57%. Bayesian optimization's feasible share still falls as its budget grows, since the better it finds the optimum, the closer its design sits to a limit's boundary, where a true margin of zero passes half the time however often it is averaged.
 - **At 1,000 evaluations per dimension CMA-ES solves every ball and corner exactly, and g06**; the genetic optimizer gets within 0.002 to 0.04 of the balls and corners but stays 837 above g06's optimum. On g07 and g10 CMA-ES is 0.03 and 81 above the best known values.
+
+## The cost of a Bayesian candidate
+
+`python -m hone.benchmarks --cost` times how long Bayesian optimization takes to propose a candidate, against the evaluations so far (50, 100, 200 and 500) and the number of limits on outputs (0, 1, 2, 4 and 8), at batch sizes 1 and 8, in 10 dimensions. Each cell gives the optimizer a history of that many evaluations as its first, spread-out generation, then times 24 candidates after the first proposal, which fits every model from scratch and is reported on its own as the cold fit. Each cell is the mean over 3 seeds: one seed alone varies by up to about 15% at 500 evaluations, while the same seed repeats within about 5%. The objective and limits are linear and cost nothing, so the times are the optimizer's own. A profiled run of g07, with its eight limits, at 200 evaluations completes the file.
+
+The table sets a ceiling: a later change may not raise seconds per candidate past ×1.2 of it at 500 evaluations without sign-off. `--baseline benchmarks/cost-summaries.json` checks that and exits 1 past it. Times depend on the machine, which the file records, so the check is only fair on the same one.
+
+Latest results are in [cost-results.md](cost-results.md), on an Apple M2. What they show, at 0.14.0 with noise and output constraints:
+
+- **Each limit costs about as much as the objective.** Every candidate fits and searches k + 1 Gaussian processes. At 500 evaluations, one at a time, a candidate takes 0.08 seconds with no limits, 0.18 with one and 1.0 with eight.
+- **Cost grows about as the square of the evaluations between 200 and 500.** With eight limits it rises from 0.18 to 1.0 seconds per candidate, ×5.5 for 2.5 times the evaluations. At 50 and 100 evaluations every cell is under a tenth of a second.
+- **Batches save nothing per candidate.** Batches of 8 cost 0.89 seconds per candidate at 500 evaluations with eight limits, against 1.0 one at a time: each candidate of a batch is still a full search of every model.
+- **The cold fit is the largest single cost.** Fitting every model from scratch takes 12 seconds at 500 evaluations with eight limits. A run pays it once, and again when a checkpoint is resumed.
+- **Searching the models costs more than fitting them.** In the profiled run of g07, about three quarters of the 59 seconds go to the search: refining the best candidates by gradient, which predicts with every limit's model at each step. Fitting the hyperparameters takes about a tenth. At 500 evaluations with eight limits, a profile of the timed candidates puts about 40% in refitting and most of the rest in the search, so refitting less often helps more as the evaluations grow, but the search is the larger share at every size measured.
 
 
 ## Multi-objective problems
