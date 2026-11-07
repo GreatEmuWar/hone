@@ -71,9 +71,13 @@ On the pressure vessel with its limits on outputs, Bayesian optimization at 200 
 
 Track the best violation while infeasible with the same flatness test. `_recent_bests` only grows on feasible generations, so its window can span a long infeasible gap: clear the history when the run moves between infeasible and feasible. Add a direct test that a flat violation triggers a restart.
 
+Pass criteria, fixed before measuring: over 30 seeds on the outputs suite at every budget, CMA-ES finds a feasible design on pocket-2d-1in100 in more runs, or as often and sooner, at 1,000 evaluations per dimension, and its median error on no other problem and budget worsens by more than ×1.1. Without output constraints every violation is 0, so nothing changes, which a test checks.
+
 ## 6. Batches that bunch together
 
 Hypothesis: the kriging believer keeps the mean at x and only shrinks the variance; where μ is far below the best, expected improvement is about best − μ, nearly independent of σ, so the next candidate lands adjacent. A large learned noise term worsens it. Confirm by logging u at the chosen points before picking a fix. Candidates: the constant liar (Ginsbourger et al., 2010), local penalization (González et al., 2016), a minimum distance in length scales. Measure the smallest pairwise distance in a batch and the error at sizes 4 and 8. Guard: batch size 1 with nothing pending must be exactly unchanged.
+
+Pass criteria, fixed before measuring: over 30 seeds on the outputs suite and the quick suite, at batch sizes 4 and 8 and at 10 and 20 evaluations per dimension, the geometric mean of a fix's median errors relative to the believer's is at most ×0.9 at every size and budget (errors floored at 1e-8, over the problems where both medians are finite), and no problem's share of runs that find a feasible design falls by more than one run in ten. Of the candidates that pass, the simplest ships.
 
 ## Delivery
 
