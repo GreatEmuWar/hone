@@ -12,7 +12,8 @@ with positive recombination weights. Three additions adapt it to hone's search s
   "CMA-ES with Margin" (GECCO 2022), so the widening doesn't inflate the step size.
 - With restarts on, a run that converges or stalls starts again from a random point with
   twice the population (Auger and Hansen, "A Restart CMA Evolution Strategy With Increasing
-  Population Size", CEC 2005).
+  Population Size", CEC 2005). With constraints on outputs, a run stalls when its best value
+  goes flat while it is feasible, or its best violation while it isn't.
 """
 import math
 from typing import Any, List
@@ -118,7 +119,8 @@ class CMAES(Optimizer):
         self._p_sigma = np.zeros(n)
         self._p_c = np.zeros(n)
         self._iteration = 0
-        self._recent_bests: list[float] = []
+        self._recent_bests: list[float] = []  # each generation's best value, or best violation while nothing is feasible
+        self._recent_feasible = True  # whether _recent_bests holds values (True) or violations
         self._vectors: dict[Individual, np.ndarray] = {}  # each individual of the current generation -> its point in [0, 1]^n
 
     # --- the generation -------------------------------------------------------
@@ -170,9 +172,14 @@ class CMAES(Optimizer):
         ranked = [ind for ind in self._ranked(previous) if not ind.failed and ind in self._vectors]
         if ranked:
             self._adapt(np.array([self._vectors[ind] for ind in ranked[: len(self._weights)]]))
-            if ranked[0].violation == 0:
-                # Only a feasible best says whether the search has gone flat: a violation shrinking isn't a value stalling.
-                self._recent_bests.append(_fitness(ranked[0]))
+            # A feasible best's value says whether the search has gone flat, and so does an infeasible
+            # best's violation, as in a deceptive basin where the violation bottoms out above zero.
+            # The two don't compare, so the history starts over when the run moves between them.
+            best = ranked[0]
+            feasible = best.violation == 0
+            if feasible != self._recent_feasible:
+                self._recent_bests, self._recent_feasible = [], feasible
+            self._recent_bests.append(_fitness(best) if feasible else best.violation)
         self._vectors = {}
         if self.config.restarts and self._should_restart():
             self.population_size *= 2

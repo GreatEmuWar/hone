@@ -5,7 +5,8 @@ import pytest
 from hone import CMAES, CMAESConfig, UnsupportedSearchSpace
 from hone.benchmarks import standard_problems
 from hone.optimizers import cmaes
-from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter
+from hone.optimizers.core import Individual
+from hone.parameters import ChoiceParameter, FixedParameter, Output, RangeParameter, SearchSpace
 
 from conftest import bounded_parameters, sphere
 import objectives
@@ -174,6 +175,52 @@ def test_stalled_runs_restart():
     optimizer = make()
     optimizer._recent_bests = [1.0] * 30
     assert optimizer._should_restart()
+
+
+# --- restarts with constraints on outputs ---------------------------------------
+
+
+LIMITED = SearchSpace(bounded_parameters(), [Output("q") <= 0])
+
+
+def told_generation(optimizer, violation, fitness=1.0):
+    """Ask for a generation and tell every candidate the same value and outputs breaking the limit by violation."""
+    for trial in optimizer.ask():
+        optimizer.tell(trial, {"objective": fitness, "q": violation})
+
+
+def test_a_flat_violation_restarts_the_run():
+    """In a deceptive basin the best violation sits above zero; going flat there restarts the run, as a flat value does."""
+    optimizer = make(LIMITED, max_evaluations=10_000)
+    for _ in range(40):
+        told_generation(optimizer, violation=0.5)
+        if optimizer.population_size > 6:
+            break
+    assert optimizer.population_size == 12, "the run restarted with twice the population"
+
+
+def test_a_shrinking_violation_doesnt_restart_the_run():
+    optimizer = make(LIMITED, max_evaluations=10_000)
+    for generation in range(40):
+        told_generation(optimizer, violation=0.5 * 0.5**generation)
+    assert optimizer.population_size == 6
+
+
+def test_the_history_starts_over_between_infeasible_and_feasible():
+    optimizer = make(LIMITED)
+    optimizer.ask()  # draws the first generation, which sets up the sampling state an update needs
+    feasible = Individual(params={"x": 0.0, "y": 0.0}, generation=0, fitness=3.0, violation=0.0)
+    infeasible = Individual(params={"x": 0.0, "y": 0.0}, generation=0, fitness=1.0, violation=0.25)
+    for individual, expected in [(infeasible, [0.25]), (infeasible, [0.25, 0.25]), (feasible, [3.0]), (infeasible, [0.25])]:
+        optimizer._vectors = {individual: np.full(2, 0.5)}
+        optimizer._update([individual])
+        assert optimizer._recent_bests == expected
+
+
+def test_without_output_constraints_the_history_is_of_values():
+    optimizer = make(max_evaluations=600)
+    optimizer.optimize(sphere)
+    assert optimizer._recent_feasible and all(b >= 0 for b in optimizer._recent_bests)
 
 
 def test_integer_widening_does_not_slow_the_continuous_variables():
