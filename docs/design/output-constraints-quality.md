@@ -81,6 +81,25 @@ Hypothesis: the kriging believer keeps the mean at x and only shrinks the varian
 
 Pass criteria, fixed before measuring: over 30 seeds on the outputs suite and the quick suite, at batch sizes 4 and 8 and at 10 and 20 evaluations per dimension, the geometric mean of a fix's median errors relative to the believer's is at most ×0.9 at every size and budget (errors floored at 1e-8, over the problems where both medians are finite), and no problem's share of runs that find a feasible design falls by more than one run in ten. Of the candidates that pass, the simplest ships.
 
+Where it stands, unfinished. The hypothesis is confirmed, except for the noise term. Logging batches of 8 at 10 evaluations per dimension on ball-5d-1in100, corner-5d, sphere-5d and rastrigin-5d, five seeds each: the first candidate of a batch has a median u of 0.1 to 3.7, and the later ones 0.4 to 386, with σ shrunk to about 0.005 and within 0.001 to 0.01 length scales of an earlier candidate. The learned noise stayed at its floor of about 1e-6, so a large noise term isn't the cause on these problems. Without output constraints a second mechanism adds to it: the local search starts near the five lowest values in the believed model, and a believed point was among them for 70% to 100% of later candidates.
+
+Three candidates are built behind a temporary switch, `BayesianOptimizer._batch_strategy`, whose default, "believer", is the current behaviour:
+
+- "liar": the constant liar, each chosen point believed at the incumbent's value.
+- "capped": the believer capped at the incumbent, max(μ, best).
+- "leaders": the believer, with the local search started only from evaluated points.
+
+The two that lie also start the local search from evaluated points only. Pending points are lied about the same way, and with nothing feasible yet the believer is kept. The median smallest distance between two candidates of a batch of 8, in the unit cube, over the same four problems and five seeds:
+
+| Strategy | ball-5d-1in100 | corner-5d | sphere-5d | rastrigin-5d |
+| --- | ---: | ---: | ---: | ---: |
+| believer | 0.0001 | 0.0001 | 0.0000 | 0.0000 |
+| liar | 0.036 | 0.048 | 0.056 | 0.077 |
+| capped | 0.033 | 0.049 | 0.019 | 0.111 |
+| leaders | 0.0001 | 0.0001 | 0.0000 | 0.0000 |
+
+So lying spreads the batches, and the leaders alone don't. Whether that lowers error is the open question: the measurement against the pass criteria above, eight optimizers (four strategies at sizes 4 and 8) on the outputs and quick suites at 10 and 20 evaluations per dimension over 30 seeds, about 727,000 candidates or 80 minutes on four cores, was stopped before it finished. To finish item 6: run it with `run_benchmark` and a factory per strategy and size that subclasses `BayesianOptimizer` with `_batch_strategy` set, check each strategy against the criteria, keep the simplest that passes, remove the switch, and add a test that batch size 1 with nothing pending is exactly unchanged.
+
 ## Delivery
 
 Separate pull requests: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) item 2, done; (4) items 5 and 6, of which item 5 didn't pass; (5) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
