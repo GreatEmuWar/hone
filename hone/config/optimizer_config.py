@@ -25,9 +25,12 @@ class OptimizerConfig(BaseModel):
     """Fixes the random number generator, so runs can be repeated."""
     noise: bool = False
     """The objective is noisy: evaluating the same point twice can give different values."""
-    final_evaluations: int = Field(default=0, ge=0)
+    final_evaluations: int | None = Field(default=None, ge=0)
     """With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-    the result is chosen, and its value reported, from averages rather than single lucky values."""
+    the result is chosen, and its value reported, from averages rather than single lucky values.
+    None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+    back, at least 10 and at most half (10 without max_evaluations), so whether the result
+    satisfies each limit rests on more than one noisy draw. 0 keeps none back either way."""
     min_finished: float = Field(default=1.0, gt=0, le=1)
     """The share of each generation's evaluations that must finish before the next generation is
     bred. Below 1, the slowest evaluations don't hold up the run: they finish in the background,
@@ -44,8 +47,11 @@ class OptimizerConfig(BaseModel):
 
     @property
     def reserved_evaluations(self) -> int:
-        """Evaluations kept back for the final re-evaluation: none without noise."""
-        return self.final_evaluations if self.noise else 0
+        """Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.
+
+        The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.
+        """
+        return (self.final_evaluations or 0) if self.noise else 0
 
     @classmethod
     def from_file(cls, filepath: str | Path) -> Self:

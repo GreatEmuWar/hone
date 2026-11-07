@@ -165,7 +165,7 @@ Median error over 10 seeds, with each limit known before evaluating against repo
 
 ## Problems with constraints on outputs
 
-`python -m hone.benchmarks --outputs` runs fourteen problems whose limits are reported by the objective, at the same five budgets, with Bayesian optimization at batch sizes 1, 4 and 8 (as `bayesian`, `bayesian-4` and `bayesian-8`), since batches are how it runs with several workers. Besides the three engineering designs above, the problems are chosen for what they say about finding a feasible design at all, which the results report for each problem as the share of runs that found one and the median evaluations to the first.
+`python -m hone.benchmarks --outputs` runs seventeen problems whose limits are reported by the objective, at the same five budgets, with Bayesian optimization at batch sizes 1, 4 and 8 (as `bayesian`, `bayesian-4` and `bayesian-8`), since batches are how it runs with several workers. Besides the three engineering designs above, the problems are chosen for what they say about finding a feasible design at all, which the results report for each problem as the share of runs that found one and the median evaluations to the first.
 
 | Problem | Feasible share of the box | What it tests |
 | --- | ---: | --- |
@@ -175,6 +175,7 @@ Median error over 10 seeds, with each limit known before evaluating against repo
 | g06 | 0.0063% | CEC 2006 g06: a cubic in two variables, feasible in a sliver between two circles |
 | g07 | 0.00013% | CEC 2006 g07: a quadratic in ten variables under eight limits |
 | g10 | 0.00056% | CEC 2006 g10: a heat exchanger network, eight variables under six limits with values up to a million |
+| noisy-pressure-vessel-outputs, noisy-tension-spring-outputs, noisy-welded-beam-outputs | as the designs above | The three engineering designs with Gaussian noise of about 1% of each quantity's scale on the objective and on every reported limit, so a design can pass a limit by luck; a run is scored by the true value and the true feasibility of the design it returns, and every optimizer runs with `noise=True` |
 
 The measured fractions are from 2 million uniform samples of the box for the corners and 20 to 100 million for the CEC problems; the published designs break their active limits by about 1e-6 through rounding, within the 1e-4 the CEC rules allow.
 

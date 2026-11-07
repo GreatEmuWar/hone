@@ -350,7 +350,7 @@ NOISY_SPRING = next(problem for problem in noisy_output_problems() if problem.na
 
 
 def random_search_without_noise_handling(problem, budget, seed):
-    """Random search that doesn't average, so it can run on a noisy problem with output constraints, which the optimizers refuse."""
+    """Random search that believes every draw, to show what averaging the outputs changes on a noisy problem with output constraints."""
     return RandomSearch(problem.search_space, OptimizerConfig(population_size=10, generations=budget, max_evaluations=budget, seed=seed))
 
 
@@ -454,6 +454,21 @@ def test_a_noisy_run_is_scored_by_the_true_value_and_the_true_feasibility():
     assert seen_infeasible_by_truth >= 0  # how often depends on the seeds; the branch above is what's checked
 
 
+def test_noise_on_an_output_alone_turns_noise_handling_on():
+    problem = NOISY_SPRING.model_copy(update={"noise": 0.0})
+    assert not runner._noisy(SPRING) and runner._noisy(problem) and runner._noisy(NOISY_SPRING)
+    assert not runner.genetic(SPRING, 30, 0).config.noise
+    for factory in (runner.genetic, runner.cma_es, runner.bayesian, runner.random_search, batch_optimizers([4])["bayesian-4"]):
+        assert factory(problem, 30, 0).config.noise
+
+
+def test_the_noisy_engineering_designs_run_with_averaging_and_the_default_final_round():
+    runs = run_benchmark([NOISY_SPRING], optimizers={"random": runner.random_search}, seeds=range(2), budgets_per_dimension=[20])
+    assert all(r.output_constrained and r.evaluations == 60 for r in runs)
+    optimizer = runner.random_search(NOISY_SPRING, 60, 0)
+    assert optimizer.config.noise and optimizer._reserve == 10
+
+
 def test_bayesian_batch_factories_set_the_batch_size():
     factories = batch_optimizers([4, 8])
     assert list(factories) == ["bayesian-4", "bayesian-8"]
@@ -467,7 +482,8 @@ def test_cli_runs_the_outputs_suite_with_batch_sizes(tmp_path, capsys):
     results = tmp_path / "outputs.md"
     assert main(["--outputs", "--seeds", "1", "--budgets", "2", "--batch-sizes", "2", "--markdown", str(results)]) == 0
     text = results.read_text()
-    assert "14 problems, 1 seeds, budgets of 2 evaluations per dimension" in text
+    assert "17 problems, 1 seeds, budgets of 2 evaluations per dimension" in text
+    assert "| noisy-tension-spring-outputs |" in text
     assert "| bayesian-2 median |" in text and "| bayesian-4" not in text
     assert "Finding a feasible design:" in text and "| g07 |" in text
 

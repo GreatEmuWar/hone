@@ -102,9 +102,9 @@ A margin that couldn't be computed, such as from a division by zero, is modelled
 - A threshold is reached only by a feasible point.
 - On a front, `ParetoPoint.outputs` holds each point's outputs, and the front contains only feasible points. While no point is feasible the front is empty and `ParetoResult.feasible` is `False`.
 
-### 7. Not supported yet: noise
+### 7. Noise: the outputs are averaged, and the final round is on by default
 
-With `noise=True`, a point's outputs would have to be averaged with its objective, and whether it is feasible would become a probability that the final re-evaluation would have to settle. Without that, an optimizer would keep a design that passed its limit once by luck. Until it's designed, an optimizer refuses output constraints combined with noise with `UnsupportedSearchSpace`.
+Since 0.15.0. With `noise=True`, a point's outputs are averaged over every evaluation of it, like its value, and whether it is feasible is judged on the averages: the limit is on the true output, which the average estimates. Without that, an optimizer would keep a design that passed its limit once by luck. A tenth of the budget is kept back for the final round by default, so the result's feasibility rests on several draws. The optimizers of several objectives still refuse the combination. The design and its measurements are in [output-constraints-quality.md](output-constraints-quality.md), item 2.
 
 `sensitivity()` accepts output constraints. They don't change where it samples, so it measures the objective's value from the returned dict and ignores the outputs. Parameter constraints are still refused.
 
@@ -121,4 +121,4 @@ The constrained suite gains output-constraint versions of the pressure vessel, t
 
 ## Out of scope for now
 
-Noise with output constraints, equality constraints, soft tolerances, tests on outputs, and constraint values that come from a different, cheaper evaluation than the objective.
+Noise with output constraints for several objectives, equality constraints, soft tolerances, tests on outputs, and constraint values that come from a different, cheaper evaluation than the objective.
