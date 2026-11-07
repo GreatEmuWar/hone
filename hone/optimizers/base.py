@@ -34,6 +34,8 @@ __all__ = [
     "_key",
 ]
 
+DEFAULT_FINAL_EVALUATIONS = 10  # kept back by default with noise and constraints on outputs, when a tenth of the budget is less, or there is none
+
 
 class Optimizer(OptimizerCore[Result]):
     """Base class for population-based optimizers of a single objective.
@@ -68,7 +70,13 @@ class Optimizer(OptimizerCore[Result]):
     by Deb's feasibility rule: a point that satisfies every output constraint beats one that
     doesn't, feasible points rank by value, and the others by their total violation, so no
     penalty weight is needed. Failed evaluations rank below them all.
+
+    With noise, a point's outputs are averaged like its value, and whether it satisfies a limit
+    is judged on the averages: the limit is on the true output, which the average estimates.
+    By default a tenth of the budget is then kept back for the final round, so the result's
+    feasibility rests on more than one draw; see final_evaluations.
     """
+    supports_noisy_outputs = True
 
     def reset(self) -> None:
         """Start over: forget every evaluation and reseed the random number generator."""
@@ -76,9 +84,11 @@ class Optimizer(OptimizerCore[Result]):
         self._best: Individual | None = None
         # With noise: every successful value seen at each point, and the final re-evaluation's state.
         self._observations: dict[tuple, list[float]] = {}
+        self._output_observations: dict[tuple, list[dict[str, float]]] = {}  # every set of outputs seen at each point
         self._points: dict[tuple, dict[str, Any]] = {}
         self._finalists: list[tuple] = []
         self._final_round = False
+        self._reserve = self._reserved()
         self._infeasible = 0  # evaluations that broke a constraint on the outputs
 
     # --- what a value is ---------------------------------------------------
@@ -101,18 +111,25 @@ class Optimizer(OptimizerCore[Result]):
         individual.fitness = -math.inf if self.config.maximize else math.inf
 
     def _record(self, individual: Individual, value: Any) -> None:
+        outputs = None
         if isinstance(value, dict):
-            individual.outputs = {name: float(value[name]) for name in self.search_space.outputs}
-            individual.violation = self.search_space.output_violation(individual.params, individual.outputs)
-            self._infeasible += individual.violation > 0
+            outputs = {name: float(value[name]) for name in self.search_space.outputs}
+            self._infeasible += self.search_space.output_violation(individual.params, outputs) > 0
             value = value[OBJECTIVE]
-        individual.fitness = float(value)
         if self.config.noise:
-            # Average every evaluation of the same point, so a lucky value regresses toward its mean.
+            # Average every evaluation of the same point, outputs included, so a lucky value, or a
+            # limit passed by luck, regresses toward its mean.
             key = self._key(individual.params)
             self._observations.setdefault(key, []).append(float(value))
             self._points.setdefault(key, dict(individual.params))
-            individual.fitness = float(np.mean(self._observations[key]))
+            if outputs is not None:
+                self._output_observations.setdefault(key, []).append(outputs)
+            self._refresh(individual)
+        else:
+            individual.fitness = float(value)
+            if outputs is not None:
+                individual.outputs = outputs
+                individual.violation = self.search_space.output_violation(individual.params, outputs)
         if self._best is None or self._rank(individual) < self._rank(self._best):
             self._best = individual
 
@@ -123,16 +140,15 @@ class Optimizer(OptimizerCore[Result]):
 
     def result(self) -> Result:
         """The best result found so far, with a summary of every completed generation."""
-        best = self._best_point()
-        if best is None:
+        chosen = self._chosen()
+        if chosen is None:
             raise RuntimeError("no successful evaluations yet")
-        best_fitness, best_params = best
-        assert self._best is not None
+        best_fitness, best_params, best_outputs, feasible = chosen
         return Result(
             best_fitness=best_fitness,
             best_params=dict(best_params),
-            best_outputs=dict(self._best.outputs) if self._best.outputs is not None else None,
-            feasible=self._best.violation == 0,
+            best_outputs=best_outputs,
+            feasible=feasible,
             generations=self._history,
             evaluations=self._evaluations,
             failures=self._failures,
@@ -142,29 +158,39 @@ class Optimizer(OptimizerCore[Result]):
             run=self._run_info(),
         )
 
-    def _best_point(self) -> tuple[float, dict[str, Any]] | None:
-        """The best value so far and its parameters, or None before any evaluation has succeeded."""
+    def _chosen(self) -> tuple[float, dict[str, Any], dict[str, float] | None, bool] | None:
+        """The result so far: the best value, its parameters, its outputs and whether they satisfy every output constraint.
+
+        None before any evaluation has succeeded. With noise, the value and outputs are averages:
+        once the finalists have been re-evaluated, of the one with the best average; before
+        that, of the most promising point by the optimizer's best estimate.
+        """
         if self._best is None:
             return None
         if self.config.noise and self._observations:
-            # Once the finalists have been re-evaluated, the one with the best average; before
-            # that, the most promising point by the optimizer's best estimate.
             key = self._ranked_keys(self._finalists)[0] if self._finalists else self._finalist_order()[0]
-            return self._average(key), self.search_space.active(self._points[key])
-        return _fitness(self._best), self.search_space.active(self._best.params)
+            return self._average(key), self.search_space.active(self._points[key]), self._average_outputs(key), self._violation(key) == 0
+        best = self._best
+        outputs = dict(best.outputs) if best.outputs is not None else None
+        return _fitness(best), self.search_space.active(best.params), outputs, best.violation == 0
+
+    def _best_point(self) -> tuple[float, dict[str, Any]] | None:
+        """The best value so far and its parameters, or None before any evaluation has succeeded."""
+        chosen = self._chosen()
+        return None if chosen is None else chosen[:2]
 
     def _report(self, callback: Callable[[Progress], bool | None] | None, reported: int) -> int:
         """Pass callback each generation finished since the first reported ones, and stop the run if it asks."""
         if callback is None:
             return len(self._history)
-        best = self._best_point()
+        chosen = self._chosen()
         for stats in self._history[reported:]:
             progress = Progress(
                 generation=stats,
                 evaluations=stats.evaluations,
-                best_fitness=best[0] if best is not None else None,
-                best_params=dict(best[1]) if best is not None else None,
-                feasible=self._best is None or self._best.violation == 0,
+                best_fitness=chosen[0] if chosen is not None else None,
+                best_params=dict(chosen[1]) if chosen is not None else None,
+                feasible=chosen is None or chosen[3],
                 elapsed=self._elapsed(),
             )
             if callback(progress) and not self._done:
@@ -175,19 +201,40 @@ class Optimizer(OptimizerCore[Result]):
     # --- stopping, and the final round with noise ---------------------------
 
     def _goal_reached(self) -> bool:
-        best = self._best_point()
+        if self.config.threshold is None:
+            return False  # and with noise, ranking every point to find the best is work for nothing
+        chosen = self._chosen()
         # Only a point that satisfies every constraint on the outputs can reach the threshold.
-        return best is not None and self._best is not None and self._best.violation == 0 and self._reached(best[0])
+        return chosen is not None and chosen[3] and self._reached(chosen[0])
+
+    def _reserved(self) -> int:
+        """Evaluations kept back for the final round with noise: final_evaluations, or its default.
+
+        The default is none, except with constraints on outputs, where it is a tenth of
+        max_evaluations, at least DEFAULT_FINAL_EVALUATIONS and at most half, or
+        DEFAULT_FINAL_EVALUATIONS without max_evaluations: judged on one draw, a design on the
+        boundary of a limit passes it half the time.
+        """
+        config = self.config
+        if not config.noise:
+            return 0
+        if config.final_evaluations is not None:
+            return config.final_evaluations
+        if not self.search_space.output_constraints:
+            return 0
+        if config.max_evaluations is None:
+            return DEFAULT_FINAL_EVALUATIONS
+        return min(max(DEFAULT_FINAL_EVALUATIONS, config.max_evaluations // 10), config.max_evaluations // 2)
 
     def _begin_final_round(self) -> bool:
-        if self.config.reserved_evaluations and not self._final_round and self._observations:
+        if self._reserve and not self._final_round and self._observations:
             self._final_round = True
             self._needs_generation = True
             return True
         return False
 
     def _kept_back(self) -> int:
-        return 0 if self._final_round else self.config.reserved_evaluations
+        return 0 if self._final_round else self._reserve
 
     def _make_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         if self._final_round:
@@ -199,9 +246,23 @@ class Optimizer(OptimizerCore[Result]):
     def _average(self, key: tuple) -> float:
         return float(np.mean(self._observations[key]))
 
+    def _average_outputs(self, key: tuple) -> dict[str, float] | None:
+        """The average of every set of outputs seen at the point, by output; None without constraints on outputs."""
+        seen = self._output_observations.get(key)
+        if not seen:
+            return None
+        return {name: float(np.mean([outputs[name] for outputs in seen])) for name in self.search_space.outputs}
+
+    def _violation(self, key: tuple) -> float:
+        """The total violation of the output constraints by the point's average outputs: 0 without any."""
+        outputs = self._average_outputs(key)
+        return 0.0 if outputs is None else self.search_space.output_violation(self._points[key], outputs)
+
     def _ranked_keys(self, keys: list[tuple]) -> list[tuple]:
-        """Evaluated points, by key, best average first."""
-        return sorted(keys, key=self._average, reverse=self.config.maximize)
+        """Evaluated points, by key, best first: by Deb's rule on the averages, so those whose average
+        outputs satisfy every constraint come first, by average value, then the rest by violation."""
+        sign = -1.0 if self.config.maximize else 1.0
+        return sorted(keys, key=lambda key: (self._violation(key), sign * self._average(key)))
 
     def _finalist_order(self) -> list[tuple]:
         """Every successfully evaluated point, by key, most promising first. Optimizers with a
@@ -209,18 +270,26 @@ class Optimizer(OptimizerCore[Result]):
         return self._ranked_keys(list(self._observations))
 
     def _refresh_averages(self, individuals: list[Individual]) -> None:
-        """Set each successful individual's fitness to the current average of every evaluation of its point."""
+        """Set each successful individual's fitness, outputs and violation to the averages of every evaluation of its point."""
         for individual in individuals:
             if not individual.failed and individual.fitness is not None:
-                individual.fitness = self._average(self._key(individual.params))
+                self._refresh(individual)
+
+    def _refresh(self, individual: Individual) -> None:
+        key = self._key(individual.params)
+        individual.fitness = self._average(key)
+        if self.search_space.output_constraints:
+            individual.outputs = self._average_outputs(key)
+            individual.violation = self._violation(key)
 
     def _final_population(self, generation: int) -> list[Individual]:
         """The final round with noise: the most promising points, each evaluated again.
 
         Up to 5 finalists share the final_evaluations, each getting at least two when there are
-        enough, and the result is the finalist with the best average.
+        enough, and the result is the finalist with the best average. With constraints on
+        outputs, a finalist whose average outputs satisfy them all beats one whose don't.
         """
-        reserve = self.config.reserved_evaluations
+        reserve = self._reserve
         if self.config.max_evaluations is not None:
             reserve = min(reserve, self.config.max_evaluations - self._handed_out_total)
         order = self._finalist_order()

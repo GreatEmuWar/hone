@@ -208,6 +208,7 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
         self.batch_size = self.config.population_size or self._workers
         self._X: list[np.ndarray] = []  # every evaluated point, encoded
         self._y: list[float | None] = []  # its value to minimize, or None if it failed
+        self._keys: list[tuple] = []  # its key, to look up its averages with noise
         self._theta: np.ndarray | None = None  # the model's hyperparameters, kept between fits
         self._fitted_at = 0  # observations at the last hyperparameter fit
         self._reset_outputs()
@@ -232,7 +233,11 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
                 self._X.append(self._encoding.encode(individual.params))
                 value = individual.fitness if not self.config.maximize else -individual.fitness
                 self._y.append(None if individual.failed else value)
+                self._keys.append(self._key(individual.params))
                 self._absorb_outputs(individual)
+        if self.config.noise and self.search_space.output_constraints:
+            # A point evaluated again since has a new average: judge every row by its point's current averages.
+            self._violations = [math.inf if y is None else self._violation(key) for y, key in zip(self._y, self._keys)]
         # The model's matrices are small, and splitting their arithmetic across threads makes it many
         # times slower. One thread also makes results the same on every machine.
         with threadpool_limits(limits=1, user_api="blas"):
@@ -257,10 +262,13 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
         constraints = self._constraint_models(X, pending) if self.search_space.output_constraints else []
         feasible = np.array(self._violations) == 0 if self.search_space.output_constraints else np.ones(len(X), dtype=bool)
         best: float | None
-        if self.config.noise:
+        if self.config.noise and (feasible.any() or not constraints):
             # The best value so far. With noise, the best observation is likely a lucky one, so use the
-            # lowest the model predicts at any evaluated point instead.
-            best = float(model.predict(X)[0].min())
+            # lowest the model predicts at any evaluated point that satisfies the output constraints instead.
+            predicted = model.predict(X)[0]
+            best = float(predicted[feasible].min() if feasible.any() else predicted.min())
+        elif self.config.noise:
+            best = None  # nothing feasible yet, and models of the constraints to find something that is
         elif feasible.any():
             best = float(model.z[feasible].min())  # the best value of a point that satisfies every output constraint
         else:

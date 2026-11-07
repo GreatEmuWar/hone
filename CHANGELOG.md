@@ -2,13 +2,19 @@
 
 ## Unreleased
 
-Measuring how output constraints are handled, before improving it; see [docs/design/output-constraints-quality.md](docs/design/output-constraints-quality.md).
+Measuring how output constraints are handled, then improving what the measurements justify; see [docs/design/output-constraints-quality.md](docs/design/output-constraints-quality.md). First, noise with constraints on outputs.
 
 ### Added
+
+- **Constraints on outputs with `noise=True`.** A design's outputs are averaged over every evaluation of it, like its value, and each limit is judged on the averages, since the limit is on the true output and a single noisy draw can pass it by luck. Designs rank by Deb's rule on their averages: those whose average outputs satisfy every limit first, by average value, then the rest by the violation of their averages, so a design that passed once by luck drops out as its average breaks the limit. `Result.feasible` and `best_outputs` come from the averages of the design returned, as does `Progress.feasible`, and only a design whose averages pass reaches the threshold. Bayesian optimization measures improvement against the best its model predicts at an evaluated design whose averages pass, not at any design, and judges every evaluation of a design by the design's current averages. The optimizers of several objectives still refuse the combination.
 
 - **A benchmark suite for constraints on outputs.** `python -m hone.benchmarks --outputs` (or `make benchmark-outputs`) runs the three engineering designs with their limits reported by the objective, and eleven new problems chosen for what they say about finding a feasible design: balls whose feasible fraction of the box is exact, from one in ten to one in a thousand; two limits whose boundaries cross at the optimum; a deceptive pocket, where the violation falls toward the objective's own minimum but never reaches zero there; and g06, g07 and g10 from the CEC 2006 suite. Bayesian optimization runs at batch sizes 1, 4 and 8 on it, and `--batch-sizes` adds batch sizes to any suite.
 - **Benchmark summaries say how often a feasible design was found, and how soon.** On a problem with constraints on outputs, each `Summary` has `feasible`, the share of runs that found a design satisfying every limit, and `median_first_feasible`, the median evaluations to the first one, with a run that found none counting as infinity. Each `Run` records its `first_feasible`. The results tables have a feasibility table for such problems.
 - **Noisy problems with constraints on outputs.** A benchmark `Problem` takes `output_noise`, a standard deviation per output, and the runner scores each run by the true value and the true feasibility of the design it returns. `noisy_output_problems()` has the engineering designs with about 1% noise on everything they report. The optimizers still refuse noise with output constraints, so these problems run only with an optimizer that doesn't average, until that is built.
+
+### Changed
+
+- **The final round is on by default with noise and constraints on outputs.** `final_evaluations` now defaults to `None`: no final round, as before, except with noise and constraints on outputs, where a tenth of `max_evaluations` is kept back, at least 10 and at most half (10 without `max_evaluations`). Judged on one draw, a design on the boundary of a limit passes it half the time, so the result's feasibility rests on several. `final_evaluations=0` keeps none back, as before. A checkpoint saved by 0.14.0 with the default `final_evaluations` is refused as set up differently, since the default is now `None`; a run resumed across the upgrade starts over. Benchmark runs on a problem with noise on its outputs alone run with `noise=True` too.
 
 ### Internal
 

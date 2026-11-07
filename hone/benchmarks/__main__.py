@@ -9,7 +9,7 @@ from . import ml
 from .conditional import conditional_problems
 from .multi import multi_markdown, multi_problems, run_multi_benchmark, summarize_multi
 from .constrained import constrained_problems
-from .outputs import output_problems
+from .outputs import noisy_output_problems, output_problems
 from .problems import noisy_problems, quick_problems, standard_problems
 from .runner import (
     BUDGETS,
@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     suite.add_argument("--noisy", action="store_true", help="run the problems with noise added to every evaluation instead")
     suite.add_argument("--constrained", action="store_true", help="run the problems with constraints instead")
     suite.add_argument(
-        "--outputs", action="store_true", help="run the problems with constraints on outputs instead, with Bayesian optimization at batch sizes 1, 4 and 8"
+        "--outputs", action="store_true", help="run the problems with constraints on outputs instead, the noisy engineering designs included, with Bayesian optimization at batch sizes 1, 4 and 8"
     )
     suite.add_argument(
         "--multi", action="store_true", help="run the problems with several objectives instead, scored by hypervolume"
@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.constrained:
         problems, default_budgets = constrained_problems(), BUDGETS
     elif args.outputs:
-        problems, default_budgets = output_problems(), BUDGETS
+        problems, default_budgets = output_problems() + noisy_output_problems(), BUDGETS
     elif args.conditional:
         problems, default_budgets = conditional_problems(), BUDGETS
     else:

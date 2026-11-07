@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, is being built; the items below are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, is done, and item 2, noise with output constraints, is built; item 1 is set aside. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -24,7 +24,9 @@ What the first run of the suite showed, at 0.14.0 (details in `benchmarks/README
 - The deceptive pocket defeats everything at small budgets, and CMA-ES at large ones: it follows the violation into the basin and sits there without restarting. That makes pocket-2d-1in100 the direct test for item 5, and the problem on which item 1's alternatives would have to show a gain.
 - Batches of 8 are 10 to 300 times worse than one at a time at 10 evaluations per dimension, confirming item 6's cost; the hypothesis about the believer is unchanged and still to be confirmed by logging u.
 
-## 1. Before anything is feasible
+## 1. ~~Before anything is feasible~~ Set aside
+
+Set aside after step 0's baseline: the current rule found a feasible design in every run on every problem with a tiny feasible region, and the alternatives tried didn't beat it. The deceptive pocket, the one problem where an alternative could show a gain, is item 5's test instead. The hypothesis and the alternatives stay below for whoever picks it up.
 
 With every margin positive, the probability that a design is feasible is Φ(−μ/σ) for each limit, and log Φ(−μ/σ) ≈ −μ²/(2σ²) in the tail, so a large σ wins and the search goes to the corners, where the models are least sure. Two alternatives are compared over 30 paired seeds:
 
@@ -40,6 +42,10 @@ Average the outputs, not the margins: the limit is on the true output, so a limi
 The gap: Bayesian optimization refuses to evaluate a point it has seen, continuous CMA-ES essentially never repeats one, and the final round is off by default, so nearly every point is judged on one draw. Picking the best apparently feasible point also favours luck on both value and margin, and optima sit on the boundary, so a true margin of zero is a coin flip however often it is averaged. The benchmark reports true feasibility alongside error.
 
 Code to change: `_ranked_keys` sorts on average value alone and needs (violation of the averages, average); `result()` takes `feasible` and `best_outputs` from `_best`, while `best_params` can be a different point under noise; `_refresh_averages` must refresh violations; the noise branch of Bayesian optimization picks its incumbent from all points, infeasible included.
+
+Built. `Optimizer` keeps every set of outputs seen at each point beside its values, averages them by output, and judges the violation on the averages; `_ranked_keys` sorts by (violation of the averages, average value); the result, the progress and the threshold come from the chosen point's averages; and `_refresh_averages`, which the genetic optimizer calls before breeding, refreshes outputs and violations too. Bayesian optimization keeps each row's key, re-judges every row by its point's current averages before proposing, and takes its incumbent from the rows that pass; with none, it looks for a feasible design, as without noise. The final round defaults on through `final_evaluations=None`: a tenth of `max_evaluations`, at least 10 and at most half. `Result.infeasible` still counts the draws that broke a limit. The optimizers of several objectives keep their refusal, by `supports_noisy_outputs`.
+
+Measurements on the noisy engineering designs, over 30 seeds, follow once run: averaging with the default final round against averaging alone and against believing every draw.
 
 ## 3. `scale=` for limits that aren't numbers, gated
 
@@ -59,4 +65,4 @@ Hypothesis: the kriging believer keeps the mean at x and only shrinks the varian
 
 ## Delivery
 
-Separate pull requests: (1) step 0, the measuring tools with a new baseline; (2) item 1; (3) item 2; (4) items 5 and 6; (5) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) item 2, done; (4) items 5 and 6; (5) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.

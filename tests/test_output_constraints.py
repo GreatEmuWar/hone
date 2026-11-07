@@ -190,9 +190,130 @@ def test_evaluation_failed_still_works():
     assert result.failures > 0 and result.feasible
 
 
-def test_noise_is_refused():
-    with pytest.raises(UnsupportedSearchSpace, match="noise"):
-        RandomSearch(SPACE, OptimizerConfig(noise=True))
+# --- noise ------------------------------------------------------------------------------
+
+
+def fixed_point(**config):
+    """Random search over a space with one point, so every evaluation is of the same design."""
+    config = {"generations": 1, "noise": True, "final_evaluations": 0, **config}
+    space = SearchSpace([RangeParameter("n", 0, 0, integer=True)], [TOTAL <= 4])
+    return RandomSearch(space, OptimizerConfig(**config))
+
+
+def tell_all(optimizer, outcomes):
+    for trial, outcome in zip(optimizer.ask(), outcomes):
+        optimizer.tell(trial, outcome)
+
+
+def test_noise_is_refused_for_several_objectives():
+    space = SearchSpace([X, Y], [TOTAL <= 4])
+    with pytest.raises(UnsupportedSearchSpace, match="several objectives"):
+        MultiObjectiveRandomSearch(space, MultiObjectiveConfig(objectives={"a": "minimize", "b": "minimize"}, noise=True))
+
+
+def test_outputs_are_averaged_and_a_limit_is_judged_on_the_average():
+    optimizer = fixed_point(population_size=3)
+    tell_all(optimizer, [{"objective": 1.0, "total": 5.0}, {"objective": 2.0, "total": 3.0}, {"objective": 6.0, "total": 3.0}])
+    result = optimizer.result()
+    assert result.best_fitness == 3.0 and result.best_outputs == {"total": pytest.approx(11 / 3)}
+    assert result.feasible, "the average total, 3.67, is within the limit though one draw broke it"
+    assert result.infeasible == 1, "the draws that broke it are still counted"
+
+
+def test_a_design_that_passes_a_limit_by_luck_is_infeasible_once_its_average_breaks_it():
+    optimizer = fixed_point(population_size=3)
+    tell_all(optimizer, [{"objective": 1.0, "total": 3.0}, {"objective": 1.0, "total": 5.0}, {"objective": 1.0, "total": 5.0}])
+    result = optimizer.result()
+    assert not result.feasible and result.best_outputs == {"total": pytest.approx(13 / 3)}
+    first, _, last = optimizer._population
+    assert first.violation == 0 and first.outputs == {"total": 3.0}, "recorded before the other draws arrived"
+    assert last.violation == pytest.approx((13 / 3 - 4) / 4) and last.outputs == {"total": pytest.approx(13 / 3)}, "recorded with every draw in"
+
+
+def test_designs_rank_by_the_violation_of_their_averages_then_their_average_value():
+    """A lucky design that passes once beats a steady one on value, but not once its average breaks the limit."""
+    space = SearchSpace([ChoiceParameter("design", ["lucky", "steady"])], [TOTAL <= 4])
+    optimizer = RandomSearch(space, OptimizerConfig(population_size=4, generations=1, noise=True, final_evaluations=0, seed=0))
+    designs = iter(["lucky", "lucky", "steady", "steady"])
+    optimizer._random_individual = lambda generation: Individual(params={"design": next(designs)}, generation=generation)
+    totals = {"lucky": iter([3.0, 7.0]), "steady": iter([3.0, 3.0])}
+    for trial in optimizer.ask():
+        design = trial.params["design"]
+        optimizer.tell(trial, {"objective": 0.0 if design == "lucky" else 1.0, "total": next(totals[design])})
+    result = optimizer.result()
+    assert result.best_params == {"design": "steady"} and result.best_fitness == 1.0 and result.feasible
+
+
+def test_progress_and_the_threshold_follow_the_average_outputs():
+    optimizer = fixed_point(population_size=2, threshold=10.0)
+    seen = []
+    first, second = optimizer.ask()
+    optimizer.tell(first, {"objective": 1.0, "total": 3.0})
+    optimizer.tell(second, {"objective": 1.0, "total": 7.0})
+    optimizer._report(seen.append, 0)
+    assert not optimizer.result().reached_threshold and not optimizer.result().feasible
+    assert not seen[0].feasible, "the average total, 5, breaks the limit, though the first draw passed it"
+
+
+def test_the_genetic_optimizer_refreshes_violations_when_it_breeds():
+    space = SearchSpace([RangeParameter("n", 0, 0, integer=True)], [TOTAL <= 4])
+    config = GeneticOptimizerConfig(population_size=4, tournament_size=2, generations=3, noise=True, final_evaluations=0, seed=0)
+    optimizer = GeneticOptimizer(space, config)
+    tell_all(optimizer, [{"objective": 0.0, "total": 3.0}, {"objective": 1.0, "total": 7.0}, {"objective": 1.0, "total": 7.0}, {"objective": 1.0, "total": 7.0}])
+    first = optimizer._population[0]
+    assert first.violation == 0 and first.outputs == {"total": 3.0}, "its own draw, before the others arrived"
+    optimizer.ask()
+    assert first.violation == pytest.approx(0.5) and first.outputs == {"total": 6.0} and first.fitness == 0.75
+
+
+@pytest.mark.parametrize(
+    "config, reserve",
+    [
+        ({"noise": True, "max_evaluations": 60}, 10),
+        ({"noise": True, "max_evaluations": 300}, 30),
+        ({"noise": True, "max_evaluations": 8}, 4),
+        ({"noise": True}, 10),
+        ({"noise": True, "max_evaluations": 60, "final_evaluations": 0}, 0),
+        ({"noise": True, "max_evaluations": 60, "final_evaluations": 3}, 3),
+        ({"max_evaluations": 60}, 0),
+    ],
+)
+def test_the_final_round_is_on_by_default_with_noise_and_output_constraints(config, reserve):
+    assert RandomSearch(SPACE, OptimizerConfig(population_size=10, **config))._reserve == reserve
+    assert RandomSearch([X, Y], OptimizerConfig(population_size=10, **config))._reserve == (config.get("final_evaluations") or 0) * ("noise" in config)
+
+
+def test_the_default_final_round_re_evaluates_the_finalists_and_judges_them_on_their_averages():
+    rng = np.random.default_rng(0)
+
+    def noisy_bowl(x, y):
+        value = bowl(x, y)
+        return {"objective": value["objective"] + rng.normal(), "total": value["total"] + 0.5 * rng.normal()}
+
+    optimizer = RandomSearch(SPACE, OptimizerConfig(population_size=10, max_evaluations=60, noise=True, seed=0))
+    result = optimizer.optimize(noisy_bowl)
+    assert result.evaluations == 60 and len(optimizer._finalists) == 5
+    key = optimizer._key(optimizer.search_space.check(result.best_params))
+    assert key in optimizer._finalists and len(optimizer._observations[key]) >= 3
+    assert result.feasible == (optimizer._violation(key) == 0)
+    assert result.best_outputs == optimizer._average_outputs(key) and result.best_fitness == optimizer._average(key)
+
+
+def test_every_optimizer_runs_noise_with_output_constraints():
+    rng = np.random.default_rng(1)
+
+    def noisy_bowl(x, y):
+        value = bowl(x, y)
+        return {"objective": value["objective"] + rng.normal(), "total": value["total"] + 0.1 * rng.normal()}
+
+    for optimizer in [
+        GeneticOptimizer(SPACE, GeneticOptimizerConfig(population_size=10, max_evaluations=100, noise=True, seed=0)),
+        CMAES(SPACE, CMAESConfig(max_evaluations=100, noise=True, seed=0)),
+        BayesianOptimizer(SPACE, BayesianConfig(max_evaluations=25, noise=True, seed=0)),
+    ]:
+        result = optimizer.optimize(noisy_bowl)
+        assert result.evaluations == optimizer.config.max_evaluations and result.feasible
+        assert result.best_params["x"] + result.best_params["y"] < 4.5, type(optimizer).__name__
 
 
 # --- ranking ----------------------------------------------------------------------------

@@ -10,7 +10,7 @@ from hone import BayesianConfig, BayesianOptimizer, RandomSearch, UnsupportedSea
 from hone.config import OptimizerConfig
 from hone.optimizers import bayesian
 from hone.optimizers._gp import GaussianProcess
-from hone.parameters import ChoiceParameter, FixedParameter, RangeParameter, SearchSpace
+from hone.parameters import ChoiceParameter, FixedParameter, Output, RangeParameter, SearchSpace
 
 import objectives
 
@@ -234,3 +234,59 @@ def test_refinement_improves_on_its_starting_points():
     before = bayesian._log_expected_improvement(model, starts, best)
     after = bayesian._log_expected_improvement(model, refined, best)
     assert (after >= before).all() and (after > before).any() and math.isfinite(after.max())
+
+
+# --- noise with constraints on outputs ------------------------------------------
+
+
+def _incumbents(space, tell):
+    """Each (model, best) Bayesian optimization measures improvement against on its first proposal after the initial spread."""
+    optimizer = BayesianOptimizer(space, BayesianConfig(initial_samples=8, max_evaluations=30, noise=True, final_evaluations=0, seed=0))
+    seen = []
+    original = optimizer._maximize_improvement
+
+    def recording(model, best, constraints, leaders):
+        seen.append((model, best))
+        return original(model, best, constraints, leaders)
+
+    optimizer._maximize_improvement = recording
+    for trial in optimizer.ask():
+        optimizer.tell(trial, tell(**trial.params))
+    optimizer.ask()
+    return optimizer, seen
+
+
+def test_with_noise_the_incumbent_is_the_best_prediction_at_a_feasible_point():
+    space = SearchSpace([RangeParameter("x", 0, 10), RangeParameter("y", 0, 10)], [Output("total") <= 4])
+
+    def bowl(x, y):
+        return {"objective": (x - 5) ** 2 + (y - 5) ** 2, "total": x + y}
+
+    optimizer, seen = _incumbents(space, bowl)
+    model, best = seen[0]
+    predicted = model.predict(np.array(optimizer._X))[0]
+    feasible = np.array(optimizer._violations) == 0
+    assert feasible.any() and not feasible.all()
+    assert best == pytest.approx(predicted[feasible].min())
+    assert predicted[~feasible].min() < best, "the lowest prediction is at a design that breaks the limit"
+
+
+def test_with_noise_and_nothing_feasible_the_search_looks_for_a_feasible_design():
+    space = SearchSpace([RangeParameter("x", 0, 10), RangeParameter("y", 0, 10)], [Output("total") <= -1])
+    _, seen = _incumbents(space, lambda x, y: {"objective": x + y, "total": x + y})
+    assert seen[0][1] is None
+
+
+def test_with_noise_every_row_of_a_point_takes_its_current_average_violation():
+    space = SearchSpace([RangeParameter("n", 0, 1, integer=True)], [Output("total") <= 4])
+    optimizer = BayesianOptimizer(space, BayesianConfig(initial_samples=4, max_evaluations=10, noise=True, final_evaluations=0, seed=0))
+    trials = optimizer.ask()
+    assert len(trials) == 4 and {t.params["n"] for t in trials} == {0, 1}
+    totals = {0: iter([3.0, 7.0, 7.0]), 1: iter([3.0, 3.0, 3.0])}
+    for trial in trials:
+        optimizer.tell(trial, {"objective": 1.0, "total": next(totals[trial.params["n"]])})
+    optimizer.ask()
+    for key, violation in zip(optimizer._keys, optimizer._violations):
+        n = dict(key)["n"]
+        expected = max(np.mean([3.0, 7.0][: sum(1 for k in optimizer._keys if dict(k)["n"] == 0)]) - 4, 0) / 4 if n == 0 else 0.0
+        assert violation == pytest.approx(expected)
