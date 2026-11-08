@@ -163,6 +163,7 @@ def run_benchmark(
     seeds: Iterable[int] = range(10),
     budgets_per_dimension: Iterable[int] = BUDGETS,
     jobs: int = 1,
+    shard: tuple[int, int] | None = None,
 ) -> list[Run]:
     """Run every optimizer on every problem with every seed and every budget.
 
@@ -171,9 +172,31 @@ def run_benchmark(
     An optimizer that cannot search a problem's parameters is skipped for that problem, and
     one whose factory raises SkipBudget is skipped at that budget. With jobs > 1, runs are
     shared among that many processes where the platform can fork them; the results are the same.
+    With shard=(index, count), only every count-th run from index is made, so count machines can
+    share one benchmark and their runs be put together afterwards; dealing them round-robin spreads
+    each problem's seeds over every shard, so the shards take about as long as each other.
     """
+    if shard is not None and not 0 <= shard[0] < shard[1]:
+        raise ValueError(f"shard {shard[0]} of {shard[1]} doesn't exist")
     problems = list(problems)
     optimizers = optimizers if optimizers is not None else DEFAULT_OPTIMIZERS
+    tasks = benchmark_tasks(problems, optimizers, seeds, budgets_per_dimension)
+    if shard is not None:
+        tasks = tasks[shard[0] :: shard[1]]
+
+    global _shared
+    _shared = (problems, optimizers)
+    if jobs == 1 or "fork" not in multiprocessing.get_all_start_methods():
+        return [_task(task) for task in tasks]
+    # Forked processes inherit the problems and factories, which needn't be picklable.
+    with ProcessPoolExecutor(jobs, mp_context=multiprocessing.get_context("fork")) as pool:
+        return list(pool.map(_task, tasks))
+
+
+def benchmark_tasks(
+    problems: list[Problem], optimizers: dict[str, OptimizerFactory], seeds: Iterable[int], budgets_per_dimension: Iterable[int]
+) -> list[tuple[int, str, int, int]]:
+    """Every run run_benchmark makes, in its order: (problem index, optimizer, budget per dimension, seed)."""
     seeds, budgets = list(seeds), list(budgets_per_dimension)
     tasks = []
     for index, problem in enumerate(problems):
@@ -187,14 +210,7 @@ def run_benchmark(
                 except SkipBudget:
                     continue
                 tasks += [(index, name, per_dimension, seed) for seed in seeds]
-
-    global _shared
-    _shared = (problems, optimizers)
-    if jobs == 1 or "fork" not in multiprocessing.get_all_start_methods():
-        return [_task(task) for task in tasks]
-    # Forked processes inherit the problems and factories, which needn't be picklable.
-    with ProcessPoolExecutor(jobs, mp_context=multiprocessing.get_context("fork")) as pool:
-        return list(pool.map(_task, tasks))
+    return tasks
 
 
 _shared: tuple[list[Problem], dict[str, OptimizerFactory]] = ([], {})  # what run_benchmark's tasks refer to
