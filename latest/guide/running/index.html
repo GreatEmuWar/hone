@@ -1620,7 +1620,7 @@
 <ul>
 <li>Every evaluation of the same point is averaged, and a point's fitness is that average. The genetic optimizer often breeds a point again, which re-evaluates it for free, and ranks its parents by their latest averages.</li>
 <li>Bayesian optimization measures improvement against the best value its model predicts at any evaluated point, rather than against the luckiest single value.</li>
-<li><code>final_evaluations</code> keeps that many evaluations back for the end, to evaluate the most promising points again (up to 5 of them, each at least twice) and return the one with the best average. Its <code>best_fitness</code> is then an average too, and so a fairer estimate of what the result will achieve. It's off by default, because on small budgets the evaluations are worth more to the search.</li>
+<li><code>final_evaluations</code> keeps that many evaluations back for the end, to evaluate the most promising points again (up to 5 of them, each at least twice) and return the one with the best average. Its <code>best_fitness</code> is then an average too, and so a fairer estimate of what the result will achieve. It's off by default, because on small budgets the evaluations are worth more to the search, except with constraints on outputs (below), where a tenth of <code>max_evaluations</code> is kept back, at least 10 and at most half; <code>final_evaluations=0</code> turns that off.</li>
 </ul>
 <p><code>python -m hone.benchmarks --noisy</code> measures this: it adds noise to every evaluation and scores each run by the true, noise-free value of the point it returns.</p>
 

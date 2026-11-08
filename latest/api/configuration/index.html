@@ -4173,7 +4173,7 @@
   
       pydantic-field
    (hone.config.optimizer_config.OptimizerConfig.final_evaluations)" href="#hone.OptimizerConfig.final_evaluations">final_evaluations</a></code>
-                (<code><span title="int">int</span></code>)
+                (<code><span title="int">int</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            min_finished
@@ -4384,13 +4384,16 @@
   </span>
 
 <a href="#hone.OptimizerConfig.final_evaluations" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-the result is chosen, and its value reported, from averages rather than single lucky values.</p>
+the result is chosen, and its value reported, from averages rather than single lucky values.
+None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+back, at least 10 and at most half (10 without max_evaluations), so whether the result
+satisfies each limit rests on more than one noisy draw. 0 keeps none back either way.</p>
 
     </div>
 
@@ -4441,7 +4444,8 @@ timing, so runs are no longer exactly repeatable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Evaluations kept back for the final re-evaluation: none without noise.</p>
+        <p>Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.</p>
+<p>The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.</p>
 
     </div>
 
@@ -4566,7 +4570,7 @@ generations isn't, generations defaults to the budget, so the run ends when the 
   
       pydantic-field
    (hone.config.bayesian_config.BayesianConfig.final_evaluations)" href="#hone.OptimizerConfig.final_evaluations">final_evaluations</a></code>
-                (<code><span title="int">int</span></code>)
+                (<code><span title="int">int</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            min_finished
@@ -4759,13 +4763,16 @@ generations isn't, generations defaults to the budget, so the run ends when the 
   </span>
 
 <a href="#hone.BayesianConfig.final_evaluations" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-the result is chosen, and its value reported, from averages rather than single lucky values.</p>
+the result is chosen, and its value reported, from averages rather than single lucky values.
+None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+back, at least 10 and at most half (10 without max_evaluations), so whether the result
+satisfies each limit rests on more than one noisy draw. 0 keeps none back either way.</p>
 
     </div>
 
@@ -4816,7 +4823,8 @@ timing, so runs are no longer exactly repeatable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Evaluations kept back for the final re-evaluation: none without noise.</p>
+        <p>Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.</p>
+<p>The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.</p>
 
     </div>
 
@@ -5011,7 +5019,7 @@ timing, so runs are no longer exactly repeatable.</p>
   
       pydantic-field
    (hone.config.cmaes_config.CMAESConfig.final_evaluations)" href="#hone.OptimizerConfig.final_evaluations">final_evaluations</a></code>
-                (<code><span title="int">int</span></code>)
+                (<code><span title="int">int</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            min_finished
@@ -5210,13 +5218,16 @@ timing, so runs are no longer exactly repeatable.</p>
   </span>
 
 <a href="#hone.CMAESConfig.final_evaluations" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-the result is chosen, and its value reported, from averages rather than single lucky values.</p>
+the result is chosen, and its value reported, from averages rather than single lucky values.
+None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+back, at least 10 and at most half (10 without max_evaluations), so whether the result
+satisfies each limit rests on more than one noisy draw. 0 keeps none back either way.</p>
 
     </div>
 
@@ -5267,7 +5278,8 @@ timing, so runs are no longer exactly repeatable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Evaluations kept back for the final re-evaluation: none without noise.</p>
+        <p>Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.</p>
+<p>The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.</p>
 
     </div>
 
@@ -5507,7 +5519,7 @@ as many as the budget allows. Without a budget they default to 100 and 25.</p>
   
       pydantic-field
    (hone.config.genetic_optimizer_config.GeneticOptimizerConfig.final_evaluations)" href="#hone.OptimizerConfig.final_evaluations">final_evaluations</a></code>
-                (<code><span title="int">int</span></code>)
+                (<code><span title="int">int</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            min_finished
@@ -5832,13 +5844,16 @@ as many as the budget allows. Without a budget they default to 100 and 25.</p>
   </span>
 
 <a href="#hone.GeneticOptimizerConfig.final_evaluations" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-the result is chosen, and its value reported, from averages rather than single lucky values.</p>
+the result is chosen, and its value reported, from averages rather than single lucky values.
+None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+back, at least 10 and at most half (10 without max_evaluations), so whether the result
+satisfies each limit rests on more than one noisy draw. 0 keeps none back either way.</p>
 
     </div>
 
@@ -5889,7 +5904,8 @@ timing, so runs are no longer exactly repeatable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Evaluations kept back for the final re-evaluation: none without noise.</p>
+        <p>Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.</p>
+<p>The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.</p>
 
     </div>
 
@@ -6378,7 +6394,7 @@ don't apply.</p>
   
       pydantic-field
    (hone.config.multi_objective_config.MultiObjectiveConfig.final_evaluations)" href="#hone.OptimizerConfig.final_evaluations">final_evaluations</a></code>
-                (<code><span title="int">int</span></code>)
+                (<code><span title="int">int</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            min_finished
@@ -6610,13 +6626,16 @@ don't apply.</p>
   </span>
 
 <a href="#hone.MultiObjectiveConfig.final_evaluations" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-the result is chosen, and its value reported, from averages rather than single lucky values.</p>
+the result is chosen, and its value reported, from averages rather than single lucky values.
+None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+back, at least 10 and at most half (10 without max_evaluations), so whether the result
+satisfies each limit rests on more than one noisy draw. 0 keeps none back either way.</p>
 
     </div>
 
@@ -6667,7 +6686,8 @@ timing, so runs are no longer exactly repeatable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Evaluations kept back for the final re-evaluation: none without noise.</p>
+        <p>Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.</p>
+<p>The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.</p>
 
     </div>
 
@@ -6841,7 +6861,7 @@ max_evaluations set, generations defaults to the budget.</p>
   
       pydantic-field
    (hone.config.multi_objective_config.MultiObjectiveBayesianConfig.final_evaluations)" href="#hone.OptimizerConfig.final_evaluations">final_evaluations</a></code>
-                (<code><span title="int">int</span></code>)
+                (<code><span title="int">int</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            min_finished
@@ -7064,13 +7084,16 @@ max_evaluations set, generations defaults to the budget.</p>
   </span>
 
 <a href="#hone.MultiObjectiveBayesianConfig.final_evaluations" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-the result is chosen, and its value reported, from averages rather than single lucky values.</p>
+the result is chosen, and its value reported, from averages rather than single lucky values.
+None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+back, at least 10 and at most half (10 without max_evaluations), so whether the result
+satisfies each limit rests on more than one noisy draw. 0 keeps none back either way.</p>
 
     </div>
 
@@ -7121,7 +7144,8 @@ timing, so runs are no longer exactly repeatable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Evaluations kept back for the final re-evaluation: none without noise.</p>
+        <p>Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.</p>
+<p>The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.</p>
 
     </div>
 
@@ -7412,7 +7436,7 @@ for the genetic optimizer.</p>
   
       pydantic-field
    (hone.config.multi_objective_config.NSGA2Config.final_evaluations)" href="#hone.OptimizerConfig.final_evaluations">final_evaluations</a></code>
-                (<code><span title="int">int</span></code>)
+                (<code><span title="int">int</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            min_finished
@@ -7710,13 +7734,16 @@ for the genetic optimizer.</p>
   </span>
 
 <a href="#hone.NSGA2Config.final_evaluations" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">final_evaluations</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>With noise, evaluations kept back to re-evaluate the most promising points at the end, so
-the result is chosen, and its value reported, from averages rather than single lucky values.</p>
+the result is chosen, and its value reported, from averages rather than single lucky values.
+None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
+back, at least 10 and at most half (10 without max_evaluations), so whether the result
+satisfies each limit rests on more than one noisy draw. 0 keeps none back either way.</p>
 
     </div>
 
@@ -7767,7 +7794,8 @@ timing, so runs are no longer exactly repeatable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Evaluations kept back for the final re-evaluation: none without noise.</p>
+        <p>Evaluations final_evaluations keeps back for the final re-evaluation: none without noise.</p>
+<p>The optimizer adds the default for noise with constraints on outputs when final_evaluations is None.</p>
 
     </div>
 

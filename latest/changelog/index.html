@@ -1420,6 +1420,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1459,7 +1470,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1632,7 +1643,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1671,7 +1682,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1699,7 +1710,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#changed_3" class="md-nav__link">
+  <a href="#changed_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1844,7 +1855,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_4" class="md-nav__link">
+  <a href="#changed_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1883,7 +1894,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_5" class="md-nav__link">
+  <a href="#changed_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1922,7 +1933,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_6" class="md-nav__link">
+  <a href="#changed_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2039,6 +2050,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2078,7 +2100,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2251,7 +2273,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2290,7 +2312,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2318,7 +2340,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#changed_3" class="md-nav__link">
+  <a href="#changed_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2463,7 +2485,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_4" class="md-nav__link">
+  <a href="#changed_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2502,7 +2524,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_5" class="md-nav__link">
+  <a href="#changed_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2541,7 +2563,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_6" class="md-nav__link">
+  <a href="#changed_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2622,12 +2644,21 @@
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
-<p>Measuring how output constraints are handled, before improving it; see <a href="https://github.com/GreatEmuWar/hone/blob/main/docs/design/output-constraints-quality.md">docs/design/output-constraints-quality.md</a>.</p>
+<p>Measuring how output constraints are handled, then improving what the measurements justify; see <a href="https://github.com/GreatEmuWar/hone/blob/main/docs/design/output-constraints-quality.md">docs/design/output-constraints-quality.md</a>. First, noise with constraints on outputs.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>A benchmark suite for constraints on outputs.</strong> <code>python -m hone.benchmarks --outputs</code> (or <code>make benchmark-outputs</code>) runs the three engineering designs with their limits reported by the objective, and eleven new problems chosen for what they say about finding a feasible design: balls whose feasible fraction of the box is exact, from one in ten to one in a thousand; two limits whose boundaries cross at the optimum; a deceptive pocket, where the violation falls toward the objective's own minimum but never reaches zero there; and g06, g07 and g10 from the CEC 2006 suite. Bayesian optimization runs at batch sizes 1, 4 and 8 on it, and <code>--batch-sizes</code> adds batch sizes to any suite.</li>
+<li>
+<p><strong>Constraints on outputs with <code>noise=True</code>.</strong> A design's outputs are averaged over every evaluation of it, like its value, and each limit is judged on the averages, since the limit is on the true output and a single noisy draw can pass it by luck. Designs rank by Deb's rule on their averages: those whose average outputs satisfy every limit first, by average value, then the rest by the violation of their averages, so a design that passed once by luck drops out as its average breaks the limit. <code>Result.feasible</code> and <code>best_outputs</code> come from the averages of the design returned, as does <code>Progress.feasible</code>, and only a design whose averages pass reaches the threshold. Bayesian optimization measures improvement against the best its model predicts at an evaluated design whose averages pass, not at any design, and judges every evaluation of a design by the design's current averages. The optimizers of several objectives still refuse the combination.</p>
+</li>
+<li>
+<p><strong>A benchmark suite for constraints on outputs.</strong> <code>python -m hone.benchmarks --outputs</code> (or <code>make benchmark-outputs</code>) runs the three engineering designs with their limits reported by the objective, and eleven new problems chosen for what they say about finding a feasible design: balls whose feasible fraction of the box is exact, from one in ten to one in a thousand; two limits whose boundaries cross at the optimum; a deceptive pocket, where the violation falls toward the objective's own minimum but never reaches zero there; and g06, g07 and g10 from the CEC 2006 suite. Bayesian optimization runs at batch sizes 1, 4 and 8 on it, and <code>--batch-sizes</code> adds batch sizes to any suite.</p>
+</li>
 <li><strong>Benchmark summaries say how often a feasible design was found, and how soon.</strong> On a problem with constraints on outputs, each <code>Summary</code> has <code>feasible</code>, the share of runs that found a design satisfying every limit, and <code>median_first_feasible</code>, the median evaluations to the first one, with a run that found none counting as infinity. Each <code>Run</code> records its <code>first_feasible</code>. The results tables have a feasibility table for such problems.</li>
 <li><strong>Noisy problems with constraints on outputs.</strong> A benchmark <code>Problem</code> takes <code>output_noise</code>, a standard deviation per output, and the runner scores each run by the true value and the true feasibility of the design it returns. <code>noisy_output_problems()</code> has the engineering designs with about 1% noise on everything they report. The optimizers still refuse noise with output constraints, so these problems run only with an optimizer that doesn't average, until that is built.</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>The final round is on by default with noise and constraints on outputs.</strong> <code>final_evaluations</code> now defaults to <code>None</code>: no final round, as before, except with noise and constraints on outputs, where a tenth of <code>max_evaluations</code> is kept back, at least 10 and at most half (10 without <code>max_evaluations</code>). Judged on one draw, a design on the boundary of a limit passes it half the time, so the result's feasibility rests on several: on the noisy engineering designs it raises Bayesian optimization's share of truly feasible results from 17% to 43% on the pressure vessel and from 40% to 70% on the welded beam at 50 evaluations per dimension, and CMA-ES's from 73% to 100% at 100, at the cost of the evaluations it takes from the search. <code>final_evaluations=0</code> keeps none back, as before. A checkpoint saved by 0.14.0 with the default <code>final_evaluations</code> is refused as set up differently, since the default is now <code>None</code>; a run resumed across the upgrade starts over. Benchmark runs on a problem with noise on its outputs alone run with <code>noise=True</code> too.</li>
 </ul>
 <h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2643,7 +2674,7 @@
 <li><strong>An example</strong>, <code>examples/welded_beam.py</code>, designing a welded beam whose stresses, buckling load and deflection come from an analysis of each design, which gets within about 1% of the best published design in 150 evaluations of Bayesian optimization.</li>
 <li><strong>Benchmark problems</strong> <code>pressure-vessel-outputs</code>, <code>tension-spring-outputs</code> and <code>welded-beam-outputs</code> in <code>--constrained</code>: the engineering designs with their limits reported by the objective instead of written on the parameters.</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Checkpoints have a new format</strong>, since each evaluation now records its outputs and violation. Checkpoints saved by 0.13.0 and before still load, with those fields at their defaults.</li>
 <li>Constraints with no outputs behave exactly as before, and seeded runs without output constraints give the same results. <code>sensitivity()</code>'s <code>best_params</code> is the best point that satisfies any output constraints, so <code>reduced()</code> holds parameters there. <code>ParetoProgress.feasible</code> says whether the front has any point yet.</li>
@@ -2697,7 +2728,7 @@
 <li><strong>A conditional benchmark suite.</strong> <code>python -m hone.benchmarks --conditional</code> runs four problems with conditional parameters, each also as a flat version with every parameter always on, to compare. The machine learning suite gains model-selection-breast-cancer, which chooses a classifier and its settings, and its flat version.</li>
 <li><strong>An example</strong>, <code>examples/choose_a_model.py</code>, choosing among an SVM with three kernels, a random forest and logistic regression, with each one's settings and a conditional constraint on the forest's size.</li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>GeneticOptimizerConfig.niche_share</code> defaults to <code>None</code>: 0.5 for a search space with conditions, and 0, as before, otherwise. Results without conditions don't change.</li>
 </ul>
@@ -2708,13 +2739,13 @@
 <li><strong>Constraints.</strong> <code>SearchSpace(parameters, constraints=[width * height &lt;= 40, width &gt;= 2 * height])</code> limits the search to points that satisfy every constraint, and the objective is never evaluated outside them. Constraints are written with range parameters and numbers, using <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>**</code> and <code>abs()</code>, compared with <code>&lt;=</code> or <code>&gt;=</code>. <code>Constraint.function(...)</code> covers anything else, such as choice parameters; it isn't saved with a result, so <code>rebuild_optimizer(functions=...)</code> takes it again. Initial points must satisfy the constraints, and constraints that leave nothing to search raise <code>InfeasibleSearchSpace</code> before any evaluation. Every optimizer supports them: random search and Bayesian optimization only consider feasible points, CMA-ES draws a candidate again while it breaks a constraint, and the genetic optimizer moves an infeasible child back toward its fitter parent until it is feasible, near the boundary. <code>python -m hone.benchmarks --constrained</code> runs ten constrained problems, among them the pressure vessel, tension spring and welded beam design problems.</li>
 <li><strong>Two worked examples.</strong> <code>examples/pressure_vessel.py</code> designs a pressure vessel of least cost under three constraints, with integer plate thicknesses, and finds the best published design. <code>examples/maintenance_schedule.py</code> chooses a production line's maintenance schedule, scored by a noisy simulation of a year, under a limit on technician hours and one on planned stops that depends on the chosen shift.</li>
 </ul>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Checkpoints no longer store the search space, which the optimizer loading one already has.</li>
 </ul>
 <h2 id="090-2026-10-31">0.9.0 (2026-10-31)<a class="headerlink" href="#090-2026-10-31" title="Permanent link">&para;</a></h2>
 <p>The genetic optimizer, retuned: adaptive mutation, no repeat evaluations and blend crossover. Against 0.8.2, its geometric-mean error on the benchmark's 36 problems falls to ×0.58, ×0.23, ×0.16, ×0.17 and ×0.012 at 10, 20, 50, 100 and 1,000 evaluations per dimension. Results of existing genetic optimizer runs change. Benchmark results are in <a href="../benchmarks/">benchmarks/README.md</a>.</p>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>The genetic optimizer adapts its mutation.</strong> Each individual carries its own mutation size, which its children inherit and vary, so selection tunes it as the run goes (<code>adaptive_mutation</code>, on by default). The default <code>mutation_rate</code> is now 1 over the number of variables, at least 0.1, rather than 0.1. On the benchmark's 36 problems the genetic optimizer's geometric-mean error falls to ×0.92, ×0.44, ×0.34, ×0.50 and ×0.33 at 10 to 1,000 evaluations per dimension, and it loses to random search on 14 problem and budget pairs rather than 37. With <code>noise=True</code> both stay as before, where they didn't help at large budgets. Results of existing runs change.</li>
 <li><strong>The genetic optimizer doesn't repeat evaluations.</strong> Without noise, a child that would repeat a point already asked for, such as a copy of a parent that no mutation touched, is mutated again until it is new. About one child in four used to be such a copy. The geometric-mean error falls to ×0.90, ×0.82, ×0.91, ×0.89 and ×0.41 at 10 to 1,000 evaluations per dimension. This happens even with <code>mutation_rate=0</code>. With <code>noise=True</code> repeats stay, since they refine a point's average. Results of existing runs change.</li>
@@ -2753,7 +2784,7 @@
 <li><strong>Rebuilding an optimizer from a result.</strong> <code>result.rebuild_optimizer()</code> sets up a new optimizer exactly as the result's was, so a saved run can be repeated.</li>
 <li><strong>Progress callbacks.</strong> <code>optimize(callback=...)</code> is called after each generation with a <code>Progress</code>. Return <code>True</code> to stop the run. <code>print_progress</code> prints a line per generation.</li>
 </ul>
-<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
+<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Ctrl+C returns the best result so far</strong> rather than discarding the run. <code>optimize()</code> stops its workers and returns the result with <code>stopped</code> set. If no evaluation has succeeded yet, Ctrl+C still raises <code>KeyboardInterrupt</code>.</li>
 <li><strong>Result equality</strong> compares what was found, not the new <code>run</code> record, so two runs with the same seed still compare equal.</li>
@@ -2764,7 +2795,7 @@
 <ul>
 <li><strong>Type information.</strong> hone ships a <code>py.typed</code> marker, so type checkers and editors use its type hints in your code. CI checks hone's own types with mypy.</li>
 </ul>
-<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
+<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>SearchSpace</code> accepts any sequence of parameters, such as a tuple, not only a list.</li>
 <li><code>Trial</code>, the candidate <code>ask()</code> hands out, is a pydantic model like the rest of hone's data, so <code>trial.model_dump()</code> gives it as a dict. Its fields are unchanged.</li>
@@ -2786,7 +2817,7 @@
 <li><code>--jobs</code> shares the runs among processes.</li>
 <li><strong>An example</strong>, <code>examples/tune_iris.py</code>, tuning a model on the Iris dataset.</li>
 </ul>
-<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
+<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
 <p>These change the results of existing code:</p>
 <ul>
 <li><strong>The genetic optimizer sizes its population from its budget.</strong> With <code>max_evaluations</code> set and no <code>population_size</code>, the population is about a twentieth of the budget, between 16 and 50, and the run continues until the budget is spent. Without a budget the defaults are unchanged.</li>
