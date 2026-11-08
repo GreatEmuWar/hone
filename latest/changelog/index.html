@@ -1073,6 +1073,8 @@
       
         
       
+        
+      
     
     
     
@@ -1254,6 +1256,34 @@
     
   
     Constraints on outputs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/cost-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost of a Bayesian candidate
   
 
     
@@ -2662,6 +2692,8 @@
 </ul>
 <h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>The CMA-ES Rosenbrock test states a rate, not a seed.</strong> It required 10-dimensional Rosenbrock solved on each of three seeds, but CMA-ES ends in a local minimum on about 7% of seeds, and which ones depends on the platform's maths libraries: seed 0 started missing after a macOS update. It now requires at least 15 of 20 seeds.</li>
+<li><strong>The cost of a Bayesian candidate, measured.</strong> <code>python -m hone.benchmarks --cost</code> (or <code>make benchmark-cost</code>) times Bayesian optimization's proposals against the evaluations so far, 50 to 500, and the limits on outputs, 0 to 8, at batch sizes 1 and 8, each cell the mean over 3 seeds, with a profiled run of g07. The table, in <code>benchmarks/cost-results.md</code> and <code>cost-summaries.json</code>, is the ceiling later changes are held to: at most ×1.2 at 500 evaluations without sign-off, which <code>--baseline</code> checks. At 500 evaluations a candidate takes 0.08 seconds with no limits and 0.78 with eight, on an Apple M2.</li>
 <li><strong>The tests run on every core.</strong> pytest-xdist is a dev dependency and <code>-n auto</code> the default, which takes the full suite from about 11 minutes to under 3 on 16 cores. The tests that measure wall-clock time, in <code>test_stragglers.py</code> and <code>test_workers.py</code>, are marked <code>timing</code>, skipped on a parallel worker, and run on their own afterwards by <code>make test</code>, CI and the Docker image, since beside every other test on a loaded machine their timings don't hold. Coverage is measured in CI only.</li>
 </ul>
 <h2 id="0140-2026-11-02">0.14.0 (2026-11-02)<a class="headerlink" href="#0140-2026-11-02" title="Permanent link">&para;</a></h2>
