@@ -1,0 +1,393 @@
+{
+  "hone": "0.14.0",
+  "machine": {
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "processor": "Apple M2",
+    "cores": "8",
+    "python": "3.12.4",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1"
+  },
+  "dimensions": 10,
+  "candidates": 24,
+  "seeds": 3,
+  "cells": [
+    {
+      "evaluations": 50,
+      "limits": 0,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.010779195583350226,
+      "cold_fit_seconds": 0.03251615266663066
+    },
+    {
+      "evaluations": 50,
+      "limits": 1,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.016595515500010077,
+      "cold_fit_seconds": 0.04491933333330659
+    },
+    {
+      "evaluations": 50,
+      "limits": 2,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.02157544897221757,
+      "cold_fit_seconds": 0.0672684720000234
+    },
+    {
+      "evaluations": 50,
+      "limits": 4,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.03457092419444684,
+      "cold_fit_seconds": 0.11263612500003244
+    },
+    {
+      "evaluations": 50,
+      "limits": 8,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.05764978118055334,
+      "cold_fit_seconds": 0.20236922266659954
+    },
+    {
+      "evaluations": 100,
+      "limits": 0,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.01355167011111765,
+      "cold_fit_seconds": 0.06564393033333242
+    },
+    {
+      "evaluations": 100,
+      "limits": 1,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.02231375106942816,
+      "cold_fit_seconds": 0.1103154726667223
+    },
+    {
+      "evaluations": 100,
+      "limits": 2,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.03024367651389386,
+      "cold_fit_seconds": 0.15925458333344977
+    },
+    {
+      "evaluations": 100,
+      "limits": 4,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.048937581569428325,
+      "cold_fit_seconds": 0.26269656933345686
+    },
+    {
+      "evaluations": 100,
+      "limits": 8,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.08295849820835757,
+      "cold_fit_seconds": 0.47298581933341666
+    },
+    {
+      "evaluations": 200,
+      "limits": 0,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.023536935722221288,
+      "cold_fit_seconds": 0.1977720003333161
+    },
+    {
+      "evaluations": 200,
+      "limits": 1,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.044064481555554695,
+      "cold_fit_seconds": 0.3641160829999232
+    },
+    {
+      "evaluations": 200,
+      "limits": 2,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.06035793286110271,
+      "cold_fit_seconds": 0.5189593613333727
+    },
+    {
+      "evaluations": 200,
+      "limits": 4,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.10278077659720945,
+      "cold_fit_seconds": 0.8549554586667606
+    },
+    {
+      "evaluations": 200,
+      "limits": 8,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.17575660129168427,
+      "cold_fit_seconds": 1.5436573333333097
+    },
+    {
+      "evaluations": 500,
+      "limits": 0,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.07703956308335098,
+      "cold_fit_seconds": 1.0857128193333665
+    },
+    {
+      "evaluations": 500,
+      "limits": 1,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.15256267541665616,
+      "cold_fit_seconds": 2.2323607779999293
+    },
+    {
+      "evaluations": 500,
+      "limits": 2,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.23558668111110767,
+      "cold_fit_seconds": 3.274016874666586
+    },
+    {
+      "evaluations": 500,
+      "limits": 4,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.4045052494444532,
+      "cold_fit_seconds": 5.3259380000000265
+    },
+    {
+      "evaluations": 500,
+      "limits": 8,
+      "batch_size": 1,
+      "seconds_per_candidate": 0.781478963513886,
+      "cold_fit_seconds": 9.738279791666704
+    },
+    {
+      "evaluations": 50,
+      "limits": 0,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.008241436916664372,
+      "cold_fit_seconds": 0.08007641666661887
+    },
+    {
+      "evaluations": 50,
+      "limits": 1,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.0143646030138882,
+      "cold_fit_seconds": 0.16729191666657547
+    },
+    {
+      "evaluations": 50,
+      "limits": 2,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.01850291433333319,
+      "cold_fit_seconds": 0.22493870833333554
+    },
+    {
+      "evaluations": 50,
+      "limits": 4,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.0276524455972233,
+      "cold_fit_seconds": 0.39890143066668315
+    },
+    {
+      "evaluations": 50,
+      "limits": 8,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.04823430440277813,
+      "cold_fit_seconds": 0.8468706526666665
+    },
+    {
+      "evaluations": 100,
+      "limits": 0,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.009591122124997279,
+      "cold_fit_seconds": 0.10019290266670093
+    },
+    {
+      "evaluations": 100,
+      "limits": 1,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.016966685180550358,
+      "cold_fit_seconds": 0.2113196386665853
+    },
+    {
+      "evaluations": 100,
+      "limits": 2,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.02231093230555656,
+      "cold_fit_seconds": 0.30345297200005916
+    },
+    {
+      "evaluations": 100,
+      "limits": 4,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.03518605961111297,
+      "cold_fit_seconds": 0.48476372200002515
+    },
+    {
+      "evaluations": 100,
+      "limits": 8,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.059737679972225045,
+      "cold_fit_seconds": 0.8627508193333142
+    },
+    {
+      "evaluations": 200,
+      "limits": 0,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.016060682847220658,
+      "cold_fit_seconds": 0.23328219466664754
+    },
+    {
+      "evaluations": 200,
+      "limits": 1,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.027479605333335638,
+      "cold_fit_seconds": 0.4424693333332925
+    },
+    {
+      "evaluations": 200,
+      "limits": 2,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.0392291735972271,
+      "cold_fit_seconds": 0.6482554299999871
+    },
+    {
+      "evaluations": 200,
+      "limits": 4,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.06342265102777687,
+      "cold_fit_seconds": 1.0656880273332565
+    },
+    {
+      "evaluations": 200,
+      "limits": 8,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.11264900463888872,
+      "cold_fit_seconds": 1.928996124999988
+    },
+    {
+      "evaluations": 500,
+      "limits": 0,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.0692133501250017,
+      "cold_fit_seconds": 1.1396168193333172
+    },
+    {
+      "evaluations": 500,
+      "limits": 1,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.13663539295834604,
+      "cold_fit_seconds": 2.4812267636665033
+    },
+    {
+      "evaluations": 500,
+      "limits": 2,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.20225302834722292,
+      "cold_fit_seconds": 3.618480750000041
+    },
+    {
+      "evaluations": 500,
+      "limits": 4,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.3565706689861119,
+      "cold_fit_seconds": 6.021978777999872
+    },
+    {
+      "evaluations": 500,
+      "limits": 8,
+      "batch_size": 8,
+      "seconds_per_candidate": 0.7732818900277797,
+      "cold_fit_seconds": 11.521494069333281
+    }
+  ],
+  "profile": {
+    "problem": "g07",
+    "evaluations": 200,
+    "seconds": 70.36190050000005,
+    "top": [
+      [
+        "hone/optimizers/_gp.py:30(_scaled_distances)",
+        1169282,
+        13.914411741,
+        21.838547873000003
+      ],
+      [
+        "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+        4078537,
+        13.417554105,
+        13.417554105
+      ],
+      [
+        "hone/optimizers/_gp.py:26(_matern)",
+        1169282,
+        13.044458411,
+        13.044458411
+      ],
+      [
+        "hone/optimizers/_gp.py:115(predict)",
+        1153847,
+        12.01026446,
+        53.076354469
+      ],
+      [
+        "hone/optimizers/bayesian.py:107(log_probability)",
+        128170,
+        2.374289742,
+        50.613226543
+      ],
+      [
+        "hone/optimizers/bayesian.py:345(_log_expected_improvement)",
+        126885,
+        1.7897463320000002,
+        7.698984319000001
+      ],
+      [
+        "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+        13139,
+        1.319894981,
+        1.319894981
+      ],
+      [
+        "hone/optimizers/_gp.py:67(_objective)",
+        11709,
+        1.0205556550000001,
+        5.1473259680000005
+      ],
+      [
+        "~:0(<method 'sum' of 'numpy.ndarray' objects>)",
+        3515829,
+        0.8628207710000001,
+        14.488178196000002
+      ],
+      [
+        "hone/optimizers/bayesian.py:332(negative_and_gradient)",
+        126924,
+        0.8098175870000001,
+        57.311457564
+      ],
+      [
+        "hone/optimizers/_gp.py:123(standardize)",
+        1025360,
+        0.804175611,
+        1.00233942
+      ],
+      [
+        "scipy/linalg/_decomp_cholesky.py:271(_cho_solve)",
+        27144,
+        0.7531180070000001,
+        0.9372322470000001
+      ],
+      [
+        "numpy/_core/shape_base.py:78(atleast_2d)",
+        1168944,
+        0.632681523,
+        0.9518135120000001
+      ],
+      [
+        "numpy/_core/_methods.py:47(_sum)",
+        3539247,
+        0.5045805760000001,
+        13.637890972000001
+      ],
+      [
+        "scipy/optimize/_optimize.py:71(_compute_if_needed)",
+        277266,
+        0.38869694200000005,
+        63.405041095
+      ]
+    ]
+  }
+}
