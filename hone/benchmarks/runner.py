@@ -40,26 +40,31 @@ BUDGETS = (10, 20, 50, 100, 1000)
 FLOOR = 1e-8  # errors below this count as equal when comparing results
 
 
+def _noisy(problem: Problem) -> bool:
+    """Whether the benchmark adds noise to the problem's evaluations, on the value or on any output, so the optimizer runs with noise=True."""
+    return problem.noise > 0 or bool(problem.output_noise)
+
+
 def genetic(problem: Problem, budget: int, seed: int) -> Optimizer:
-    config = GeneticOptimizerConfig(max_evaluations=budget, seed=seed, noise=problem.noise > 0)
+    config = GeneticOptimizerConfig(max_evaluations=budget, seed=seed, noise=_noisy(problem))
     return GeneticOptimizer(problem.search_space, config)
 
 
 def cma_es(problem: Problem, budget: int, seed: int) -> Optimizer:
-    config = CMAESConfig(generations=budget, max_evaluations=budget, seed=seed, noise=problem.noise > 0)
+    config = CMAESConfig(generations=budget, max_evaluations=budget, seed=seed, noise=_noisy(problem))
     return CMAES(problem.search_space, config)
 
 
 def bayesian(problem: Problem, budget: int, seed: int) -> Optimizer:
     if budget > BAYESIAN_MAX_EVALUATIONS:
         raise SkipBudget(f"{budget} evaluations is more than Bayesian optimization is run with")
-    config = BayesianConfig(max_evaluations=budget, seed=seed, noise=problem.noise > 0)
+    config = BayesianConfig(max_evaluations=budget, seed=seed, noise=_noisy(problem))
     return BayesianOptimizer(problem.search_space, config)
 
 
 def random_search(problem: Problem, budget: int, seed: int) -> Optimizer:
     config = OptimizerConfig(
-        population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed, noise=problem.noise > 0
+        population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed, noise=_noisy(problem)
     )
     return RandomSearch(problem.search_space, config)
 
@@ -70,7 +75,7 @@ def bayesian_batch(size: int) -> OptimizerFactory:
     def factory(problem: Problem, budget: int, seed: int) -> Optimizer:
         if budget > BAYESIAN_MAX_EVALUATIONS:
             raise SkipBudget(f"{budget} evaluations is more than Bayesian optimization is run with")
-        config = BayesianConfig(max_evaluations=budget, population_size=size, seed=seed, noise=problem.noise > 0)
+        config = BayesianConfig(max_evaluations=budget, population_size=size, seed=seed, noise=_noisy(problem))
         return BayesianOptimizer(problem.search_space, config)
 
     return factory
@@ -204,7 +209,7 @@ def _task(task: tuple[int, str, int, int]) -> Run:
 
 
 def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: Optimizer) -> Run:
-    noisy = problem.noise > 0 or bool(problem.output_noise)
+    noisy = _noisy(problem)
     result = optimizer.optimize(_with_noise(problem, seed) if noisy else problem.function)
     constrained = bool(problem.search_space.output_constraints)
 

@@ -16,7 +16,7 @@ from hone import (
     OptimizerConfig,
     RandomSearch,
 )
-from hone.parameters import ChoiceParameter, RangeParameter
+from hone.parameters import ChoiceParameter, Output, RangeParameter, SearchSpace
 
 from conftest import bounded_parameters, sphere
 
@@ -64,6 +64,21 @@ def test_a_resumed_run_gives_the_same_result_as_an_uninterrupted_one(make, tmp_p
     assert resumed == uninterrupted and not resumed.stopped
     saved = stopped.generations[2].evaluations  # the checkpoint was saved after generation 2
     assert counted.calls == uninterrupted.evaluations - saved, "only the evaluations after the checkpoint were made"
+
+
+def test_a_noisy_run_with_output_limits_resumes_with_its_averages(tmp_path):
+    def limited(x, y):
+        return {"objective": sphere(x, y), "total": x + y}
+
+    def make():
+        space = SearchSpace(bounded_parameters(), [Output("total") <= 1])
+        return GeneticOptimizer(space, GeneticOptimizerConfig(population_size=20, max_evaluations=200, noise=True, seed=3))
+
+    uninterrupted = make().optimize(limited)
+    path = tmp_path / "run.checkpoint"
+    assert make().optimize(limited, checkpoint=path, callback=interrupt_at(3)).stopped
+    resumed = make().optimize(limited, checkpoint=path)
+    assert resumed == uninterrupted and resumed.feasible and resumed.evaluations == 200
 
 
 def test_a_run_killed_in_another_process_carries_on(tmp_path):

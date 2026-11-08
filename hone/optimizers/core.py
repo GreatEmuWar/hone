@@ -52,7 +52,9 @@ class Individual(_Unpickles):
 
     A single-objective optimizer sets fitness; a multi-objective one sets values, by objective.
     With constraints on outputs, outputs holds what the evaluation reported and violation the
-    total relative violation of those constraints: 0 when it satisfies them all.
+    total relative violation of those constraints: 0 when it satisfies them all. With noise,
+    fitness and outputs are the averages of every evaluation of the point, and violation is
+    judged on them.
     """
     params: dict[str, Any]
     generation: int
@@ -97,6 +99,7 @@ class OptimizerCore[ResultT](ABC):
     config_class: ClassVar[type[OptimizerConfig]] = OptimizerConfig
     supports_constraints: ClassVar[bool] = False  # whether it keeps to a search space's constraints
     supports_conditions: ClassVar[bool] = False  # whether it handles parameters that conditions switch on and off
+    supports_noisy_outputs: ClassVar[bool] = False  # whether it averages a noisy point's outputs to judge constraints on them
 
     def __init__(
         self,
@@ -115,10 +118,11 @@ class OptimizerCore[ResultT](ABC):
             raise UnsupportedSearchSpace(f"{type(self).__name__} doesn't support constraints yet; RandomSearch does")
         if search_space.conditions and not self.supports_conditions:
             raise UnsupportedSearchSpace(f"{type(self).__name__} doesn't support conditional parameters yet; RandomSearch does")
-        if search_space.output_constraints and self.config.noise:
+        if search_space.output_constraints and self.config.noise and not self.supports_noisy_outputs:
             raise UnsupportedSearchSpace(
-                "constraints on outputs aren't supported with noise yet: whether a noisy point satisfies a limit would need "
-                "the same averaging as its value. Turn noise off, or penalize the limit in the objective"
+                f"{type(self).__name__} doesn't support constraints on outputs with noise yet: whether a noisy point satisfies "
+                "a limit needs the same averaging as its values, which the optimizers of a single objective do and those of "
+                "several objectives don't. Turn noise off, or penalize the limit in an objective"
             )
         if isinstance(initial_points, dict):
             initial_points = [initial_points]

@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, is being built; the items below are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, is done, and item 2, noise with output constraints, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -24,7 +24,9 @@ What the first run of the suite showed, at 0.14.0 (details in `benchmarks/README
 - The deceptive pocket defeats everything at small budgets, and CMA-ES at large ones: it follows the violation into the basin and sits there without restarting. That makes pocket-2d-1in100 the direct test for item 5, and the problem on which item 1's alternatives would have to show a gain.
 - Batches of 8 are 10 to 300 times worse than one at a time at 10 evaluations per dimension, confirming item 6's cost; the hypothesis about the believer is unchanged and still to be confirmed by logging u.
 
-## 1. Before anything is feasible
+## 1. ~~Before anything is feasible~~ Set aside
+
+Set aside after step 0's baseline: the current rule found a feasible design in every run on every problem with a tiny feasible region, and the alternatives tried didn't beat it. The deceptive pocket, the one problem where an alternative could show a gain, is item 5's test instead. The hypothesis and the alternatives stay below for whoever picks it up.
 
 With every margin positive, the probability that a design is feasible is Φ(−μ/σ) for each limit, and log Φ(−μ/σ) ≈ −μ²/(2σ²) in the tail, so a large σ wins and the search goes to the corners, where the models are least sure. Two alternatives are compared over 30 paired seeds:
 
@@ -41,6 +43,22 @@ The gap: Bayesian optimization refuses to evaluate a point it has seen, continuo
 
 Code to change: `_ranked_keys` sorts on average value alone and needs (violation of the averages, average); `result()` takes `feasible` and `best_outputs` from `_best`, while `best_params` can be a different point under noise; `_refresh_averages` must refresh violations; the noise branch of Bayesian optimization picks its incumbent from all points, infeasible included.
 
+Built. `Optimizer` keeps every set of outputs seen at each point beside its values, averages them by output, and judges the violation on the averages; `_ranked_keys` sorts by (violation of the averages, average value); the result, the progress and the threshold come from the chosen point's averages; and `_refresh_averages`, which the genetic optimizer calls before breeding, refreshes outputs and violations too. Bayesian optimization keeps each row's key, re-judges every row by its point's current averages before proposing, and takes its incumbent from the rows that pass; with none, it looks for a feasible design, as without noise. The final round defaults on through `final_evaluations=None`: a tenth of `max_evaluations`, at least 10 and at most half. `Result.infeasible` still counts the draws that broke a limit. The optimizers of several objectives keep their refusal, by `supports_noisy_outputs`.
+
+Measured on the three noisy engineering designs over 30 seeds at 10, 20, 50 and 100 evaluations per dimension, three ways: the new default (averaging, final round on), averaging alone (`final_evaluations=0`), and believing every draw (`noise=False`). The share of runs whose returned design truly satisfies every limit, default / averaging alone / every draw believed:
+
+| Evaluations per dimension | Bayesian, vessel | Bayesian, spring | Bayesian, beam | CMA-ES, vessel | CMA-ES, spring | CMA-ES, beam |
+| ---: | --- | --- | --- | --- | --- | --- |
+| 10 | 87% / 63% / 67% | 90% / 100% / 97% | 93% / 63% / 77% | 100% / 100% / 100% | 40% / 57% / 57% | 97% / 90% / 90% |
+| 20 | 60% / 53% / 30% | 80% / 70% / 67% | 80% / 33% / 53% | 93% / 93% / 93% | 80% / 83% / 83% | 97% / 97% / 97% |
+| 50 | 43% / 17% / 7% | 50% / 47% / 30% | 70% / 40% / 33% | 97% / 97% / 97% | 100% / 93% / 93% | 100% / 97% / 97% |
+| 100 | | | | 100% / 73% / 73% | 100% / 97% / 97% | 100% / 70% / 70% |
+
+- **The final round is what makes the difference, and mostly for Bayesian optimization.** It converges onto the boundary of a limit, where one draw passes half the time, and it never evaluates a point twice during the search, so averaging alone changes little for it; the final round's repeated draws are what catch a design that only seemed to pass. CMA-ES and random search never repeat a point either, so averaging alone leaves their results exactly as they were, and the final round shows at 100 evaluations per dimension, where CMA-ES too has reached the boundary: 100% against 73% on the vessel and the beam, with lower error. Decision 1 stands.
+- **Its cost is the budget it takes.** On the spring at 10 evaluations per dimension the floor of 10 takes a third of the 30 evaluations, and the share of feasible results for CMA-ES, the genetic optimizer and random search falls from 57% to 40%. Elsewhere median errors are up to about 15% higher than with the whole budget searched, the price of the re-evaluations.
+- **Bayesian optimization's feasible share still falls with the budget**, to 43% to 70% at 50 evaluations per dimension even with the final round. The better it finds the optimum, the closer the design sits to the boundary, and a true margin of zero is a coin flip however often it is averaged. A margin of safety under noise, such as requiring a design's average margin to clear the limit by its standard error, is the next question for noise with output constraints; it isn't part of this release.
+- **The genetic optimizer loses by running with `noise=True` here.** Its noise settings, a fixed mutation of 0.1 and no adaptive step, were chosen on the noisy suite, whose noise hides the differences near the optimum; at about 1% noise they cost more than averaging gains, and its median errors at 50 and 100 evaluations per dimension are 1.5 to 3 times those of believing every draw. Which settings suit small noise is a question for the noisy suite, not this one.
+
 ## 3. `scale=` for limits that aren't numbers, gated
 
 With no scale, raw-unit margins reach the bilog transform, and standardizing afterwards can't undo it, so the model's shape depends on the units. Test `stress - 250 <= 0` against `stress <= 250`; under about ×2 it doesn't ship. Runs after items 1 and 2. If it ships, it is explicit, since inferred scales would change the ranking mid-run; an expression can't take a keyword, so something like `(stress <= 50 * width).scaled(100)`.
@@ -53,10 +71,16 @@ On the pressure vessel with its limits on outputs, Bayesian optimization at 200 
 
 Track the best violation while infeasible with the same flatness test. `_recent_bests` only grows on feasible generations, so its window can span a long infeasible gap: clear the history when the run moves between infeasible and feasible. Add a direct test that a flat violation triggers a restart.
 
+Pass criteria, fixed before measuring: over 30 seeds on the outputs suite at every budget, CMA-ES finds a feasible design on pocket-2d-1in100 in more runs, or as often and sooner, at 1,000 evaluations per dimension, and its median error on no other problem and budget worsens by more than ×1.1. Without output constraints every violation is 0, so nothing changes, which a test checks.
+
+Measured, and not shipped. Over 30 seeds on the seventeen problems at all five budgets, the change altered one result: pocket-2d-1in100 at 1,000 evaluations per dimension. There, runs that found the pocket found it sooner, a median of 1,263 evaluations against 1,803, but fewer found it, 16 of 30 against 19, and the median error rose from 4.8 to 8.7. That fails the criterion. Seed by seed, both versions restarted twice per run on average: the restart for a step size collapsed already fired in the basin, and the flat violation only fires it earlier. Earlier restarts reshuffle which runs happen to start near the pocket, 9 seeds finding it only before the change and 6 only after, rather than finding it more often. What would help is a restart that avoids the basin it left, not one that leaves sooner; that is a change to the restart strategy and is left for later. The known weakness stands: CMA-ES's flat-run restart looks only at feasible bests.
+
 ## 6. Batches that bunch together
 
 Hypothesis: the kriging believer keeps the mean at x and only shrinks the variance; where μ is far below the best, expected improvement is about best − μ, nearly independent of σ, so the next candidate lands adjacent. A large learned noise term worsens it. Confirm by logging u at the chosen points before picking a fix. Candidates: the constant liar (Ginsbourger et al., 2010), local penalization (González et al., 2016), a minimum distance in length scales. Measure the smallest pairwise distance in a batch and the error at sizes 4 and 8. Guard: batch size 1 with nothing pending must be exactly unchanged.
 
+Pass criteria, fixed before measuring: over 30 seeds on the outputs suite and the quick suite, at batch sizes 4 and 8 and at 10 and 20 evaluations per dimension, the geometric mean of a fix's median errors relative to the believer's is at most ×0.9 at every size and budget (errors floored at 1e-8, over the problems where both medians are finite), and no problem's share of runs that find a feasible design falls by more than one run in ten. Of the candidates that pass, the simplest ships. Step 1b's cost ceiling is part of the criteria too: a fix may not raise seconds per candidate past ×1.2 of step 1b's table at 500 evaluations without sign-off.
+
 ## Delivery
 
-Separate pull requests: (1) step 0, the measuring tools with a new baseline; (2) item 1; (3) item 2; (4) items 5 and 6; (5) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) noise with several objectives; (6) item 6; (7) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
