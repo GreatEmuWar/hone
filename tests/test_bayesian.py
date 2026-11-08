@@ -67,6 +67,31 @@ def test_added_observation_is_believed(data):
     assert model.with_observation(x, 2.0).predict(x)[0][0] == pytest.approx(2.0, abs=0.05)
 
 
+def _at_offset(values, offset):
+    """A copy of values whose data starts offset bytes past a 4096-byte boundary."""
+    buffer = np.empty(values.size + 1024)
+    start = (-buffer.ctypes.data % 4096 + offset) // 8
+    out = buffer[start : start + values.size].reshape(values.shape)
+    out[...] = values
+    return out
+
+
+@pytest.mark.parametrize("n", [65, 100, 128])
+def test_the_model_gives_the_same_bits_wherever_its_inputs_sit_in_memory(n):
+    """Some BLAS libraries, Apple's Accelerate among them, round differently by where an operand starts;
+    a seeded run stopped repeating at about 64 evaluations because of it."""
+    rng = np.random.default_rng(n)
+    X, y = rng.uniform(size=(n, 5)), rng.standard_normal(n)
+    theta = np.concatenate([np.full(5, -1.0), [0.0, math.log(1e-4)]])
+    x, at = rng.uniform(size=5), rng.uniform(size=(1, 5))
+    results = set()
+    for offset in range(0, 512, 8):
+        model = GaussianProcess(X, _at_offset(y, offset), theta).with_observation(_at_offset(x, offset), 0.5)
+        mean, sd = model.predict(_at_offset(at, offset))
+        results.add((mean.tobytes(), sd.tobytes(), model._objective(theta)[0]))
+    assert len(results) == 1, f"{len(results)} different results"
+
+
 def test_constant_outputs_dont_break_the_model():
     model = GaussianProcess(np.random.default_rng(0).uniform(size=(5, 2)), np.ones(5))
     mean, sd = model.predict(np.full((1, 2), 0.5))
