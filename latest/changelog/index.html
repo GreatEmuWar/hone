@@ -1461,6 +1461,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1779,7 +1790,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -1807,7 +1818,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -1974,7 +1985,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -2091,6 +2102,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2409,7 +2431,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -2437,7 +2459,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -2604,7 +2626,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -2690,6 +2712,10 @@
 <ul>
 <li><strong>Batches of Bayesian optimization keep their candidates apart.</strong> Choosing several candidates at once, with <code>population_size</code> above 1 or several workers, Bayesian optimization assumed each chosen candidate would come out as its model predicted, the kriging believer. That leaves the model's mean where it was, so later candidates of a batch landed beside the first, often within 0.001 of it. It now assumes each comes out no better than the best so far, the constant liar, and starts its search only from evaluated points. Over 30 seeds on the outputs and quick suites, at batch sizes 4 and 8 and 10 and 20 evaluations per dimension, median errors fall to ×0.47 to ×0.81 of the believer's by geometric mean, at the same cost per candidate. One candidate at a time with nothing pending chooses exactly as before. Seeded batched runs give different results from 0.14.0's.</li>
 <li><strong>The final round is on by default with noise and constraints on outputs.</strong> <code>final_evaluations</code> now defaults to <code>None</code>: no final round, as before, except with noise and constraints on outputs, where a tenth of <code>max_evaluations</code> is kept back, at least 10 and at most half (10 without <code>max_evaluations</code>). Judged on one draw, a design on the boundary of a limit passes it half the time, so the result's feasibility rests on several: on the noisy engineering designs it raises Bayesian optimization's share of truly feasible results from 17% to 43% on the pressure vessel and from 40% to 70% on the welded beam at 50 evaluations per dimension, and CMA-ES's from 73% to 100% at 100, at the cost of the evaluations it takes from the search. <code>final_evaluations=0</code> keeps none back, as before. A checkpoint saved by 0.14.0 with the default <code>final_evaluations</code> is refused as set up differently, since the default is now <code>None</code>; a run resumed across the upgrade starts over. Benchmark runs on a problem with noise on its outputs alone run with <code>noise=True</code> too.</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Seeded Bayesian runs repeat exactly on macOS.</strong> Apple's Accelerate, the maths library NumPy uses there, gives last-bit results for a Cholesky solve of one vector, and for some products of a matrix and a vector, that depend on where in memory an operand starts, from about 64 rows up. NumPy's small arrays start wherever the allocator has room, so the same run with the same seed could choose different candidates once its model held about 64 evaluations, even twice in one process. The Gaussian process now places those vectors on a 256-byte boundary, and a test checks its results are the same bits wherever its inputs sit. On macOS, seeded runs past about 64 evaluations differ from 0.14.0's. At 500 evaluations seconds per candidate are ×0.93 to ×1.01 of the saved cost table.</li>
 </ul>
 <h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2790,12 +2816,12 @@
 <li><strong>Releases go to PyPI.</strong> Each new version is published as <code>hone-python</code> when it is released on GitHub, so <code>pip install hone-python</code> installs the latest release. This is the first.</li>
 </ul>
 <h2 id="082-2026-10-31">0.8.2 (2026-10-31)<a class="headerlink" href="#082-2026-10-31" title="Permanent link">&para;</a></h2>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Elites could fill the whole population.</strong> An <code>elitism_rate</code> below 1 could round to every individual, leaving nothing to evaluate, so the genetic optimizer stopped long before its budget was spent. At least one child is now bred each generation.</li>
 </ul>
 <h2 id="081-2026-10-31">0.8.1 (2026-10-31)<a class="headerlink" href="#081-2026-10-31" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Noisy runs stopped early at the threshold on a lucky value.</strong> With <code>noise=True</code>, the threshold was checked against the best point's average as it stood when that point was first reported, not its current average. One lucky evaluation could end the run with <code>reached_threshold</code> set while the reported <code>best_fitness</code> had not reached <code>threshold</code>. The check now uses the reported best.</li>
 </ul>
@@ -2860,7 +2886,7 @@
 <li><strong>An exception from the objective stops every worker at once</strong>, rather than waiting for the evaluations already running.</li>
 <li><strong>Benchmark command line.</strong> <code>--budget-per-dimension</code> is replaced by <code>--budgets</code>, and <code>run_benchmark</code> takes <code>budgets_per_dimension</code>.</li>
 </ul>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>CMA-ES widened the steps of integer variables before learning from them, which inflated its step size on problems with integers. It now learns from the steps as drawn, as CMA-ES with Margin does.</li>
 <li>With the spawn and forkserver start methods, the default from Python 3.14, the time limit counted each worker's start-up, so on slow machines every evaluation could time out.</li>
