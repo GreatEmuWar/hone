@@ -121,7 +121,7 @@ Measured against the criteria over 30 seeds on the outputs suite, its noisy desi
 
 The constant liar ships, as the simpler of the two that lie: it needs no prediction at the chosen point. The switch is gone. With one candidate and nothing pending it never lies, so batches of 1 choose exactly as before, which a test checks by refusing the lie; another checks that a batch of 8 on a 5-dimensional sphere keeps its candidates more than 0.02 apart in the unit cube, which the believer failed on three of four seeds. The constraints' models still believe their candidates: a limit's margin has no incumbent to lie at, and the objective's model alone spread the batches. The multi-objective Bayesian optimizer keeps its own batch strategy, which wasn't measured here.
 
-While checking that the final code repeats the measured runs, seeded Bayesian runs on rastrigin-5d turned out not to repeat exactly on macOS, on main as well: two runs in one process part at the 65th evaluation by about 1e-9, with BLAS held to one thread. The other problems checked repeat exactly. It is left for its own investigation.
+While checking that the final code repeats the measured runs, seeded Bayesian runs on rastrigin-5d turned out not to repeat exactly on macOS, on main as well: two runs in one process part at the 65th evaluation by about 1e-9, with BLAS held to one thread. The cause is Apple's Accelerate: its single right-hand-side triangular solve, and some matrix-vector products and dot products, give last-bit results that depend on where in memory an operand starts, from about 64 rows up, and small NumPy arrays start wherever the allocator puts them. Every repeatability test stops below 64 evaluations. It is left for its own pull request.
 
 ## Delivery
 
