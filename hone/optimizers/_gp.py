@@ -7,7 +7,7 @@ Hyperparameters are chosen by maximizing the marginal likelihood times weak prio
 import math
 
 import numpy as np
-from scipy.linalg import cho_factor, cho_solve, solve_triangular
+from scipy.linalg import cho_factor, cho_solve, lapack, solve_triangular
 from scipy.optimize import minimize
 
 SQRT5 = math.sqrt(5)
@@ -21,6 +21,41 @@ LOG_NOISE = (math.log(1e-6), math.log(1.0))
 LENGTH_PRIOR = (math.log(0.3), 1.0)  # inputs are in [0, 1], so most length scales are a fraction of that
 SIGNAL_PRIOR = (0.0, 1.0)  # outputs are standardized
 NOISE_PRIOR = (math.log(1e-4), 2.0)  # little noise unless the data says otherwise
+
+
+# Where an array starts in memory can change the order in which a BLAS library adds up its
+# elements. Apple's Accelerate does this: a dot product, a product of a matrix and a vector, or a
+# Cholesky solve for one vector can differ in the last bit between an operand on a 256-byte
+# boundary and one that isn't, from about 64 rows up. NumPy arrays under about 1,000 bytes get
+# whatever address the allocator has free, which differs from call to call, and the optimizers
+# amplify a last-bit difference into different candidates, so a seeded run stopped repeating.
+# The vectors those operations see are therefore placed on a 256-byte boundary; larger arrays
+# already are, on macOS, and are copied only if not.
+ALIGNMENT = 256
+
+
+def _aligned(a: np.ndarray, copy: bool = False) -> np.ndarray:
+    """a itself if its data is contiguous and starts on an ALIGNMENT-byte boundary, else, or with copy, a copy that does."""
+    a = np.asarray(a, dtype=float)
+    if not copy and a.ctypes.data % ALIGNMENT == 0 and (a.flags.c_contiguous or a.flags.f_contiguous):
+        return a
+    buffer = np.empty(a.size + ALIGNMENT // 8)
+    start = (-buffer.ctypes.data % ALIGNMENT) // 8
+    out = buffer[start : start + a.size].reshape(a.shape)
+    out[...] = a
+    return out
+
+
+def _solve_vector(L: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """K^-1 b for K = L L^T, L lower triangular, with both operands on an ALIGNMENT-byte boundary."""
+    if L.flags.f_contiguous:
+        factor, lower = _aligned(L), 1
+    else:  # a C-ordered lower triangle is a Fortran-ordered upper one, with K = U^T U for U = L^T
+        factor, lower = _aligned(L).T, 0
+    x, info = lapack.dpotrs(factor, _aligned(b, copy=True), lower=lower, overwrite_b=1)
+    if info != 0:
+        raise np.linalg.LinAlgError(f"dpotrs failed with info {info}")
+    return _aligned(x)
 
 
 def _matern(r: np.ndarray) -> np.ndarray:
@@ -41,7 +76,7 @@ class GaussianProcess:
         y = np.asarray(y, dtype=float)
         self._offset = y.mean()
         self._scale = y.std() if y.std() > 0 else 1.0
-        self.z = (y - self._offset) / self._scale
+        self.z = _aligned((y - self._offset) / self._scale)
         d = self.X.shape[1]
         self.theta = theta if theta is not None else np.concatenate([np.full(d, LENGTH_PRIOR[0]), [0.0, math.log(1e-4)]])
         self._condition()
@@ -75,7 +110,7 @@ class GaussianProcess:
             factor = cho_factor(K, lower=True)
         except np.linalg.LinAlgError:
             return 1e10, np.zeros_like(theta)
-        alpha = cho_solve(factor, self.z)
+        alpha = _solve_vector(factor[0], self.z)
         L = factor[0]
         nll = 0.5 * self.z @ alpha + np.log(np.diag(L)).sum() + 0.5 * len(self.z) * math.log(2 * math.pi)
 
@@ -108,13 +143,13 @@ class GaussianProcess:
                 break
             except np.linalg.LinAlgError:
                 jitter = max(1e-8, jitter * 10)
-        self._alpha = cho_solve((self._L, True), self.z)
+        self._alpha = _solve_vector(self._L, self.z)
         # Predictions multiply by the inverse of L, which is faster than solving with L each time.
         self._L_inverse = solve_triangular(self._L, np.eye(len(K)), lower=True)
 
     def predict(self, Xs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Posterior mean and standard deviation at Xs, in standardized units."""
-        k = self._signal * _matern(_scaled_distances(np.atleast_2d(Xs), self.X, self._length))
+        k = _aligned(self._signal * _matern(_scaled_distances(np.atleast_2d(Xs), self.X, self._length)))
         mean = k @ self._alpha
         v = self._L_inverse @ k.T
         variance = np.maximum(self._signal - (v**2).sum(0), 1e-12)
@@ -133,7 +168,7 @@ class GaussianProcess:
         model = object.__new__(GaussianProcess)
         model.X = np.vstack([self.X, x])
         model._offset, model._scale = self._offset, self._scale
-        model.z = np.append(self.z, z)
+        model.z = _aligned(np.append(self.z, z))
         model.theta = self.theta
         model._condition()
         return model

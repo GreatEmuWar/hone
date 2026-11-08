@@ -239,7 +239,8 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
             # A point evaluated again since has a new average: judge every row by its point's current averages.
             self._violations = [math.inf if y is None else self._violation(key) for y, key in zip(self._y, self._keys)]
         # The model's matrices are small, and splitting their arithmetic across threads makes it many
-        # times slower. One thread also makes results the same on every machine.
+        # times slower where the BLAS library allows it to be limited; Apple's Accelerate doesn't.
+        # Repeating a seeded run exactly rests on the model placing its vectors in memory, in _gp.py.
         with threadpool_limits(limits=1, user_api="blas"):
             proposals = self._propose(self.batch_size)
         return [Individual(params=self._encoding.decode(x), generation=generation) for x in proposals]
