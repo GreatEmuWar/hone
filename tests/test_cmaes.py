@@ -143,11 +143,25 @@ def test_reset_restores_the_starting_population():
     assert optimizer.optimize(sphere) == first
 
 
-@pytest.mark.parametrize("name", ["sphere-10d", "ellipsoid-10d", "rosenbrock-10d", "integer-sphere-10d"])
+@pytest.mark.parametrize("name", ["sphere-10d", "ellipsoid-10d", "integer-sphere-10d"])
 def test_solves_problems_the_genetic_optimizer_cannot(name):
     """The benchmark's 10-dimensional unimodal problems, solved to 1e-8 on every seed tried."""
     for seed in range(3):
         assert solve(name, seed=seed).best_fitness < 1e-8
+
+
+def test_solves_rosenbrock_on_most_seeds():
+    """10-dimensional Rosenbrock, solved to 1e-8 on at least 15 of 20 seeds.
+
+    Rosenbrock has local minima from 4 dimensions up, near 3.99 in 10, and CMA-ES ends in one
+    on about 7% of seeds (4 of 60 measured). Which seeds miss depends on the platform's maths
+    libraries, since a last-bit difference in an eigendecomposition sends a run down another
+    path: seed 0 solved it before a macOS update and misses since. So this states the rate
+    rather than any one seed. At a 10% miss rate, 6 or more misses in 20 happen about 1% of the
+    time.
+    """
+    solved = sum(solve("rosenbrock-10d", seed=seed).best_fitness < 1e-8 for seed in range(20))
+    assert solved >= 15, f"solved {solved} of 20 seeds"
 
 
 def test_ellipsoid_is_solved_with_far_fewer_evaluations_than_the_genetic_optimizer_gets():
