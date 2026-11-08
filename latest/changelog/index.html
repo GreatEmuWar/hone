@@ -2674,7 +2674,7 @@
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
-<p>Measuring how output constraints are handled, then improving what the measurements justify; see <a href="https://github.com/GreatEmuWar/hone/blob/main/docs/design/output-constraints-quality.md">docs/design/output-constraints-quality.md</a>. First, noise with constraints on outputs.</p>
+<p>Measuring how output constraints are handled, then improving what the measurements justify; see <a href="https://github.com/GreatEmuWar/hone/blob/main/docs/design/output-constraints-quality.md">docs/design/output-constraints-quality.md</a>. So far, noise with constraints on outputs, and batches of Bayesian optimization that keep apart.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
@@ -2688,6 +2688,7 @@
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Batches of Bayesian optimization keep their candidates apart.</strong> Choosing several candidates at once, with <code>population_size</code> above 1 or several workers, Bayesian optimization assumed each chosen candidate would come out as its model predicted, the kriging believer. That leaves the model's mean where it was, so later candidates of a batch landed beside the first, often within 0.001 of it. It now assumes each comes out no better than the best so far, the constant liar, and starts its search only from evaluated points. Over 30 seeds on the outputs and quick suites, at batch sizes 4 and 8 and 10 and 20 evaluations per dimension, median errors fall to ×0.47 to ×0.81 of the believer's by geometric mean, at the same cost per candidate. One candidate at a time with nothing pending chooses exactly as before. Seeded batched runs give different results from 0.14.0's.</li>
 <li><strong>The final round is on by default with noise and constraints on outputs.</strong> <code>final_evaluations</code> now defaults to <code>None</code>: no final round, as before, except with noise and constraints on outputs, where a tenth of <code>max_evaluations</code> is kept back, at least 10 and at most half (10 without <code>max_evaluations</code>). Judged on one draw, a design on the boundary of a limit passes it half the time, so the result's feasibility rests on several: on the noisy engineering designs it raises Bayesian optimization's share of truly feasible results from 17% to 43% on the pressure vessel and from 40% to 70% on the welded beam at 50 evaluations per dimension, and CMA-ES's from 73% to 100% at 100, at the cost of the evaluations it takes from the search. <code>final_evaluations=0</code> keeps none back, as before. A checkpoint saved by 0.14.0 with the default <code>final_evaluations</code> is refused as set up differently, since the default is now <code>None</code>; a run resumed across the upgrade starts over. Benchmark runs on a problem with noise on its outputs alone run with <code>noise=True</code> too.</li>
 </ul>
 <h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
