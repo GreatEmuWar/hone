@@ -1,0 +1,108 @@
+name: Measure
+
+# A benchmark too long for one machine, shared among GitHub's runners: each job runs one shard of
+# a spec in benchmarks/specs/, and the last puts them together, checked against the spec, as the
+# measurement artifact. Started by hand, for the measurements behind a change; see
+# hone/benchmarks/sharded.py. Times measured here are not comparable with benchmarks/cost-summaries.json.
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Spec file, under benchmarks/specs/"
+        required: true
+        default: "benchmarks/specs/smoke.py"
+      shards:
+        description: "Number of shards, each a job of its own (1 to 40)"
+        required: true
+        default: "20"
+
+# Read-only: the jobs only read the repository and keep their results as artifacts.
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+    - name: Check the inputs and list the shards
+      id: plan
+      env:
+        SPEC: ${{ inputs.spec }}
+        SHARDS: ${{ inputs.shards }}
+      run: |
+        case "$SPEC" in
+          benchmarks/specs/*.py) ;;
+          *) echo "The spec must be a .py file under benchmarks/specs/"; exit 1 ;;
+        esac
+        case "$SPEC" in *..*) echo "The spec path may not contain .."; exit 1 ;; esac
+        if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || [ "$SHARDS" -lt 1 ] || [ "$SHARDS" -gt 40 ]; then
+          echo "Shards must be a whole number from 1 to 40"; exit 1
+        fi
+        echo "shards=$(seq -s, 0 $((SHARDS - 1)) | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: "3.14"
+    - name: Install dependencies
+      run: |
+        python -m pip install --require-hashes -r .github/requirements/build.txt
+        poetry install --no-interaction
+    - name: Run the shard
+      env:
+        SPEC: ${{ inputs.spec }}
+        SHARDS: ${{ inputs.shards }}
+        SHARD: ${{ matrix.shard }}
+      run: poetry run python -m hone.benchmarks.sharded run "$SPEC" --shard "$SHARD" --of "$SHARDS" --jobs "$(nproc)" --out "runs-$SHARD.json"
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: runs-${{ matrix.shard }}
+        path: runs-${{ matrix.shard }}.json
+        retention-days: 7
+
+  merge:
+    needs: run
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: "3.14"
+    - name: Install dependencies
+      run: |
+        python -m pip install --require-hashes -r .github/requirements/build.txt
+        poetry install --no-interaction
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        pattern: runs-*
+        path: shards
+        merge-multiple: true
+    - name: Put the shards together
+      env:
+        SPEC: ${{ inputs.spec }}
+      run: |
+        mkdir measurement
+        poetry run python -m hone.benchmarks.sharded merge "$SPEC" shards/runs-*.json \
+          --runs measurement/runs.json --summaries measurement/summaries.json --markdown measurement/results.md
+        cat measurement/results.md >> "$GITHUB_STEP_SUMMARY"
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: measurement
+        path: measurement/
+        retention-days: 30

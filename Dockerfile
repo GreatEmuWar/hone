@@ -18,6 +18,8 @@ COPY ./pbt/tests /src/pbt/tests
 COPY ./examples /src/examples
 # The saved benchmark results, which test that choose_optimizer's rule is still backed by them.
 COPY ./benchmarks/*-summaries.json /src/benchmarks/
+# The specs for measurements shared among machines, which the image can run and its tests load.
+COPY ./benchmarks/specs /src/benchmarks/specs
 RUN poetry install --only-root --no-interaction --no-ansi
 
 # Run the tests as an ordinary user, who owns /src for pytest's cache.
