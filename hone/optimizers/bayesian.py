@@ -273,29 +273,29 @@ class BayesianOptimizer(Optimizer, _ModelSearch):
             best = float(model.z[feasible].min())  # the best value of a point that satisfies every output constraint
         else:
             best = None if constraints else float(model.z.min())
-        # With output constraints, search near the best observed points that satisfy them.
-        leaders = self._feasible_leaders(X, model.z) if self.search_space.output_constraints else None
+        # Search near the best evaluated points, never near ones only assumed: with output constraints,
+        # the best that satisfy them.
+        leaders = self._feasible_leaders(X, model.z) if self.search_space.output_constraints else X[np.argsort(model.z)[:5]]
         for x in pending:
-            model = _believed(model, x)
-        chosen = []
-        for _ in range(count):
+            model = _lied(model, x, best)
+        chosen: list[np.ndarray] = []
+        while True:
             x = self._maximize_improvement(model, best, constraints, leaders)
             chosen.append(x)
-            # Pretend the models' predictions came true, so the next candidate of the batch goes elsewhere.
-            model = _believed(model, x)
+            if len(chosen) == count:
+                return chosen
+            # Assume the candidate comes out no better than the best so far, so the next goes elsewhere.
+            model = _lied(model, x, best)
             constraints = [(j, _believed(m, x)) for j, m in constraints]
-        return chosen
 
     def _maximize_improvement(
-        self, model: GaussianProcess, best: float | None, constraints: list[tuple[int, GaussianProcess]], leaders: np.ndarray | None
+        self, model: GaussianProcess, best: float | None, constraints: list[tuple[int, GaussianProcess]], leaders: np.ndarray
     ) -> np.ndarray:
         """The candidate with the largest expected improvement on best, times the probability it satisfies the output constraints.
 
         With no feasible point yet, best is None, and the candidate is the one likeliest to be feasible.
-        Without leaders, the search starts near the lowest values the model holds, believed ones included.
+        The search starts near the leaders.
         """
-        if leaders is None:
-            leaders = model.X[np.argsort(model.z)[:5]]
         if not constraints:
             assert best is not None
             return self._search(lambda X: _log_expected_improvement(model, X, best), leaders, model.X)
@@ -318,6 +318,17 @@ def _margin(margins: list[float | None] | None, j: int) -> float:
 def _believed(model: GaussianProcess, x: np.ndarray) -> GaussianProcess:
     """model with an observation at x of what it predicts there: the kriging believer, for points not yet evaluated."""
     return model.with_observation(x, float(model.predict(x)[0][0]))
+
+
+def _lied(model: GaussianProcess, x: np.ndarray, best: float | None) -> GaussianProcess:
+    """model with an observation at x of the best value so far: the constant liar, for a candidate not yet evaluated.
+
+    The kriging believer, which assumes the prediction comes true, leaves the mean where it was and
+    only shrinks the variance, and where the mean is far below the best, expected improvement hardly
+    depends on the variance, so a batch's later candidates landed beside its first. Lying at the best
+    removes the improvement there itself. With nothing feasible yet there is no best, and the believer stays.
+    """
+    return _believed(model, x) if best is None else model.with_observation(x, best)
 
 
 def _refine(acquisition: Callable[[np.ndarray], np.ndarray], starts: np.ndarray, columns: np.ndarray) -> np.ndarray:

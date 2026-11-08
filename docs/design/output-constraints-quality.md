@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, and item 2, noise with output constraints, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -89,6 +89,40 @@ Hypothesis: the kriging believer keeps the mean at x and only shrinks the varian
 
 Pass criteria, fixed before measuring: over 30 seeds on the outputs suite and the quick suite, at batch sizes 4 and 8 and at 10 and 20 evaluations per dimension, the geometric mean of a fix's median errors relative to the believer's is at most ×0.9 at every size and budget (errors floored at 1e-8, over the problems where both medians are finite), and no problem's share of runs that find a feasible design falls by more than one run in ten. Of the candidates that pass, the simplest ships. Step 1b's cost ceiling is part of the criteria too: a fix may not raise seconds per candidate past ×1.2 of step 1b's table at 500 evaluations without sign-off.
 
+The hypothesis is confirmed, except for the noise term. Logging batches of 8 at 10 evaluations per dimension on ball-5d-1in100, corner-5d, sphere-5d and rastrigin-5d, five seeds each: the first candidate of a batch has a median u of 0.1 to 3.7, and the later ones 0.4 to 386, with σ shrunk to about 0.005 and within 0.001 to 0.01 length scales of an earlier candidate. The learned noise stayed at its floor of about 1e-6, so a large noise term isn't the cause on these problems. Without output constraints a second mechanism adds to it: the local search starts near the five lowest values in the believed model, and a believed point was among them for 70% to 100% of later candidates.
+
+Three candidates were built behind a temporary switch, each against the believer:
+
+- the constant liar: each chosen point believed at the incumbent's value;
+- the believer capped at the incumbent, max(μ, best);
+- leaders: the believer, with the local search started only from evaluated points.
+
+The two that lie also start the local search from evaluated points only. Pending points are lied about the same way, and with nothing feasible yet the believer is kept. The median smallest distance between two candidates of a batch of 8, in the unit cube, over the same four problems and five seeds:
+
+| Strategy | ball-5d-1in100 | corner-5d | sphere-5d | rastrigin-5d |
+| --- | ---: | ---: | ---: | ---: |
+| believer | 0.0001 | 0.0001 | 0.0000 | 0.0000 |
+| constant liar | 0.036 | 0.048 | 0.056 | 0.077 |
+| capped | 0.033 | 0.049 | 0.019 | 0.111 |
+| leaders | 0.0001 | 0.0001 | 0.0000 | 0.0000 |
+
+Measured against the criteria over 30 seeds on the outputs suite, its noisy designs included, and the quick suite: 23 problems, four strategies at sizes 4 and 8, 10 and 20 evaluations per dimension, 11,040 runs. The geometric mean of each strategy's median errors relative to the believer's, over the problems where both are finite:
+
+| Strategy | Size 4, 10 per dimension | Size 4, 20 | Size 8, 10 | Size 8, 20 |
+| --- | ---: | ---: | ---: | ---: |
+| constant liar | ×0.60 | ×0.81 | ×0.47 | ×0.59 |
+| capped | ×0.58 | ×0.81 | ×0.47 | ×0.55 |
+| leaders | ×1.01 | ×0.99 | ×0.98 | ×1.01 |
+
+- **Leaders alone fail**: starting the search from evaluated points doesn't spread the batch, and changes nothing.
+- **The two that lie pass on error everywhere**, and gain most where the believer bunched worst: at size 8 and 10 per dimension the constant liar's median error is ×0.065 of the believer's on sphere-5d and ball-5d-1in100, and ×0.13 on g07. Its worst cells are corner-2d at size 8, ×2.7, and pressure-vessel-outputs at size 8 and 20 per dimension, ×1.5; the criterion is on the geometric mean, which these don't move past ×0.9.
+- **On feasibility, every run of every strategy found a feasible design.** The shares that fell are on the noisy designs, where `feasible` is the share of runs whose returned design truly satisfies every limit. At 30 seeds the constant liar fell past one run in ten in one cell, noisy-pressure-vessel at size 4 and 20 per dimension, 63% against 77%, and the capped believer in two. Since the cell's difference was within chance at 30 seeds, the noisy designs were rerun for the believer and the constant liar on 30 more seeds, as the user decided on 8 Nov 2026, and the criterion applied to the 60-seed shares. There no cell falls by more than 6 runs in 60, so the constant liar passes, but at the limit on the pressure vessel at size 8 and 20 per dimension, 67% against 77%, and the vessel at 20 per dimension falls at both sizes. It is the boundary effect of item 2: a design nearer the optimum sits nearer the limit, where one noisy draw passes about half the time. The constant liar's median error is lower than the believer's in every one of those cells, so the margin of safety under noise, an open decision on the roadmap, is where that belongs, not here.
+- **Within the cost ceiling.** At 500 evaluations, seconds per candidate are ×0.98 to ×1.08 of step 1b's table at every count of limits and both batch sizes.
+
+The constant liar ships, as the simpler of the two that lie: it needs no prediction at the chosen point. The switch is gone. With one candidate and nothing pending it never lies, so batches of 1 choose exactly as before, which a test checks by refusing the lie; another checks that a batch of 8 on a 5-dimensional sphere keeps its candidates more than 0.02 apart in the unit cube, which the believer failed on three of four seeds. The constraints' models still believe their candidates: a limit's margin has no incumbent to lie at, and the objective's model alone spread the batches. The multi-objective Bayesian optimizer keeps its own batch strategy, which wasn't measured here.
+
+While checking that the final code repeats the measured runs, seeded Bayesian runs on rastrigin-5d turned out not to repeat exactly on macOS, on main as well: two runs in one process part at the 65th evaluation by about 1e-9, with BLAS held to one thread. The other problems checked repeat exactly. It is left for its own investigation.
+
 ## Delivery
 
-Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) noise with several objectives; (6) item 6; (7) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) noise with several objectives; (7) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.

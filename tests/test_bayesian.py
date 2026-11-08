@@ -211,6 +211,43 @@ def test_is_reproducible():
     assert make(max_evaluations=15).optimize(shifted) == make(max_evaluations=15).optimize(shifted)
 
 
+FIVE = [RangeParameter(f"x{i}", -5, 5) for i in range(5)]
+
+
+@pytest.mark.parametrize("seed", range(4))
+def test_a_batch_spreads_its_candidates_apart(seed):
+    """The constant liar keeps a batch's candidates apart; the believer put most batches of 8 on top of each other."""
+    optimizer = make(FIVE, initial_samples=20, population_size=8, max_evaluations=60, seed=seed)
+    for trial in optimizer.ask():
+        optimizer.tell(trial, sum(v * v for v in trial.params.values()))
+    points = [np.array(list(trial.params.values())) / 10 for trial in optimizer.ask()]  # in the unit cube
+    closest = min(np.linalg.norm(a - b) for i, a in enumerate(points) for b in points[i + 1:])
+    assert closest > 0.02, f"two candidates of the batch are {closest:.4f} apart"
+
+
+@pytest.mark.parametrize("constrained", [False, True])
+def test_one_candidate_at_a_time_with_nothing_pending_never_lies(monkeypatch, constrained):
+    """Batches of 1 with nothing pending choose exactly as before the constant liar."""
+    def refuse(*args):
+        raise AssertionError("lied with nothing pending and one candidate to choose")
+
+    monkeypatch.setattr(bayesian, "_lied", refuse)
+    space = SearchSpace(CONTINUOUS, [Output("total") <= 4]) if constrained else CONTINUOUS
+
+    def objective(x, y):
+        return {"objective": shifted(x, y), "total": x + y} if constrained else shifted(x, y)
+
+    make(space, max_evaluations=15).optimize(objective)
+
+
+def test_with_nothing_feasible_a_batch_believes_its_candidates():
+    """There is no best to lie at, so the believer stays until something is feasible."""
+    model = GaussianProcess(np.array([[0.1, 0.1], [0.9, 0.9]]), np.array([1.0, 2.0]))
+    x = np.array([0.5, 0.5])
+    assert bayesian._lied(model, x, None).predict(x)[0][0] == pytest.approx(model.predict(x)[0][0], abs=1e-6)
+    assert bayesian._lied(model, x, -1.5).predict(x)[0][0] == pytest.approx(-1.5, abs=0.05)
+
+
 def test_budget_sets_the_generations():
     assert BayesianConfig(max_evaluations=37).generations == 37
     assert BayesianConfig(max_evaluations=37, generations=5).generations == 5
