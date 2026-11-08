@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Measuring how output constraints are handled, then improving what the measurements justify; see [docs/design/output-constraints-quality.md](docs/design/output-constraints-quality.md). First, noise with constraints on outputs.
+Measuring how output constraints are handled, then improving what the measurements justify; see [docs/design/output-constraints-quality.md](docs/design/output-constraints-quality.md). So far, noise with constraints on outputs, and batches of Bayesian optimization that keep apart.
 
 ### Added
 
@@ -14,6 +14,7 @@ Measuring how output constraints are handled, then improving what the measuremen
 
 ### Changed
 
+- **Batches of Bayesian optimization keep their candidates apart.** Choosing several candidates at once, with `population_size` above 1 or several workers, Bayesian optimization assumed each chosen candidate would come out as its model predicted, the kriging believer. That leaves the model's mean where it was, so later candidates of a batch landed beside the first, often within 0.001 of it. It now assumes each comes out no better than the best so far, the constant liar, and starts its search only from evaluated points. Over 30 seeds on the outputs and quick suites, at batch sizes 4 and 8 and 10 and 20 evaluations per dimension, median errors fall to ×0.47 to ×0.81 of the believer's by geometric mean, at the same cost per candidate. One candidate at a time with nothing pending chooses exactly as before. Seeded batched runs give different results from 0.14.0's.
 - **The final round is on by default with noise and constraints on outputs.** `final_evaluations` now defaults to `None`: no final round, as before, except with noise and constraints on outputs, where a tenth of `max_evaluations` is kept back, at least 10 and at most half (10 without `max_evaluations`). Judged on one draw, a design on the boundary of a limit passes it half the time, so the result's feasibility rests on several: on the noisy engineering designs it raises Bayesian optimization's share of truly feasible results from 17% to 43% on the pressure vessel and from 40% to 70% on the welded beam at 50 evaluations per dimension, and CMA-ES's from 73% to 100% at 100, at the cost of the evaluations it takes from the search. `final_evaluations=0` keeps none back, as before. A checkpoint saved by 0.14.0 with the default `final_evaluations` is refused as set up differently, since the default is now `None`; a run resumed across the upgrade starts over. Benchmark runs on a problem with noise on its outputs alone run with `noise=True` too.
 
 ### Internal

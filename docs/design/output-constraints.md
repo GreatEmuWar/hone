@@ -117,7 +117,7 @@ The constrained suite gains output-constraint versions of the pressure vessel, t
 - Until a point is feasible, Bayesian optimization maximizes the probability of feasibility, the criterion of Gelbart et al. When every margin seen is positive, that probability is highest where the models are least sure, at the corners and edges, rather than where the margins fall. Expected improvement in the total violation would follow the trend instead. It hasn't been measured.
 - CMA-ES's restart for a run gone flat looks only at feasible bests, so it never fires while nothing is feasible. Its other restarts, for a step size too small or a covariance too elongated, still do.
 - Ranking alone costs CMA-ES accuracy: on a 5-dimensional quadratic with a linear limit and 1,500 evaluations, its median error was 3.2e-6 with the limit on the parameters and 2.9e-5 with it as an output.
-- Batches of Bayesian optimization can land within 0.001 of each other, with output constraints or without. This was already the case before output constraints; the believer on the constraints' models doesn't cause it.
+- Batches of Bayesian optimization could land within 0.001 of each other, with output constraints or without. This was already the case before output constraints; the believer on the constraints' models doesn't cause it. Fixed after 0.14.0 by the constant liar; see [output-constraints-quality.md](output-constraints-quality.md), item 6.
 
 ## Out of scope for now
 
