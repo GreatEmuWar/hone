@@ -103,7 +103,7 @@ After each generation the run's whole state is saved to the file. Run the same s
 
 With ask and tell, call `optimizer.save_checkpoint(path)` whenever you like, and `optimizer.load_checkpoint(path)` on a new optimizer set up the same way. Trials that were handed out but not yet told are handed out again by the next `ask()`, and can still be told by their ids.
 
-A checkpoint is a pickle, which can run code when it is loaded, so only load checkpoints you saved yourself.
+A checkpoint is a pickle, which can run code when it is loaded, so only load checkpoints you saved yourself. Pickle checkpoints are deprecated: from 0.15.0 loading one, with `load_checkpoint()` or by carrying on a run with `optimize(checkpoint=...)`, gives a `FutureWarning`. A safe format arrives in 0.17.0, and loading pickle checkpoints will be removed in 0.19.0. Saving still writes pickles until 0.17.0, and doesn't warn.
 
 ### Failed evaluations
 

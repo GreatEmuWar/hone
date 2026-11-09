@@ -329,6 +329,7 @@ class Crash(Exception):
 # README: "Run the same script again and the run carries on from the last generation saved, instead of starting
 # over; the result is the same as if it had never stopped. Once the run has finished, running it again returns its
 # result at once."
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 @tmp_settings
 @given(problems(), st.integers(min_value=0, max_value=5))
 def test_checkpoint_resume_gives_the_same_result(tmp_path_factory, problem, crash_after):
@@ -356,6 +357,7 @@ def test_checkpoint_resume_gives_the_same_result(tmp_path_factory, problem, cras
 # README: "With ask and tell, call optimizer.save_checkpoint(path) whenever you like, and load_checkpoint(path) on a
 # new optimizer set up the same way. Trials that were handed out but not yet told are handed out again by the next
 # ask(), and can still be told by their ids."
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 @tmp_settings
 @given(problems(kinds=("genetic", "random", "cmaes")), st.integers(min_value=0, max_value=60), st.data())
 def test_ask_tell_checkpoint_mid_generation(tmp_path_factory, problem, save_at, data):
@@ -388,6 +390,7 @@ def test_ask_tell_checkpoint_mid_generation(tmp_path_factory, problem, save_at, 
 
 
 # load_checkpoint: "The checkpoint must come from an optimizer set up like this one".
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 @tmp_settings
 @given(problems(kinds=("genetic", "random", "cmaes")))
 def test_checkpoint_refuses_other_setups(tmp_path_factory, problem):
@@ -515,6 +518,7 @@ def test_ctrl_c_returns_the_best_so_far(problem, interrupt_at):
 
 # --- checkpoints with noise and late results -------------------------------------------------
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 @tmp_settings
 @given(problems(), st.integers(min_value=0, max_value=5), st.integers(min_value=0, max_value=4))
 def test_noisy_checkpoint_resume_gives_the_same_result(tmp_path_factory, problem, crash_after, final):
