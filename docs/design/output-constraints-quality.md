@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar; item 1 is set aside, and item 5 was measured and not shipped. Item 3's gate was measured and passed, for Bayesian optimization, and awaits a decision. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -75,6 +75,19 @@ With no scale, raw-unit margins reach the bilog transform, and standardizing aft
 
 For each optimizer and budget: the geometric mean over problems of the ratio of median errors, rewritten to as written, each error floored at 1e-8, over the problems where both medians are finite; and the share of runs that end feasible, averaged over the problems. `scale=` is needed if, for any optimizer and budget, that ratio is ×2 or more, or the average feasible share of the rewritten problems is lower by more than 1 run in 10. Otherwise item 3 is measured and not needed. Single problems with a ratio of ×2 or more, or a feasible share lower by more than 1 run in 10, are listed but don't decide it: at 30 seeds one problem's share moves that much by chance.
 
+Measured with `benchmarks/specs/scale.py` on the Measure workflow, 4,620 runs in 40 shards ([run 42547180219](https://github.com/GreatEmuWar/hone/actions/runs/42547180219)). The geometric mean of median errors, rewritten to as written, and the average feasible share, as written against rewritten:
+
+| Optimizer | 10 per dimension | 20 | 50 |
+| --- | ---: | ---: | ---: |
+| Bayesian optimization | ×3.12, 98.5% / 95.2% | ×3.20, 100% / 100% | ×2.79, 100% / 100% (5 problems) |
+| CMA-ES | ×0.99, 53.3% / 53.0% | ×1.02, 65.6% / 67.8% | ×0.90, 91.1% / 87.8% |
+| genetic optimizer | ×1.02, 51.1% / 51.5% | ×1.01, 64.1% / 65.2% | ×0.94, 82.2% / 78.5% |
+
+- **Bayesian optimization passes the gate at every budget**, so by decision 3 `scale=` is justified. The loss is on the problems whose limits are far from 1 in size: the welded beam (13,600, 30,000, 0.25, 6,000) ×22, ×62 and ×5.2 at 10, 20 and 50 per dimension, the pressure vessel's volume (1,296,000) ×8.4, ×14 and ×24, g06 ×19 and ×7.3, g07 ×10 and ×2.1, g10 ×2.3 and ×2.0. On the balls, whose radius is 0.6 to 2.9, it is ×0.3 to ×1.4, within what seeds do. The likely cause, not measured separately: through the bilog transform a margin of thousands becomes a few units of log, nearly flat across most of the box and steep only near the boundary, which a Gaussian process fits badly; with the relative margin the boundary sits where the transform is still nearly linear. Feasibility hardly suffers: every rewritten run finds a feasible design except at 10 per dimension on g06 (87%) and ball-5d-1in1000 (70% against 87%).
+- **CMA-ES and the genetic optimizer don't need it.** With one limit, Deb's rule ranks infeasible designs in the same order either way: the genetic optimizer ran the balls identically, seed for seed, and CMA-ES all but 15 of its 360 runs on them, with the same medians. Where the sizes differ, summing raw violations lets the largest limit dominate; the clearest case is g10, whose `g6 <= -1250000` swamps the others, at 50 per dimension: CMA-ES finds a feasible design in 43% of runs against 67%, and the genetic optimizer in none against 47%. On g07 it goes the other way, 27% to 30% against 3% to 10% at 20 per dimension. The averages stay within 1 run in 10.
+
+Verdict: **the gate is passed, for Bayesian optimization's model of each limit.** Nothing is implemented here; whether `scale=` ships, and in what form, is for the lead to decide. The measurement says what it would need to do: the rewritten limit with a scale of the written limit's size is the written limit, so an explicit scale on a limit that varies or is written with nothing on one side recovers exactly the ×3. It matters most for Bayesian optimization, and for Deb's rule only where limits of very different sizes are summed.
+
 ## 4. `choose_optimizer` with output constraints
 
 On the pressure vessel with its limits on outputs, Bayesian optimization at 200 evaluations (31.6) beats CMA-ES at 4,000 (277); the welded beam goes the other way (0.0112 against 3e-7). Measure seconds per candidate up to 500 evaluations (k + 1 Gaussian processes at O(n³)) and state the rule in those terms. Count step 0's problems too. Change the rule only for spaces with output constraints.
@@ -129,4 +142,4 @@ While checking that the final code repeats the measured runs, seeded Bayesian ru
 
 ## Delivery
 
-Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) noise with several objectives; (7) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) noise with several objectives; (7) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need; it did, for Bayesian optimization, and the decision is open.
