@@ -94,3 +94,15 @@ def test_the_command_line_runs_shards_and_merges_them(spec_file, tmp_path, capsy
 def test_the_smoke_spec_loads():
     spec = sharded.load_spec("benchmarks/specs/smoke.py")
     assert len(sharded.expected_runs(spec)) == 6 * 2 * 4
+
+
+def test_a_factory_can_skip_some_seeds_of_an_expensive_cell():
+    from hone.benchmarks.runner import SkipBudget
+
+    def few(problem, budget, seed):
+        if budget > 50 and seed >= 1:
+            raise SkipBudget("one seed is enough here")
+        return random_search(problem, budget, seed)
+
+    runs = run_benchmark(quick_problems()[:1], {"few": few}, range(3), (10, 20))
+    assert sorted((r.budget_per_dimension, r.seed) for r in runs) == [(10, 0), (10, 1), (10, 2), (20, 0)]

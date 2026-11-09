@@ -19,7 +19,7 @@ from .problems import Problem
 
 # Builds an optimizer for a problem, an evaluation budget and a seed. It may raise
 # UnsupportedSearchSpace for a problem it cannot search, which is then skipped, or
-# SkipBudget for a budget it isn't meant for.
+# SkipBudget for a budget it isn't meant for, or for some seeds of it only.
 OptimizerFactory = Callable[[Problem, int, int], Optimizer]
 
 
@@ -213,8 +213,17 @@ def benchmark_tasks(
                     break
                 except SkipBudget:
                     continue
-                tasks += [(index, name, per_dimension, seed) for seed in seeds]
+                tasks += [(index, name, per_dimension, seed) for seed in seeds if _runs(factory, problem, per_dimension, seed)]
     return tasks
+
+
+def _runs(factory: OptimizerFactory, problem: Problem, per_dimension: int, seed: int) -> bool:
+    """Whether the factory makes this run: it may raise SkipBudget for some seeds only, to run fewer of an expensive cell."""
+    try:
+        factory(problem, per_dimension * problem.dimensions, seed)
+    except SkipBudget:
+        return False
+    return True
 
 
 _shared: tuple[list[Problem], dict[str, OptimizerFactory]] = ([], {})  # what run_benchmark's tasks refer to

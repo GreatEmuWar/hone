@@ -75,6 +75,13 @@ With no scale, raw-unit margins reach the bilog transform, and standardizing aft
 
 On the pressure vessel with its limits on outputs, Bayesian optimization at 200 evaluations (31.6) beats CMA-ES at 4,000 (277); the welded beam goes the other way (0.0112 against 3e-7). Measure seconds per candidate up to 500 evaluations (k + 1 Gaussian processes at O(n³)) and state the rule in those terms. Count step 0's problems too. Change the rule only for spaces with output constraints.
 
+Pass criteria, signed off on 8 Nov 2026 before measuring. The outputs suite, its noisy designs included, at 10, 20, 50 and 100 evaluations per dimension, on the Measure workflow (`benchmarks/specs/choose_outputs.py`): Bayesian optimization with the benchmark's cap lifted to 1,000 evaluations, CMA-ES, the genetic optimizer and random search, over 30 seeds, except Bayesian optimization past 200 evaluations, which runs 10 seeds by the user's decision, to keep it to about a third of the runner time. Three rules for spaces with limits on outputs, picking Bayesian optimization up to 200 evaluations (R0, today's), 500 (R1) or 1,000 (R2), and otherwise what `choose_optimizer` picks past 200. Each is scored as the existing test scores today's rule: over the problem and budget cells where some optimizer finds a feasible design, the geometric mean of the pick's median error over the best optimizer's, errors floored at 1e-8, with cells where the pick finds nothing feasible counted on their own.
+
+- The larger of R1 and R2 whose geometric mean is at most ×0.9 of R0's ships; if neither, the rule stays.
+- It may lose no cell: no more cells where its pick finds nothing feasible than R0's, and wherever it picks Bayesian optimization where R0 doesn't, Bayesian optimization finds a feasible design at least as often as R0's pick, within one run in ten.
+- Held out: today's rule, scored the same way from the saved summaries of the machine learning and constrained suites, which weren't used to choose it, keeps its picks within ×1.5 of the best by geometric mean, as the existing test requires on the 36 problems. A failure there is reported and doesn't block the change for limits on outputs.
+- The rule is also stated in seconds: the docstring and README give Bayesian optimization's seconds per candidate at the chosen limit, from step 1b's table, so a user can judge it against an evaluation's own time.
+
 ## 5. CMA-ES flat-run restart
 
 Track the best violation while infeasible with the same flatness test. `_recent_bests` only grows on feasible generations, so its window can span a long infeasible gap: clear the history when the run moves between infeasible and feasible. Add a direct test that a flat violation triggers a restart.
