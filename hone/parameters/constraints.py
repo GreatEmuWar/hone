@@ -291,6 +291,18 @@ class Constraint(BaseModel):
         size = self.size(params, outputs)
         return violation / size if violation and math.isfinite(size) and size > 0 else violation
 
+    def widened_violation(self, params: dict[str, Any], outputs: dict[str, float] | None, widen: float) -> float:
+        """The relative violation if the margin were widen larger, in the constraint's own units.
+
+        With noise, a limit judged with a margin of safety: a design passes only if its margin
+        clears the limit by widen. widen=0 is relative_violation itself.
+        """
+        if widen == 0:
+            return self.relative_violation(params, outputs)
+        size = self.size(params, outputs)
+        violation = _limit(self.margin(params, outputs) + widen, size)
+        return violation / size if violation and math.isfinite(size) and size > 0 else violation
+
     def satisfied(self, params: dict[str, Any], outputs: dict[str, float] | None = None) -> bool:
         return self.violation(params, outputs) == 0
 

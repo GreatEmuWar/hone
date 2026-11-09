@@ -107,6 +107,7 @@ class Run(BaseModel):
     trace: list[tuple[int, float]]  # (evaluations so far, error of the best so far), once per generation
     output_constrained: bool = False  # whether the problem has constraints on outputs, so a feasible design has to be found
     first_feasible: int | None = None  # evaluations up to the end of the generation that first found a feasible design; None if none did
+    reported_feasible: bool | None = None  # with constraints on outputs, whether the result said its design satisfies them, which noise can make untrue
 
 
 class Summary(BaseModel):
@@ -256,6 +257,7 @@ def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: 
         trace=trace,
         output_constrained=constrained,
         first_feasible=first_feasible if constrained else None,
+        reported_feasible=result.feasible if constrained else None,
     )
 
 

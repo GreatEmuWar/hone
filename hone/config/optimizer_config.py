@@ -31,6 +31,14 @@ class OptimizerConfig(BaseModel):
     None: none, except with constraints on outputs, where a tenth of max_evaluations is kept
     back, at least 10 and at most half (10 without max_evaluations), so whether the result
     satisfies each limit rests on more than one noisy draw. 0 keeps none back either way."""
+    confidence: float | None = Field(default=0.95, gt=0, lt=1)
+    """With noise and constraints on outputs, how sure a design must be to count as satisfying a
+    limit: its average margin must clear the limit by Φ⁻¹(confidence) standard errors, so 0.95
+    asks about 1.64 per limit. A design measured more often has a smaller standard error and may
+    sit closer to the limit. The noise in each limit is estimated by pooling the spread of every
+    design evaluated more than once, assuming it is about the same everywhere; until there are 3
+    such degrees of freedom, a limit is judged on the average alone. None judges every limit on
+    the average alone, as before 0.15.0. Without noise or constraints on outputs it does nothing."""
     min_finished: float = Field(default=1.0, gt=0, le=1)
     """The share of each generation's evaluations that must finish before the next generation is
     bred. Below 1, the slowest evaluations don't hold up the run: they finish in the background,

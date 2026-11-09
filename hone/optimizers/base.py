@@ -1,6 +1,7 @@
 """The base class of every single-objective optimizer: one number per evaluation, to minimize or maximize."""
 import math
 import numbers
+from statistics import NormalDist
 from typing import Any, Callable
 
 import numpy as np
@@ -35,6 +36,8 @@ __all__ = [
 ]
 
 DEFAULT_FINAL_EVALUATIONS = 10  # kept back by default with noise and constraints on outputs, when a tenth of the budget is less, or there is none
+MARGIN_FREEDOM = 3  # degrees of freedom a limit's pooled noise needs before the margin of safety applies to it
+MARGIN_HALF_AT_LEAST = 2  # the final round splits in two halves only if each gets at least this many evaluations
 
 
 class Optimizer(OptimizerCore[Result]):
@@ -74,7 +77,12 @@ class Optimizer(OptimizerCore[Result]):
     With noise, a point's outputs are averaged like its value, and whether it satisfies a limit
     is judged on the averages: the limit is on the true output, which the average estimates.
     By default a tenth of the budget is then kept back for the final round, so the result's
-    feasibility rests on more than one draw; see final_evaluations.
+    feasibility rests on more than one draw; see final_evaluations. And by default a limit is
+    judged with a margin of safety: a design's average margin must clear it by a number of
+    standard errors set by confidence, the noise in each limit pooled over every design evaluated
+    more than once. The final round then comes in two halves: the first re-evaluates the
+    finalists, which gives the pooled noise its degrees of freedom, and the second the designs
+    likeliest to pass with the margin, now that it is known.
     """
     supports_noisy_outputs = True
 
@@ -88,6 +96,10 @@ class Optimizer(OptimizerCore[Result]):
         self._points: dict[tuple, dict[str, Any]] = {}
         self._finalists: list[tuple] = []
         self._final_round = False
+        self._final_half = 0  # with the margin of safety: which half of the final round is under way, 1 or 2
+        self._second_half = 0  # evaluations kept back for the final round's second half
+        self._second_reserve = 0  # the second half's size, once the first has begun
+        self._noise_cache: tuple[int, list[tuple[float, int]]] | None = None  # (evaluations when computed, each limit's pooled noise)
         self._reserve = self._reserved()
         self._infeasible = 0  # evaluations that broke a constraint on the outputs
 
@@ -231,10 +243,15 @@ class Optimizer(OptimizerCore[Result]):
             self._final_round = True
             self._needs_generation = True
             return True
+        if self._final_half == 1 and self._second_half:
+            # The second half of the final round, now that the finalists' repeats give the noise.
+            self._final_half, self._second_half = 2, 0
+            self._needs_generation = True
+            return True
         return False
 
     def _kept_back(self) -> int:
-        return 0 if self._final_round else self._reserve
+        return self._second_half if self._final_round else self._reserve
 
     def _make_population(self, previous: list[Individual] | None, generation: int) -> list[Individual]:
         if self._final_round:
@@ -254,9 +271,58 @@ class Optimizer(OptimizerCore[Result]):
         return {name: float(np.mean([outputs[name] for outputs in seen])) for name in self.search_space.outputs}
 
     def _violation(self, key: tuple) -> float:
-        """The total violation of the output constraints by the point's average outputs: 0 without any."""
+        """The total violation of the output constraints by the point's average outputs: 0 without any.
+
+        With the margin of safety, each limit whose noise is known is judged with its average
+        margin widened by k standard errors, so a design passes only if it clears the limit by them.
+        """
         outputs = self._average_outputs(key)
-        return 0.0 if outputs is None else self.search_space.output_violation(self._points[key], outputs)
+        if outputs is None:
+            return 0.0
+        point = self._points[key]
+        if not self._margin_on():
+            return self.search_space.output_violation(point, outputs)
+        k = NormalDist().inv_cdf(self.config.confidence)  # type: ignore[arg-type]
+        n = len(self._output_observations[key])
+        active = self.search_space.active(point)
+        total = 0.0
+        for constraint, (spread, freedom) in zip(self.search_space.output_constraints, self._limit_noise()):
+            if not constraint.applies(active):
+                continue
+            widen = 0.0
+            if freedom >= MARGIN_FREEDOM:
+                size = constraint.size(active, outputs)
+                widen = k * spread * (size if math.isfinite(size) and size > 0 else 1.0) / math.sqrt(n)
+            total += constraint.widened_violation(active, outputs, widen)
+        return float(total)
+
+    def _margin_on(self) -> bool:
+        """Whether limits are judged with a margin of safety: with noise, constraints on outputs and a confidence."""
+        return bool(self.config.noise and self.search_space.output_constraints and self.config.confidence is not None)
+
+    def _limit_noise(self) -> list[tuple[float, int]]:
+        """Each output constraint's noise: the pooled standard deviation of its relative margin, and its degrees of freedom.
+
+        Pooled over every point evaluated more than once, from the spread of the margin among its
+        evaluations, which assumes the noise is about the same everywhere. (0, 0) for a limit no
+        point has been evaluated twice where it applies.
+        """
+        if self._noise_cache is not None and self._noise_cache[0] == self._evaluations:
+            return self._noise_cache[1]
+        constraints = self.search_space.output_constraints
+        squares, freedom = [0.0] * len(constraints), [0] * len(constraints)
+        for key, seen in self._output_observations.items():
+            if len(seen) < 2:
+                continue
+            margins = [self.search_space.output_margins(self._points[key], outputs) for outputs in seen]
+            for j in range(len(constraints)):
+                values = [float(v) for m in margins if (v := m[j]) is not None and math.isfinite(v)]
+                if len(values) >= 2:
+                    squares[j] += float(np.var(values) * len(values))
+                    freedom[j] += len(values) - 1
+        noise = [(math.sqrt(sq / df) if df else 0.0, df) for sq, df in zip(squares, freedom)]
+        self._noise_cache = (self._evaluations, noise)
+        return noise
 
     def _ranked_keys(self, keys: list[tuple]) -> list[tuple]:
         """Evaluated points, by key, best first: by Deb's rule on the averages, so those whose average
@@ -289,15 +355,24 @@ class Optimizer(OptimizerCore[Result]):
         enough, and the result is the finalist with the best average. With constraints on
         outputs, a finalist whose average outputs satisfy them all beats one whose don't.
         """
-        reserve = self._reserve
-        if self.config.max_evaluations is not None:
-            reserve = min(reserve, self.config.max_evaluations - self._handed_out_total)
-        order = self._finalist_order()
-        self._finalists = order[: max(1, min(5, reserve // 2, len(order)))]
-        return [
-            Individual(params=dict(self._points[self._finalists[i % len(self._finalists)]]), generation=generation)
-            for i in range(reserve)
-        ]
+        if self._final_half == 2:
+            # The second half: the points likeliest to pass with the margin, now that the noise is known.
+            reserve = self._second_reserve
+            order = self._finalist_order()
+            chosen = order[: max(1, min(5, reserve // 2, len(order)))]
+            self._finalists += [key for key in chosen if key not in self._finalists]
+        else:
+            reserve = self._reserve
+            if self.config.max_evaluations is not None:
+                reserve = min(reserve, self.config.max_evaluations - self._handed_out_total)
+            if self._margin_on() and reserve >= 2 * MARGIN_HALF_AT_LEAST:
+                self._final_half, self._second_half = 1, reserve // 2
+                self._second_reserve = reserve // 2
+                reserve -= reserve // 2
+            order = self._finalist_order()
+            chosen = order[: max(1, min(5, reserve // 2, len(order)))]
+            self._finalists = list(chosen)
+        return [Individual(params=dict(self._points[chosen[i % len(chosen)]]), generation=generation) for i in range(reserve)]
 
     # --- ranking ---------------------------------------------------------------
 
