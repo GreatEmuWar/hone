@@ -208,14 +208,14 @@ Latest results are in [cost-results.md](cost-results.md), on an Apple M2 under m
 
 ## Measurements too long for one machine
 
-A measurement behind a change, such as 30 seeds of Bayesian optimization at 100 evaluations per dimension, can take a day on a laptop. The Measure workflow shares it among GitHub's runners instead. A spec in `specs/` defines what to run, as `problems()`, `optimizers()`, `SEEDS`, `BUDGETS` and optionally `report(runs)`, markdown such as a check of the pass criteria. The workflow runs one shard of it per job, each every n-th run of the whole, so every shard holds some of each problem's seeds and they take about as long as each other, and a last job puts them together, refusing unless every run the spec makes is there exactly once. The runs, summaries and results table are its `measurement` artifact, and the table is shown on the run's summary page.
+A measurement behind a change, such as 30 seeds of Bayesian optimization at 100 evaluations per dimension, can take a day on a laptop. The Measure workflow shares it among GitHub's runners instead. A spec in `specs/` defines what to run, as `problems()`, `optimizers()`, `SEEDS`, `BUDGETS` and optionally `report(runs)`, markdown such as a check of the pass criteria. The workflow runs one shard of it per job, dealing runs round-robin by problem, budget and seed, so every shard holds some of each problem's seeds and every optimizer's run of one seed is made on the same runner, and a last job puts them together, refusing unless every run the spec makes is there exactly once. The runs, summaries and results table are its `measurement` artifact, and the table is shown on the run's summary page.
 
 ```
 gh workflow run measure.yml -f spec=benchmarks/specs/smoke.py -f shards=20
 gh run download --name measurement
 ```
 
-The same runs on one machine are `python -m hone.benchmarks.sharded run SPEC --shard 0 --of 1 --out runs.json`, then `merge SPEC runs.json --markdown results.md`, and give the same results there. Results from the runners are on Linux, whose maths libraries round differently from macOS's, so a comparison runs every side of it in the same place. Times from the runners aren't comparable with `cost-summaries.json`, which is measured on one machine.
+The same runs on one machine are `python -m hone.benchmarks.sharded run SPEC --shard 0 --of 1 --out runs.json`, then `merge SPEC runs.json --markdown results.md`, and give the same results there. Results from the runners are on Linux, whose maths libraries round differently from macOS's, so a comparison runs every side of it in the same place. Even GitHub's runners differ in processor, and OpenBLAS chooses its arithmetic by processor, which is why a seed's runs share a shard. Times from the runners aren't comparable with `cost-summaries.json`, which is measured on one machine.
 
 ## Multi-objective problems
 

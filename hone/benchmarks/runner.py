@@ -173,9 +173,10 @@ def run_benchmark(
     An optimizer that cannot search a problem's parameters is skipped for that problem, and
     one whose factory raises SkipBudget is skipped at that budget. With jobs > 1, runs are
     shared among that many processes where the platform can fork them; the results are the same.
-    With shard=(index, count), only every count-th run from index is made, so count machines can
-    share one benchmark and their runs be put together afterwards; dealing them round-robin spreads
-    each problem's seeds over every shard, so the shards take about as long as each other.
+    With shard=(index, count), only a count-th of the runs are made, so count machines can share
+    one benchmark and their runs be put together afterwards. Runs are dealt round-robin by problem,
+    budget and seed, so every optimizer's run of one seed is made on the same machine, where its
+    maths libraries round the same way, and each problem's seeds spread over every shard.
     """
     if shard is not None and not 0 <= shard[0] < shard[1]:
         raise ValueError(f"shard {shard[0]} of {shard[1]} doesn't exist")
@@ -183,7 +184,9 @@ def run_benchmark(
     optimizers = optimizers if optimizers is not None else DEFAULT_OPTIMIZERS
     tasks = benchmark_tasks(problems, optimizers, seeds, budgets_per_dimension)
     if shard is not None:
-        tasks = tasks[shard[0] :: shard[1]]
+        groups = list(dict.fromkeys((index, per_dimension, seed) for index, _, per_dimension, seed in tasks))
+        mine = set(groups[shard[0] :: shard[1]])
+        tasks = [task for task in tasks if (task[0], task[2], task[3]) in mine]
 
     global _shared
     _shared = (problems, optimizers)
