@@ -1258,6 +1258,8 @@
       
         
       
+        
+      
     
     
     
@@ -1467,6 +1469,34 @@
     
   
     Cost of a Bayesian candidate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/margin-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Margin of safety under noise
   
 
     
@@ -1781,9 +1811,10 @@ budget is a separate run, so an optimizer can choose its settings from the budge
 An optimizer that cannot search a problem's parameters is skipped for that problem, and
 one whose factory raises SkipBudget is skipped at that budget. With jobs &gt; 1, runs are
 shared among that many processes where the platform can fork them; the results are the same.
-With shard=(index, count), only every count-th run from index is made, so count machines can
-share one benchmark and their runs be put together afterwards; dealing them round-robin spreads
-each problem's seeds over every shard, so the shards take about as long as each other.</p>
+With shard=(index, count), only a count-th of the runs are made, so count machines can share
+one benchmark and their runs be put together afterwards. Runs are dealt round-robin by problem,
+budget and seed, so every optimizer's run of one seed is made on the same machine, where its
+maths libraries round the same way, and each problem's seeds spread over every shard.</p>
 
 
     </div>
@@ -2148,6 +2179,10 @@ with every setting always searched, as before conditions, to show what they are 
             <li>
               <code><span title="hone.benchmarks.runner.Run.first_feasible">first_feasible</span></code>
                 (<code><span title="int">int</span> | None</code>)
+            </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Run.reported_feasible">reported_feasible</span></code>
+                (<code><span title="bool">bool</span> | None</code>)
             </li>
         </ul>
 

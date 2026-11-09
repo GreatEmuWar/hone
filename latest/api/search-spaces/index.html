@@ -1342,6 +1342,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#hone.Constraint.widened_violation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        widened_violation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#hone.Constraint.names" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1534,6 +1545,8 @@
       
         
           
+        
+      
         
       
         
@@ -1761,6 +1774,34 @@
     
   
     Cost of a Bayesian candidate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/margin-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Margin of safety under noise
   
 
     
@@ -2228,6 +2269,17 @@
     <span class="md-ellipsis">
       
         relative_violation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hone.Constraint.widened_violation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        widened_violation
       
     </span>
   </a>
@@ -3212,6 +3264,28 @@ function have none, and their violations count in their own units.</p>
 
         <p>The violation as a share of the limit's size, so limits in different units compare: 0.1 is 10% over.</p>
 <p>A limit of size zero, such as a function's, has nothing to divide by, so its violation counts as it is.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hone.Constraint.widened_violation" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">widened_violation</span>
+
+
+<a href="#hone.Constraint.widened_violation" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">widened_violation</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">],</span> <span class="n">outputs</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="float">float</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">widen</span><span class="p">:</span> <span class="n"><span title="float">float</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="float">float</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The relative violation if the margin were widen larger, in the constraint's own units.</p>
+<p>With noise, a limit judged with a margin of safety: a design passes only if its margin
+clears the limit by widen. widen=0 is relative_violation itself.</p>
 
 
     </div>

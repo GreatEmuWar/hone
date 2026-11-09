@@ -1079,6 +1079,8 @@
       
         
       
+        
+      
     
     
     
@@ -1288,6 +1290,34 @@
     
   
     Cost of a Bayesian candidate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="margin-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Margin of safety under noise
   
 
     
@@ -1764,6 +1794,10 @@ python -m hone.benchmarks --multi          # several objectives: 7 problems, sco
 <td>The quick suite's results, which CI compares every change against</td>
 </tr>
 <tr>
+<td><a href="margin-results/">margin-results.md</a></td>
+<td>The margin of safety for limits under noise against the average alone, on the noisy engineering designs, from the Measure workflow</td>
+</tr>
+<tr>
 <td><code>specs/</code></td>
 <td>Specs for measurements shared among GitHub's runners by the Measure workflow; see below</td>
 </tr>
@@ -2157,11 +2191,11 @@ python -m hone.benchmarks --multi          # several objectives: 7 problems, sco
 <li><strong>Searching the models costs more than fitting them.</strong> In the profiled run of g07, about four fifths of the 70 seconds go to the search: refining the best candidates by gradient, which predicts with every limit's model at each step. Fitting the hyperparameters takes under a tenth. At 500 evaluations with eight limits, a profile of the timed candidates puts about a third in refitting and most of the rest in the search, so refitting less often helps more as the evaluations grow, but the search is the larger share at every size measured.</li>
 </ul>
 <h2 id="measurements-too-long-for-one-machine">Measurements too long for one machine<a class="headerlink" href="#measurements-too-long-for-one-machine" title="Permanent link">&para;</a></h2>
-<p>A measurement behind a change, such as 30 seeds of Bayesian optimization at 100 evaluations per dimension, can take a day on a laptop. The Measure workflow shares it among GitHub's runners instead. A spec in <code>specs/</code> defines what to run, as <code>problems()</code>, <code>optimizers()</code>, <code>SEEDS</code>, <code>BUDGETS</code> and optionally <code>report(runs)</code>, markdown such as a check of the pass criteria. The workflow runs one shard of it per job, each every n-th run of the whole, so every shard holds some of each problem's seeds and they take about as long as each other, and a last job puts them together, refusing unless every run the spec makes is there exactly once. The runs, summaries and results table are its <code>measurement</code> artifact, and the table is shown on the run's summary page.</p>
+<p>A measurement behind a change, such as 30 seeds of Bayesian optimization at 100 evaluations per dimension, can take a day on a laptop. The Measure workflow shares it among GitHub's runners instead. A spec in <code>specs/</code> defines what to run, as <code>problems()</code>, <code>optimizers()</code>, <code>SEEDS</code>, <code>BUDGETS</code> and optionally <code>report(runs)</code>, markdown such as a check of the pass criteria. The workflow runs one shard of it per job, dealing runs round-robin by problem, budget and seed, so every shard holds some of each problem's seeds and every optimizer's run of one seed is made on the same runner, and a last job puts them together, refusing unless every run the spec makes is there exactly once. The runs, summaries and results table are its <code>measurement</code> artifact, and the table is shown on the run's summary page.</p>
 <div class="highlight"><pre><span></span><code>gh workflow run measure.yml -f spec=benchmarks/specs/smoke.py -f shards=20
 gh run download --name measurement
 </code></pre></div>
-<p>The same runs on one machine are <code>python -m hone.benchmarks.sharded run SPEC --shard 0 --of 1 --out runs.json</code>, then <code>merge SPEC runs.json --markdown results.md</code>, and give the same results there. Results from the runners are on Linux, whose maths libraries round differently from macOS's, so a comparison runs every side of it in the same place. Times from the runners aren't comparable with <code>cost-summaries.json</code>, which is measured on one machine.</p>
+<p>The same runs on one machine are <code>python -m hone.benchmarks.sharded run SPEC --shard 0 --of 1 --out runs.json</code>, then <code>merge SPEC runs.json --markdown results.md</code>, and give the same results there. Results from the runners are on Linux, whose maths libraries round differently from macOS's, so a comparison runs every side of it in the same place. Even GitHub's runners differ in processor, and OpenBLAS chooses its arithmetic by processor, which is why a seed's runs share a shard. Times from the runners aren't comparable with <code>cost-summaries.json</code>, which is measured on one machine.</p>
 <h2 id="multi-objective-problems">Multi-objective problems<a class="headerlink" href="#multi-objective-problems" title="Permanent link">&para;</a></h2>
 <p><code>python -m hone.benchmarks --multi</code> runs seven problems with two or three objectives, at the same five budgets. A run is scored by the <strong>hypervolume gap</strong>: the true front's hypervolume less that of the front the run found, with each objective scaled from 0 at the true front's best value to 1 at its worst and a reference point of 1.1. 0 is the true front; lower is better. The scale is fixed per problem, so gaps compare across optimizers and seeds.</p>
 <table>

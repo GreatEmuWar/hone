@@ -1075,6 +1075,8 @@
       
         
       
+        
+      
     
     
     
@@ -1284,6 +1286,34 @@
     
   
     Cost of a Bayesian candidate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/margin-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Margin of safety under noise
   
 
     
@@ -2710,6 +2740,7 @@
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>With noise, limits on outputs are judged with a margin of safety.</strong> A design passes a limit only if its average margin clears it by Φ⁻¹(<code>confidence</code>) standard errors, about 1.64 at the default <code>confidence=0.95</code>. Each limit's noise is the pooled spread of its margin over every design evaluated more than once, assuming it is about the same everywhere; until there are 3 degrees of freedom, a limit is judged on the average alone. The final round then comes in two halves: the first re-evaluates the finalists, which gives the noise its degrees of freedom, and the second the two designs likeliest to pass once re-evaluated. On the three noisy engineering designs over 30 seeds, Bayesian optimization's results that report satisfying their limits but truly break one fall from 17% to 50% of runs to at most 10%, and its truly feasible results rise, for designs 0.1 to 2 percentage points further from the optimum. <code>confidence=None</code> judges on the average alone, as before. Seeded runs with noise and constraints on outputs differ from 0.14.0's, and a checkpoint saved by 0.14.0 with them is refused as set up differently. Without noise or constraints on outputs nothing changes.</li>
 <li><strong>Batches of Bayesian optimization keep their candidates apart.</strong> Choosing several candidates at once, with <code>population_size</code> above 1 or several workers, Bayesian optimization assumed each chosen candidate would come out as its model predicted, the kriging believer. That leaves the model's mean where it was, so later candidates of a batch landed beside the first, often within 0.001 of it. It now assumes each comes out no better than the best so far, the constant liar, and starts its search only from evaluated points. Over 30 seeds on the outputs and quick suites, at batch sizes 4 and 8 and 10 and 20 evaluations per dimension, median errors fall to ×0.47 to ×0.81 of the believer's by geometric mean, at the same cost per candidate. One candidate at a time with nothing pending chooses exactly as before. Seeded batched runs give different results from 0.14.0's.</li>
 <li><strong>The final round is on by default with noise and constraints on outputs.</strong> <code>final_evaluations</code> now defaults to <code>None</code>: no final round, as before, except with noise and constraints on outputs, where a tenth of <code>max_evaluations</code> is kept back, at least 10 and at most half (10 without <code>max_evaluations</code>). Judged on one draw, a design on the boundary of a limit passes it half the time, so the result's feasibility rests on several: on the noisy engineering designs it raises Bayesian optimization's share of truly feasible results from 17% to 43% on the pressure vessel and from 40% to 70% on the welded beam at 50 evaluations per dimension, and CMA-ES's from 73% to 100% at 100, at the cost of the evaluations it takes from the search. <code>final_evaluations=0</code> keeps none back, as before. A checkpoint saved by 0.14.0 with the default <code>final_evaluations</code> is refused as set up differently, since the default is now <code>None</code>; a run resumed across the upgrade starts over. Benchmark runs on a problem with noise on its outputs alone run with <code>noise=True</code> too.</li>
 </ul>
@@ -2719,6 +2750,7 @@
 </ul>
 <h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>Benchmark runs record what the result claimed.</strong> With constraints on outputs, each <code>Run</code> has <code>reported_feasible</code>, so a measurement can count results that say they satisfy their limits but truly don't. The Measure workflow deals a seed's runs of every optimizer to the same shard, since GitHub's runners differ in processor and OpenBLAS rounds by processor.</li>
 <li><strong>Measurements shared among GitHub's runners.</strong> The Measure workflow, started by hand, runs a spec from <code>benchmarks/specs/</code> in up to 40 shards, one job each, and puts them together, checked so that every run the spec makes is there exactly once. <code>run_benchmark</code> takes <code>shard=(index, count)</code>, and <code>python -m hone.benchmarks.sharded</code> runs and merges shards on any machine.</li>
 <li><strong>The CMA-ES Rosenbrock test states a rate, not a seed.</strong> It required 10-dimensional Rosenbrock solved on each of three seeds, but CMA-ES ends in a local minimum on about 7% of seeds, and which ones depends on the platform's maths libraries: seed 0 started missing after a macOS update. It now requires at least 15 of 20 seeds.</li>
 <li><strong>The cost of a Bayesian candidate, measured.</strong> <code>python -m hone.benchmarks --cost</code> (or <code>make benchmark-cost</code>) times Bayesian optimization's proposals against the evaluations so far, 50 to 500, and the limits on outputs, 0 to 8, at batch sizes 1 and 8, each cell the mean over 3 seeds, with a profiled run of g07. The table, in <code>benchmarks/cost-results.md</code> and <code>cost-summaries.json</code>, is the ceiling later changes are held to: at most ×1.2 at 500 evaluations without sign-off, which <code>--baseline</code> checks. At 500 evaluations a candidate takes 0.08 seconds with no limits and 0.78 with eight, on an Apple M2.</li>
