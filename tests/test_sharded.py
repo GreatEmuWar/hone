@@ -45,6 +45,17 @@ def test_the_shards_make_every_run_once_and_the_same_runs():
     assert max(map(len, shards)) - min(map(len, shards)) <= 1
 
 
+def test_every_optimizer_runs_a_seed_in_the_same_shard():
+    """So a comparison between optimizers, seed by seed, is made on one machine's maths libraries."""
+    problems, optimizers = quick_problems()[:2], {"random": random_search, "again": random_search}
+    shards = [run_benchmark(problems, optimizers, range(3), (10, 20), shard=(i, 4)) for i in range(4)]
+    where = {}
+    for i, shard in enumerate(shards):
+        for run in shard:
+            where.setdefault((run.problem, run.budget_per_dimension, run.seed), set()).add(i)
+    assert len(where) == 12 and all(len(found) == 1 for found in where.values())
+
+
 def test_a_shard_that_doesnt_exist_is_refused():
     with pytest.raises(ValueError, match="doesn't exist"):
         run_benchmark(quick_problems()[:1], {"random": random_search}, range(1), (10,), shard=(3, 3))

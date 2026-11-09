@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar, and item 7, a margin of safety for limits under noise, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -123,6 +123,58 @@ The constant liar ships, as the simpler of the two that lie: it needs no predict
 
 While checking that the final code repeats the measured runs, seeded Bayesian runs on rastrigin-5d turned out not to repeat exactly on macOS, on main as well: two runs in one process part at the 65th evaluation by about 1e-9, with BLAS held to one thread. The cause is Apple's Accelerate: its single right-hand-side triangular solve, and some matrix-vector products and dot products, give last-bit results that depend on where in memory an operand starts, from about 64 rows up, and small NumPy arrays start wherever the allocator puts them. Every repeatability test stopped below 64 evaluations. Fixed after item 6: the Gaussian process places those vectors on a 256-byte boundary, and a test checks its results are the same bits wherever its inputs sit in memory.
 
+## 7. A margin of safety for limits under noise
+
+Added on 8 Nov 2026 from item 2's measurement, and taken into 0.15.0 by the user's decision, ahead of noise with several objectives, which can then reuse it. Design, for sign-off before it is built.
+
+The problem. With noise, a limit is judged on the average of a design's outputs. The best design usually sits on a limit, where its true margin is near zero, so whether its average passes is close to a coin flip however often it is measured, and the better the optimizer, the closer it sits. On the noisy engineering designs, only 43% to 70% of Bayesian optimization's returned designs truly satisfy every limit at 50 evaluations per dimension, and `Result.feasible` says True for most of the rest. A result that breaks a limit while reporting that it doesn't is the worst kind of wrong answer.
+
+The rule. A design passes a limit only if its average margin clears it by k standard errors:
+
+    average margin + k × s / √n ≤ 0
+
+where n is the number of times the design was evaluated, s is the noise in that limit's margin, and k = Φ⁻¹(confidence), so `confidence=0.95` gives k ≈ 1.64 per limit. As a design is measured more often, its standard error shrinks and it may sit closer to the limit. The violation used by Deb's rule becomes the relative violation of the shifted margin, so ranking, the result, `Result.feasible`, progress and the threshold all use the same test.
+
+Where s comes from. Few designs are evaluated twice during a search, so s can't be each design's own spread. It is pooled: for each limit, the within-design variance of its margin over every design evaluated at least twice, weighted by degrees of freedom. That assumes the noise in a limit's margin is about the same everywhere, which suits a simulator's or a rig's noise and is stated in the docs. Margins rather than outputs are pooled, so a limit on several outputs, such as `Output("a") <= Output("b")`, gets the noise of its own difference. Until there are at least 3 degrees of freedom for a limit, there is no margin on it and the current rule applies.
+
+The final round in two halves. Today the final round re-evaluates up to 5 finalists chosen before any repeats exist, then returns the best of them by average. Under the margin, the first half of the reserve re-evaluates the finalists as now, which gives the pooled estimate its degrees of freedom; the second half re-ranks every evaluated design by its averages with the margin, as every optimizer ranks its finalists, and spends the rest on the new leaders that are likeliest to pass, so a design with some slack can still win if the first finalists all sat on the limit. The result is the best finalist that passes with the margin, or, if none does, the least violating, with `feasible=False`.
+
+The setting. `confidence: float | None` on every config, used only with noise and output constraints. The default is 0.95. `None` turns the margin off and gives exactly the behaviour of item 2. It joins the run's settings, so a checkpoint saved without it is refused as set up differently, as `final_evaluations` was.
+
+Pass criteria, fixed before measuring. Over 30 seeds on the three noisy engineering designs at 10, 20, 50 and 100 evaluations per dimension, for Bayesian optimization (up to its 200-evaluation cap), CMA-ES, the genetic optimizer and random search, against item 2's behaviour (`confidence=None`):
+
+- **Truly feasible results.** The share of runs whose returned design truly satisfies every limit rises in every cell where it was under 90%, and falls by no more than one run in ten anywhere.
+- **Honest reporting.** The share of runs where `Result.feasible` is True but the design truly breaks a limit is at most 10% in every cell; item 2 is measured on this too, for comparison.
+- **What it costs.** The median error, counting a truly infeasible result as infinite as the benchmark does, worsens by no more than ×1.1 in any cell. Among runs truly feasible under both, the median error worsens by no more than ×1.5, which bounds how conservative the margin makes a design.
+- **Nothing else moves.** Without noise, or without output constraints, seeded runs are exactly unchanged, which tests check.
+- **Within the cost ceiling,** though the margin adds no model, so the cost table isn't expected to move.
+
+If 0.95 fails the criteria and 0.9 or 0.99 passes, the passing value becomes the default, with the measurement stating why. The run is a spec on the Measure workflow.
+
+Measured, and shipped with 0.95 as the default by the user's decision of 8 Nov 2026, past six of the criteria. On GitHub's runners by the Measure workflow, 5,400 runs, the full table in `benchmarks/margin-results.md`.
+
+The first version failed 19 checks at 0.95, two kinds. Nine were cells where the margin changed nothing, mostly the spring at small budgets, where the search often finds nothing feasible to protect; the criterion that a share under 90% must rise failed them for staying the same, a flaw in how it was written, and the user clarified that a cell the margin leaves unchanged seed for seed needn't rise. The rest were Bayesian optimization made too conservative, up to 5.8% above the optimum against 0.7%: the second half ranked its candidates with the margins they had, so a design evaluated once, with a wide margin, could only lead if it sat far from the limit. Ranking them with the standard error they would have after their share of the half, and concentrating the half on two designs, brought the failures at 0.95 to six. The same measurement also found GitHub's runners differ in processor, and OpenBLAS's arithmetic with them, so the workflow now deals each seed's runs of every optimizer to one shard; the numbers below are from that run.
+
+Bayesian optimization, truly feasible runs of 30, the median distance above the optimum among them, and the share that report feasible but truly break a limit:
+
+| Problem, per dimension | Average alone | confidence 0.95 |
+| --- | --- | --- |
+| Pressure vessel, 10 | 26, 3.7%, 13% | 30, 4.8%, 0% |
+| Pressure vessel, 20 | 19, 1.4%, 37% | 26, 2.3%, 10% |
+| Pressure vessel, 50 | 14, 1.0%, 43% | 19, 0.9%, 7% |
+| Spring, 20 | 26, 2.3%, 13% | 29, 4.4%, 0% |
+| Spring, 50 | 14, 0.8%, 53% | 21, 1.1%, 3% |
+| Welded beam, 20 | 25, 1.8%, 17% | 28, 2.4%, 3% |
+| Welded beam, 50 | 23, 1.2%, 20% | 27, 1.4%, 3% |
+
+- **Honest reporting passes everywhere.** At 0.95 no cell of any optimizer has more than 10% of results reporting feasible while truly breaking a limit, against up to 53% before.
+- **Truly feasible results rise** wherever the margin applies and the share was under 90%, except the genetic optimizer on the spring at 100 per dimension, where runs changed and the share stayed at 87%. CMA-ES, the genetic optimizer and random search pay almost nothing: their median errors are within ×1.1 everywhere but CMA-ES on the beam at 100 per dimension at 0.99.
+- **Bayesian optimization pays 0.1 to 2 percentage points of objective,** past the bounds in five checks at small budgets: median error ×1.24 on the vessel at 10 per dimension, ×1.65 on the spring and ×1.21 on the beam at 20, and among runs feasible both ways ×1.67 on the vessel and ×1.76 on the spring at 20. The bounds were set before seeing what a statistical margin costs; it costs about what a safety factor does, and the user judged it worth it.
+- **0.9 and 0.99 are no better.** 0.9 fails five checks and lets the vessel at 50 per dimension fall; 0.99 fails fourteen, costing Bayesian optimization up to ×2.3. So 0.95 stays.
+- **Bayesian optimization still misses on the vessel at 50 per dimension,** 19 of 30: the margin rests on the noise it can estimate from a final round of 20 evaluations, and its designs are the closest to the limits. More evaluations in the final round would help, at the search's expense.
+
+What it doesn't do. Feasibility as a probability from the models, which would use the constraints' Gaussian processes rather than repeats, stays for later; so does a noise level given by the user, which a pooled estimate makes unnecessary when there are repeats.
+
 ## Delivery
 
-Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) noise with several objectives; (7) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) item 7, the margin of safety, added on 8 Nov 2026; (7) noise with several objectives, which reuses it; (8) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.

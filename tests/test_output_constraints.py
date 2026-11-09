@@ -1,12 +1,14 @@
 """Constraints on outputs: limits judged once an evaluation reports what they need, written like any other constraint."""
 import math
 import pickle
+from statistics import NormalDist
 
 import numpy as np
 
 import pytest
 from pydantic import ValidationError
 
+from hone.optimizers.base import MARGIN_FREEDOM
 from hone.optimizers.core import Individual
 from hone import (
     CMAES,
@@ -257,7 +259,9 @@ def test_progress_and_the_threshold_follow_the_average_outputs():
 
 def test_the_genetic_optimizer_refreshes_violations_when_it_breeds():
     space = SearchSpace([RangeParameter("n", 0, 0, integer=True)], [TOTAL <= 4])
-    config = GeneticOptimizerConfig(population_size=4, tournament_size=2, generations=3, noise=True, final_evaluations=0, seed=0)
+    config = GeneticOptimizerConfig(
+        population_size=4, tournament_size=2, generations=3, noise=True, final_evaluations=0, confidence=None, seed=0
+    )
     optimizer = GeneticOptimizer(space, config)
     tell_all(optimizer, [{"objective": 0.0, "total": 3.0}, {"objective": 1.0, "total": 7.0}, {"objective": 1.0, "total": 7.0}, {"objective": 1.0, "total": 7.0}])
     first = optimizer._population[0]
@@ -283,7 +287,54 @@ def test_the_final_round_is_on_by_default_with_noise_and_output_constraints(conf
     assert RandomSearch([X, Y], OptimizerConfig(population_size=10, **config))._reserve == (config.get("final_evaluations") or 0) * ("noise" in config)
 
 
-def test_the_default_final_round_re_evaluates_the_finalists_and_judges_them_on_their_averages():
+def test_without_the_margin_the_final_round_re_evaluates_the_finalists_and_judges_them_on_their_averages():
+    rng = np.random.default_rng(0)
+
+    def noisy_bowl(x, y):
+        value = bowl(x, y)
+        return {"objective": value["objective"] + rng.normal(), "total": value["total"] + 0.5 * rng.normal()}
+
+    optimizer = RandomSearch(SPACE, OptimizerConfig(population_size=10, max_evaluations=60, noise=True, confidence=None, seed=0))
+    result = optimizer.optimize(noisy_bowl)
+    assert result.evaluations == 60 and len(optimizer._finalists) == 5
+    key = optimizer._key(optimizer.search_space.check(result.best_params))
+    assert key in optimizer._finalists and len(optimizer._observations[key]) >= 3
+    assert result.feasible == (optimizer._violation(key) == 0)
+    assert result.best_outputs == optimizer._average_outputs(key) and result.best_fitness == optimizer._average(key)
+
+
+def _one_point(totals, **config):
+    """A genetic optimizer whose only point has been evaluated once per total, its violation then refreshed."""
+    space = SearchSpace([RangeParameter("n", 0, 0, integer=True)], [TOTAL <= 4])
+    config = {"population_size": len(totals), "tournament_size": 2, "generations": 3, "noise": True, "final_evaluations": 0, "seed": 0, **config}
+    optimizer = GeneticOptimizer(space, GeneticOptimizerConfig(**config))
+    tell_all(optimizer, [{"objective": 0.0, "total": t} for t in totals])
+    return optimizer, optimizer._key(optimizer._population[0].params)
+
+
+def test_the_margin_widens_a_limit_by_k_standard_errors_of_the_pooled_noise():
+    optimizer, key = _one_point([3.0, 7.0, 7.0, 7.0])
+    # relative margins -0.25, 0.75, 0.75, 0.75: mean 0.5, pooled sd 0.5 on 3 degrees of freedom
+    assert optimizer._limit_noise() == [(pytest.approx(0.5), 3)]
+    k = NormalDist().inv_cdf(0.95)
+    assert optimizer._violation(key) == pytest.approx(0.5 + k * 0.5 / math.sqrt(4))
+
+
+def test_a_design_just_inside_a_noisy_limit_fails_the_margin_and_one_clear_of_it_passes():
+    inside = [3.9, 3.8, 4.1, 3.6]  # average 3.85, under 4 by less than its noise
+    assert _one_point(inside, confidence=None)[0]._violation(_one_point(inside, confidence=None)[1]) == 0
+    optimizer, key = _one_point(inside)
+    assert optimizer._violation(key) > 0
+    optimizer, key = _one_point([t - 1 for t in inside])  # average 2.85
+    assert optimizer._violation(key) == 0
+
+
+def test_without_enough_repeats_a_limit_is_judged_on_the_average_alone():
+    optimizer, key = _one_point([3.9, 3.8, 4.1])  # 2 degrees of freedom
+    assert optimizer._limit_noise()[0][1] == 2 and optimizer._violation(key) == 0
+
+
+def test_with_the_margin_the_final_round_comes_in_two_halves():
     rng = np.random.default_rng(0)
 
     def noisy_bowl(x, y):
@@ -292,11 +343,29 @@ def test_the_default_final_round_re_evaluates_the_finalists_and_judges_them_on_t
 
     optimizer = RandomSearch(SPACE, OptimizerConfig(population_size=10, max_evaluations=60, noise=True, seed=0))
     result = optimizer.optimize(noisy_bowl)
-    assert result.evaluations == 60 and len(optimizer._finalists) == 5
+    assert result.evaluations == 60 and optimizer._final_half == 2
+    assert [g.evaluations for g in result.generations][-3:] == [50, 55, 60], "the search, then two halves of 5"
+    assert optimizer._limit_noise()[0][1] >= MARGIN_FREEDOM
     key = optimizer._key(optimizer.search_space.check(result.best_params))
-    assert key in optimizer._finalists and len(optimizer._observations[key]) >= 3
-    assert result.feasible == (optimizer._violation(key) == 0)
-    assert result.best_outputs == optimizer._average_outputs(key) and result.best_fitness == optimizer._average(key)
+    assert key in optimizer._finalists and result.feasible == (optimizer._violation(key) == 0)
+
+
+@pytest.mark.parametrize("noise, space", [(False, SPACE), (True, [X, Y])])
+def test_without_noise_or_without_output_constraints_the_margin_changes_nothing(noise, space):
+    rng = np.random.default_rng(0)
+
+    def objective(x, y):
+        value = bowl(x, y)["objective"] + (rng.normal() if noise else 0.0)
+        return {"objective": value, "total": x + y} if space is SPACE else value
+
+    def run(confidence):
+        rng.bit_generator.state = np.random.default_rng(0).bit_generator.state
+        config = GeneticOptimizerConfig(population_size=10, max_evaluations=60, noise=noise, confidence=confidence, seed=0)
+        return GeneticOptimizer(space, config).optimize(objective)
+
+    with_margin, without = run(0.95), run(None)
+    assert (with_margin.best_params, with_margin.best_fitness, with_margin.evaluations) == (without.best_params, without.best_fitness, without.evaluations)
+    assert [g.evaluations for g in with_margin.generations] == [g.evaluations for g in without.generations]
 
 
 def test_every_optimizer_runs_noise_with_output_constraints():
