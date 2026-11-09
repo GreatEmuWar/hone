@@ -14,6 +14,7 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `constrained-summaries.json` | The same results as data |
 | [outputs-results.md](outputs-results.md) | The results on problems with constraints on outputs, from `make benchmark-outputs` |
 | `outputs-summaries.json` | The same results as data |
+| [engineering-results.md](engineering-results.md) | Each engineering design and g06, g07 and g10 against its published optimum, built from the two files above by `make benchmark-engineering` |
 | [cost-results.md](cost-results.md) | Seconds per Bayesian candidate against evaluations and limits on outputs, with a profiled run, from `make benchmark-cost` |
 | `cost-summaries.json` | The same table as data, the ceiling later changes are held to |
 | [conditional-results.md](conditional-results.md) | The conditional problems' results, from `make benchmark-conditional` |
@@ -139,7 +140,7 @@ The machine learning suite has a conditional problem too: model-selection-breast
 | tension-spring | A spring of least weight under four limits; only 0.8% of the box satisfies them all |
 | welded-beam | A welded beam of least cost under six limits, two of them functions with square roots; 2.9% of the box is feasible |
 
-The engineering problems are scored against the best designs published for them. With limits on the parameters, every optimizer only ever asks for feasible points, so each evaluation counts. The findings below are for those ten problems.
+The engineering problems are scored against the best designs published for them; [engineering-results.md](engineering-results.md) sets each optimizer's best median against those designs. With limits on the parameters, every optimizer only ever asks for feasible points, so each evaluation counts. The findings below are for those ten problems.
 
 - **Bayesian optimization is the best at small budgets**, more clearly than without constraints: it has the lowest median error on all ten problems at 10 and 20 evaluations per dimension, and all six it runs on at 50. On the pressure vessel with 40 evaluations its median cost is 266 above the best known design, against 10,010 for CMA-ES and 19,140 for random search.
 - **CMA-ES is the best at 1,000 evaluations per dimension**, on all ten problems. It finds the best known design of nine of them in every run, and of the pressure vessel in three of ten. When a candidate breaks a constraint, it draws again from the same distribution. Ranking such candidates below every feasible one without evaluating them was also tried, and did worse at every budget (×1.17 to ×1.59).

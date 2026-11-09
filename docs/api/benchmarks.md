@@ -8,6 +8,8 @@
 
 ::: hone.benchmarks.to_markdown
 
+::: hone.benchmarks.engineering_table
+
 ::: hone.benchmarks.standard_problems
 
 ::: hone.benchmarks.quick_problems
