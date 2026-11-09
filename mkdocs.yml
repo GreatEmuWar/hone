@@ -116,6 +116,7 @@ nav:
       - Constrained problems: benchmarks/constrained-results.md
       - Constraints on outputs: benchmarks/outputs-results.md
       - Cost of a Bayesian candidate: benchmarks/cost-results.md
+      - Margin of safety under noise: benchmarks/margin-results.md
       - Conditional problems: benchmarks/conditional-results.md
       - Several objectives: benchmarks/multi-results.md
   - Changelog: changelog.md

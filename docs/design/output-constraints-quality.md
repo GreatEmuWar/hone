@@ -1,6 +1,6 @@
 # Output constraints, quality improvements: design
 
-Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
+Status: in progress, for 0.15.0. Step 0, the measuring tools, and step 1b, the cost of a Bayesian candidate, are done, item 2, noise with output constraints, is built, and item 6, batches that bunch together, is fixed with the constant liar, and item 7, a margin of safety for limits under noise, is built; item 1 is set aside, and item 5 was measured and not shipped. The rest are hypotheses until measured.
 
 [Output constraints](output-constraints.md) shipped in 0.14.0 with a list of known weaknesses. This release measures each one and fixes those the measurements justify. The rule throughout is measure first, with the pass criteria fixed before seeing the results.
 
@@ -151,8 +151,30 @@ Pass criteria, fixed before measuring. Over 30 seeds on the three noisy engineer
 
 If 0.95 fails the criteria and 0.9 or 0.99 passes, the passing value becomes the default, with the measurement stating why. The run is a spec on the Measure workflow.
 
+Measured, and shipped with 0.95 as the default by the user's decision of 8 Nov 2026, past six of the criteria. On GitHub's runners by the Measure workflow, 5,400 runs, the full table in `benchmarks/margin-results.md`.
+
+The first version failed 19 checks at 0.95, two kinds. Nine were cells where the margin changed nothing, mostly the spring at small budgets, where the search often finds nothing feasible to protect; the criterion that a share under 90% must rise failed them for staying the same, a flaw in how it was written, and the user clarified that a cell the margin leaves unchanged seed for seed needn't rise. The rest were Bayesian optimization made too conservative, up to 5.8% above the optimum against 0.7%: the second half ranked its candidates with the margins they had, so a design evaluated once, with a wide margin, could only lead if it sat far from the limit. Ranking them with the standard error they would have after their share of the half, and concentrating the half on two designs, brought the failures at 0.95 to six. The same measurement also found GitHub's runners differ in processor, and OpenBLAS's arithmetic with them, so the workflow now deals each seed's runs of every optimizer to one shard; the numbers below are from that run.
+
+Bayesian optimization, truly feasible runs of 30, the median distance above the optimum among them, and the share that report feasible but truly break a limit:
+
+| Problem, per dimension | Average alone | confidence 0.95 |
+| --- | --- | --- |
+| Pressure vessel, 10 | 26, 3.7%, 13% | 30, 4.8%, 0% |
+| Pressure vessel, 20 | 19, 1.4%, 37% | 26, 2.3%, 10% |
+| Pressure vessel, 50 | 14, 1.0%, 43% | 19, 0.9%, 7% |
+| Spring, 20 | 26, 2.3%, 13% | 29, 4.4%, 0% |
+| Spring, 50 | 14, 0.8%, 53% | 21, 1.1%, 3% |
+| Welded beam, 20 | 25, 1.8%, 17% | 28, 2.4%, 3% |
+| Welded beam, 50 | 23, 1.2%, 20% | 27, 1.4%, 3% |
+
+- **Honest reporting passes everywhere.** At 0.95 no cell of any optimizer has more than 10% of results reporting feasible while truly breaking a limit, against up to 53% before.
+- **Truly feasible results rise** wherever the margin applies and the share was under 90%, except the genetic optimizer on the spring at 100 per dimension, where runs changed and the share stayed at 87%. CMA-ES, the genetic optimizer and random search pay almost nothing: their median errors are within ×1.1 everywhere but CMA-ES on the beam at 100 per dimension at 0.99.
+- **Bayesian optimization pays 0.1 to 2 percentage points of objective,** past the bounds in five checks at small budgets: median error ×1.24 on the vessel at 10 per dimension, ×1.65 on the spring and ×1.21 on the beam at 20, and among runs feasible both ways ×1.67 on the vessel and ×1.76 on the spring at 20. The bounds were set before seeing what a statistical margin costs; it costs about what a safety factor does, and the user judged it worth it.
+- **0.9 and 0.99 are no better.** 0.9 fails five checks and lets the vessel at 50 per dimension fall; 0.99 fails fourteen, costing Bayesian optimization up to ×2.3. So 0.95 stays.
+- **Bayesian optimization still misses on the vessel at 50 per dimension,** 19 of 30: the margin rests on the noise it can estimate from a final round of 20 evaluations, and its designs are the closest to the limits. More evaluations in the final round would help, at the search's expense.
+
 What it doesn't do. Feasibility as a probability from the models, which would use the constraints' Gaussian processes rather than repeats, stays for later; so does a noise level given by the user, which a pooled estimate makes unnecessary when there are repeats.
 
 ## Delivery
 
-Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) noise with several objectives; (7) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, set aside; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) item 7, the margin of safety, added on 8 Nov 2026; (7) noise with several objectives, which reuses it; (8) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
