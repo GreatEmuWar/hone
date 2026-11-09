@@ -37,6 +37,7 @@ __all__ = [
 
 DEFAULT_FINAL_EVALUATIONS = 10  # kept back by default with noise and constraints on outputs, when a tenth of the budget is less, or there is none
 MARGIN_FREEDOM = 3  # degrees of freedom a limit's pooled noise needs before the margin of safety applies to it
+SECOND_HALF_POINTS = 2  # the points the final round's second half re-evaluates, each several times
 MARGIN_HALF_AT_LEAST = 2  # the final round splits in two halves only if each gets at least this many evaluations
 
 
@@ -270,11 +271,12 @@ class Optimizer(OptimizerCore[Result]):
             return None
         return {name: float(np.mean([outputs[name] for outputs in seen])) for name in self.search_space.outputs}
 
-    def _violation(self, key: tuple) -> float:
+    def _violation(self, key: tuple, more: int = 0) -> float:
         """The total violation of the output constraints by the point's average outputs: 0 without any.
 
         With the margin of safety, each limit whose noise is known is judged with its average
         margin widened by k standard errors, so a design passes only if it clears the limit by them.
+        With more, the standard errors are those the point would have after that many more evaluations.
         """
         outputs = self._average_outputs(key)
         if outputs is None:
@@ -283,7 +285,7 @@ class Optimizer(OptimizerCore[Result]):
         if not self._margin_on():
             return self.search_space.output_violation(point, outputs)
         k = NormalDist().inv_cdf(self.config.confidence)  # type: ignore[arg-type]
-        n = len(self._output_observations[key])
+        n = len(self._output_observations[key]) + more
         active = self.search_space.active(point)
         total = 0.0
         for constraint, (spread, freedom) in zip(self.search_space.output_constraints, self._limit_noise()):
@@ -324,11 +326,12 @@ class Optimizer(OptimizerCore[Result]):
         self._noise_cache = (self._evaluations, noise)
         return noise
 
-    def _ranked_keys(self, keys: list[tuple]) -> list[tuple]:
+    def _ranked_keys(self, keys: list[tuple], more: int = 0) -> list[tuple]:
         """Evaluated points, by key, best first: by Deb's rule on the averages, so those whose average
-        outputs satisfy every constraint come first, by average value, then the rest by violation."""
+        outputs satisfy every constraint come first, by average value, then the rest by violation.
+        With more, each is judged as it would be after that many more evaluations; see _violation."""
         sign = -1.0 if self.config.maximize else 1.0
-        return sorted(keys, key=lambda key: (self._violation(key), sign * self._average(key)))
+        return sorted(keys, key=lambda key: (self._violation(key, more), sign * self._average(key)))
 
     def _finalist_order(self) -> list[tuple]:
         """Every successfully evaluated point, by key, most promising first. Optimizers with a
@@ -356,10 +359,13 @@ class Optimizer(OptimizerCore[Result]):
         outputs, a finalist whose average outputs satisfy them all beats one whose don't.
         """
         if self._final_half == 2:
-            # The second half: the points likeliest to pass with the margin, now that the noise is known.
+            # The second half: now that the noise is known, the points likeliest to pass with the
+            # margin, each judged with the standard error it will have after its share of the half,
+            # which is concentrated on SECOND_HALF_POINTS so the standard errors come down.
             reserve = self._second_reserve
-            order = self._finalist_order()
-            chosen = order[: max(1, min(5, reserve // 2, len(order)))]
+            count = max(1, min(SECOND_HALF_POINTS, reserve // 2))
+            order = self._ranked_keys(list(self._observations), more=reserve // count)
+            chosen = order[: min(count, len(order))]
             self._finalists += [key for key in chosen if key not in self._finalists]
         else:
             reserve = self._reserve

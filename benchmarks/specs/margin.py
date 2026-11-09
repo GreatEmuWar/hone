@@ -60,7 +60,7 @@ def report(runs):
     for run in runs:
         kind, confidence = run.optimizer.split("@")
         cells.setdefault((run.problem, kind, run.budget_per_dimension), {}).setdefault(confidence, {})[run.seed] = run
-    lines = ["## Item 7's pass criteria", ""]
+    lines = ["## Item 7's pass criteria", "", "A cell where the margin changed no run, seed for seed, needn't rise: the user's clarification of 8 Nov 2026.", ""]
     lines += ["| Problem | Optimizer | Per dim | Feasible: none / 0.9 / 0.95 / 0.99 | False assurance: none / 0.9 / 0.95 / 0.99 | Median error ×, 0.95 | Feasible-both error ×, 0.95 |"]
     lines += ["| --- | --- | ---: | --- | --- | ---: | ---: |"]
     failures = {c: [] for c in ("0.9", "0.95", "0.99")}
@@ -74,7 +74,8 @@ def report(runs):
             paired = [(by[c][s].error, base[s].error) for s in base if math.isfinite(base[s].error) and math.isfinite(by[c][s].error)]
             both[c] = _ratio(statistics.median(p[0] for p in paired), statistics.median(p[1] for p in paired)) if paired else 1.0
             where = f"{problem}, {kind}, {budget}/dim"
-            if share["none"] < 0.9 and not share[c] > share["none"]:
+            unchanged = all(by[c][s].error == base[s].error and by[c][s].reported_feasible == base[s].reported_feasible for s in base)
+            if share["none"] < 0.9 and not share[c] > share["none"] and not unchanged:
                 failures[c].append(f"{where}: feasible share {share['none']:.0%} -> {share[c]:.0%}, not up")
             if share["none"] - share[c] > 0.1 + 1e-9:
                 failures[c].append(f"{where}: feasible share fell {share['none']:.0%} -> {share[c]:.0%}")
