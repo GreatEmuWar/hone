@@ -33,6 +33,7 @@ PAGES = {
     "benchmarks/ml-results.md": "benchmarks/ml-results.md",
     "benchmarks/constrained-results.md": "benchmarks/constrained-results.md",
     "benchmarks/outputs-results.md": "benchmarks/outputs-results.md",
+    "benchmarks/engineering-results.md": "benchmarks/engineering-results.md",
     "benchmarks/cost-results.md": "benchmarks/cost-results.md",
     "benchmarks/margin-results.md": "benchmarks/margin-results.md",
     "benchmarks/conditional-results.md": "benchmarks/conditional-results.md",

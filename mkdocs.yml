@@ -115,6 +115,7 @@ nav:
       - Machine learning: benchmarks/ml-results.md
       - Constrained problems: benchmarks/constrained-results.md
       - Constraints on outputs: benchmarks/outputs-results.md
+      - Engineering designs: benchmarks/engineering-results.md
       - Cost of a Bayesian candidate: benchmarks/cost-results.md
       - Margin of safety under noise: benchmarks/margin-results.md
       - Conditional problems: benchmarks/conditional-results.md

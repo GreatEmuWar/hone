@@ -56,6 +56,11 @@ benchmark-cost: install
 benchmark-outputs: install
 	@poetry run python -m hone.benchmarks --outputs --jobs 4 --markdown benchmarks/outputs-results.md --save benchmarks/outputs-summaries.json
 
+# Runs nothing: tabulates the summaries that benchmark-constrained and benchmark-outputs save.
+.PHONY: benchmark-engineering
+benchmark-engineering: install
+	@poetry run python -m hone.benchmarks --engineering --markdown benchmarks/engineering-results.md
+
 .PHONY: docker-build
 docker-build:
 	@docker build -t hone .

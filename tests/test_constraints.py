@@ -237,6 +237,7 @@ def test_a_rebuilt_optimizer_needs_function_constraints_passed_again(tmp_path):
     assert loaded.rebuild_optimizer(functions={"stress": stress}).optimize(area) == result
 
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 def test_a_checkpoint_resumes_a_run_with_a_function_constraint(tmp_path):
     space = SearchSpace([WIDTH, HEIGHT], [Constraint.function(lambda width, height: width * height - 40, name="area")])
     whole = random_search(space, population_size=10).optimize(area)
