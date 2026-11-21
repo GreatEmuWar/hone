@@ -1,7 +1,6 @@
 """The base class of every single-objective optimizer: one number per evaluation, to minimize or maximize."""
 import math
 import numbers
-from scipy.stats import t as student_t
 from typing import Any, Callable
 
 import numpy as np
@@ -13,8 +12,10 @@ from .core import (
     OBJECTIVE,
     EvaluationFailed,
     Individual,
+    MARGIN_FREEDOM,
     OptimizerCore,
     Trial,
+    _OutputNoise,
     UnsupportedSearchSpace,
     _evaluate,
     _hone_version,
@@ -26,6 +27,7 @@ __all__ = [
     "OBJECTIVE",
     "EvaluationFailed",
     "Individual",
+    "MARGIN_FREEDOM",
     "Optimizer",
     "Trial",
     "UnsupportedSearchSpace",
@@ -36,12 +38,11 @@ __all__ = [
 ]
 
 DEFAULT_FINAL_EVALUATIONS = 10  # kept back by default with noise and constraints on outputs, when a tenth of the budget is less, or there is none
-MARGIN_FREEDOM = 3  # degrees of freedom a limit's pooled noise needs before the margin of safety applies to it
 SECOND_HALF_POINTS = 2  # the points the final round's second half re-evaluates, each several times
 MARGIN_HALF_AT_LEAST = 2  # the final round splits in two halves only if each gets at least this many evaluations
 
 
-class Optimizer(OptimizerCore[Result]):
+class Optimizer(_OutputNoise, OptimizerCore[Result]):
     """Base class for population-based optimizers of a single objective.
 
     Use it either way round:
@@ -93,14 +94,12 @@ class Optimizer(OptimizerCore[Result]):
         self._best: Individual | None = None
         # With noise: every successful value seen at each point, and the final re-evaluation's state.
         self._observations: dict[tuple, list[float]] = {}
-        self._output_observations: dict[tuple, list[dict[str, float]]] = {}  # every set of outputs seen at each point
-        self._points: dict[tuple, dict[str, Any]] = {}
+        self._reset_output_noise()
         self._finalists: list[tuple] = []
         self._final_round = False
         self._final_half = 0  # with the margin of safety: which half of the final round is under way, 1 or 2
         self._second_half = 0  # evaluations kept back for the final round's second half
         self._second_reserve = 0  # the second half's size, once the first has begun
-        self._noise_cache: tuple[int, list[tuple[float, int]]] | None = None  # (evaluations when computed, each limit's pooled noise)
         self._reserve = self._reserved()
         self._infeasible = 0  # evaluations that broke a constraint on the outputs
 
@@ -263,68 +262,6 @@ class Optimizer(OptimizerCore[Result]):
 
     def _average(self, key: tuple) -> float:
         return float(np.mean(self._observations[key]))
-
-    def _average_outputs(self, key: tuple) -> dict[str, float] | None:
-        """The average of every set of outputs seen at the point, by output; None without constraints on outputs."""
-        seen = self._output_observations.get(key)
-        if not seen:
-            return None
-        return {name: float(np.mean([outputs[name] for outputs in seen])) for name in self.search_space.outputs}
-
-    def _violation(self, key: tuple, more: int = 0) -> float:
-        """The total violation of the output constraints by the point's average outputs: 0 without any.
-
-        With the margin of safety, each limit whose noise is known is judged with its average
-        margin widened by k standard errors, k the Student t quantile at the limit's degrees of freedom, so a design passes only if it clears the limit by them.
-        With more, the standard errors are those the point would have after that many more evaluations.
-        """
-        outputs = self._average_outputs(key)
-        if outputs is None:
-            return 0.0
-        point = self._points[key]
-        if not self._margin_on():
-            return self.search_space.output_violation(point, outputs)
-        n = len(self._output_observations[key]) + more
-        active = self.search_space.active(point)
-        total = 0.0
-        for constraint, (spread, freedom) in zip(self.search_space.output_constraints, self._limit_noise()):
-            if not constraint.applies(active):
-                continue
-            widen = 0.0
-            if freedom >= MARGIN_FREEDOM:
-                size = constraint.size(active, outputs)
-                k = float(student_t.ppf(self.config.feasibility_confidence, freedom))  # type: ignore[arg-type]
-                widen = k * spread * (size if math.isfinite(size) and size > 0 else 1.0) / math.sqrt(n)
-            total += constraint.widened_violation(active, outputs, widen)
-        return float(total)
-
-    def _margin_on(self) -> bool:
-        """Whether limits are judged with a margin of safety: with noise, constraints on outputs and a feasibility_confidence."""
-        return bool(self.config.noise and self.search_space.output_constraints and self.config.feasibility_confidence is not None)
-
-    def _limit_noise(self) -> list[tuple[float, int]]:
-        """Each output constraint's noise: the pooled standard deviation of its relative margin, and its degrees of freedom.
-
-        Pooled over every point evaluated more than once, from the spread of the margin among its
-        evaluations, which assumes the noise is about the same everywhere. (0, 0) for a limit no
-        point has been evaluated twice where it applies.
-        """
-        if self._noise_cache is not None and self._noise_cache[0] == self._evaluations:
-            return self._noise_cache[1]
-        constraints = self.search_space.output_constraints
-        squares, freedom = [0.0] * len(constraints), [0] * len(constraints)
-        for key, seen in self._output_observations.items():
-            if len(seen) < 2:
-                continue
-            margins = [self.search_space.output_margins(self._points[key], outputs) for outputs in seen]
-            for j in range(len(constraints)):
-                values = [float(v) for m in margins if (v := m[j]) is not None and math.isfinite(v)]
-                if len(values) >= 2:
-                    squares[j] += float(np.var(values) * len(values))
-                    freedom[j] += len(values) - 1
-        noise = [(math.sqrt(sq / df) if df else 0.0, df) for sq, df in zip(squares, freedom)]
-        self._noise_cache = (self._evaluations, noise)
-        return noise
 
     def _ranked_keys(self, keys: list[tuple], more: int = 0) -> list[tuple]:
         """Evaluated points, by key, best first: by Deb's rule on the averages, so those whose average
