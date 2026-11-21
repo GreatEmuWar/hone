@@ -4308,12 +4308,6 @@
         <p>Settings shared by every optimizer.</p>
 
     
-      <p>Config:</p>
-      <ul>
-          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
-          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
-          <li><code>use_attribute_docstrings</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
-      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -4409,12 +4403,6 @@
             </li>
         </ul>
 
-        <p>Validators:</p>
-        <ul>
-            <li>
-              <code><span title="hone.config.optimizer_config.OptimizerConfig._check_final_evaluations">_check_final_evaluations</span></code>
-            </li>
-        </ul>
 
 
 
@@ -4874,9 +4862,6 @@ generations isn't, generations defaults to the budget, so the run ends when the 
 
         <p>Validators:</p>
         <ul>
-            <li>
-              <code><span title="hone.config.bayesian_config.BayesianConfig._check_final_evaluations">_check_final_evaluations</span></code>
-            </li>
             <li>
               <code><span title="hone.config.bayesian_config.BayesianConfig._generations_from_budget">_generations_from_budget</span></code>
             </li>
@@ -5369,12 +5354,6 @@ timing, so runs are no longer exactly repeatable.</p>
             </li>
         </ul>
 
-        <p>Validators:</p>
-        <ul>
-            <li>
-              <code><span title="hone.config.cmaes_config.CMAESConfig._check_final_evaluations">_check_final_evaluations</span></code>
-            </li>
-        </ul>
 
 
 
@@ -5982,9 +5961,6 @@ as many as the budget allows. Without a budget they default to 100 and 25.</p>
 
         <p>Validators:</p>
         <ul>
-            <li>
-              <code><span title="hone.config.genetic_optimizer_config.GeneticOptimizerConfig._check_final_evaluations">_check_final_evaluations</span></code>
-            </li>
             <li>
               <code><span title="hone.config.genetic_optimizer_config.GeneticOptimizerConfig._defaults_from_budget">_defaults_from_budget</span></code>
             </li>
@@ -6691,6 +6667,12 @@ exactly those keys. It takes the place of maximize, and threshold and final_eval
 don't apply.</p>
 
     
+      <p>Config:</p>
+      <ul>
+          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
+          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
+          <li><code>use_attribute_docstrings</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
+      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -6806,9 +6788,6 @@ don't apply.</p>
 
         <p>Validators:</p>
         <ul>
-            <li>
-              <code><span title="hone.config.multi_objective_config.MultiObjectiveConfig._check_final_evaluations">_check_final_evaluations</span></code>
-            </li>
             <li>
               <code><span title="hone.config.multi_objective_config.MultiObjectiveConfig._check_objectives">_check_objectives</span></code>
             </li>
@@ -7348,9 +7327,6 @@ max_evaluations set, generations defaults to the budget.</p>
 
         <p>Validators:</p>
         <ul>
-            <li>
-              <code><span title="hone.config.multi_objective_config.MultiObjectiveBayesianConfig._check_final_evaluations">_check_final_evaluations</span></code>
-            </li>
             <li>
               <code><span title="hone.config.multi_objective_config.MultiObjectiveBayesianConfig._check_objectives">_check_objectives</span></code>
             </li>
@@ -7989,9 +7965,6 @@ for the genetic optimizer.</p>
 
         <p>Validators:</p>
         <ul>
-            <li>
-              <code><span title="hone.config.multi_objective_config.NSGA2Config._check_final_evaluations">_check_final_evaluations</span></code>
-            </li>
             <li>
               <code><span title="hone.config.multi_objective_config.NSGA2Config._check_objectives">_check_objectives</span></code>
             </li>
