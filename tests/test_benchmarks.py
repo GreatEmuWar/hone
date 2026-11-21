@@ -1,4 +1,6 @@
+import json
 import math
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -27,6 +29,19 @@ from hone.benchmarks import (
 from hone.benchmarks import problems as p
 from hone.benchmarks import runner
 from hone.benchmarks.__main__ import main
+from hone import Output, RangeParameter, SearchSpace
+from hone.benchmarks import multi, sharded
+from hone.benchmarks.multi import (
+    DEFAULT_MULTI_OPTIMIZERS,
+    MultiProblem,
+    MultiRun,
+    first_generation,
+    multi_tasks,
+    paired_first_generation,
+    run_multi_benchmark,
+    welded_beam,
+    zdt,
+)
 from hone.optimizers import RandomSearch
 from hone.config import OptimizerConfig
 
@@ -539,3 +554,221 @@ def test_the_engineering_flag_writes_the_table_from_saved_summaries(tmp_path):
     assert text.startswith("# Engineering designs against their published optima")
     assert "| g07 | 24.3062 | 24.8062 (+2.1%) at 10 |" in text
     assert "| g06 | -6961.81 | n/a |" in text
+
+# --- multi-objective runs: noise, truth, shards and paired first generations ------------------
+
+
+# Seeded runs of the multi-objective optimizers made before runs were scored against noise-free values:
+# (problem, optimizer, seed) -> (gap, front size, evaluations, the sum of the scaled front).
+MULTI_BEFORE = {
+    ("zdt1-3d", "nsga2", 0): (0.2992609462970862, 5, 15, 9.721040416429645),
+    ("zdt1-3d", "nsga2", 1): (0.5328268844035495, 4, 15, 5.283465115918093),
+    ("zdt1-3d", "random", 0): (0.2992609462970862, 5, 15, 9.721040416429645),
+    ("zdt1-3d", "random", 1): (0.5328268844035495, 4, 15, 5.283465115918093),
+    ("zdt1-3d", "bayesian-parego", 0): (0.24344649273499186, 5, 15, 4.683028091115798),
+    ("zdt1-3d", "bayesian-parego", 1): (0.3645628455433575, 4, 15, 4.837764867371108),
+    ("welded-beam-2", "nsga2", 0): (0.42181750326022016, 9, 20, 12.349500605763227),
+    ("welded-beam-2", "nsga2", 1): (0.3553752812126555, 4, 20, 5.391720019312934),
+    ("welded-beam-2", "random", 0): (0.41784545215429525, 8, 20, 11.478712106704036),
+    ("welded-beam-2", "random", 1): (0.37537050372833725, 4, 20, 8.14466452458634),
+    ("welded-beam-2", "bayesian-parego", 0): (0.18981141646146815, 9, 20, 8.130164273712294),
+    ("welded-beam-2", "bayesian-parego", 1): (0.21035332309921173, 4, 20, 2.5510432060747554),
+}
+THREE = {name: DEFAULT_MULTI_OPTIMIZERS[name] for name in ("nsga2", "random", "bayesian-parego")}
+WEIGHTED = {"weighted-sums": DEFAULT_MULTI_OPTIMIZERS["weighted-sums"]}
+
+
+def test_noise_free_multi_runs_are_unchanged_and_their_true_gap_is_their_gap():
+    runs = run_multi_benchmark([zdt("zdt1", 3), welded_beam()], THREE, seeds=[0, 1], budgets_per_dimension=[5])
+    assert len(runs) == len(MULTI_BEFORE)
+    for run in runs:
+        gap, size, evaluations, total = MULTI_BEFORE[(run.problem, run.optimizer, run.seed)]
+        assert (run.gap, run.front_size, run.evaluations) == (gap, size, evaluations)
+        assert sum(map(sum, run.front)) == pytest.approx(total, abs=1e-12)
+        assert run.true_gap == pytest.approx(run.gap, abs=1e-12)
+        assert run.any_truly_feasible and run.truly_feasible == run.reported >= run.front_size
+        assert run.optimizer_seed == run.seed
+
+
+def test_weighted_sums_fills_the_truth_fields_and_is_not_run_on_noisy_problems():
+    problem = zdt("zdt1", 3)
+    [run] = run_multi_benchmark([problem], WEIGHTED, seeds=[0], budgets_per_dimension=[5])
+    assert run.true_gap == pytest.approx(run.gap) and run.reported == run.truly_feasible == run.front_size
+    noisy = problem.model_copy(update={"noise": {"f1": 0.1}})
+    with pytest.raises(ValueError, match="noise-free"):
+        run_multi_benchmark([noisy], WEIGHTED, seeds=[0], budgets_per_dimension=[5])
+
+
+def toy_problem(**noise) -> MultiProblem:
+    """a = x and b = 1 - x + y, with an output cost = y that must stay at or below 0.3: the true front is y = 0."""
+    x, y = RangeParameter("x", 0, 1), RangeParameter("y", 0, 1)
+    return MultiProblem(
+        name="toy",
+        function=lambda x, y: {"a": x, "b": 1 - x + y, "cost": y},
+        search_space=SearchSpace([x, y], [Output("cost") <= 0.3]),
+        objectives={"a": "minimize", "b": "minimize"},
+        ideal={"a": 0.0, "b": 0.0},
+        nadir={"a": 1.0, "b": 1.0},
+        true_hypervolume=0.71,  # the reference square, 1.21, less the triangle under a + b = 1
+        **noise,
+    )
+
+
+POINTS = [{"x": 0.5, "y": 0.0}, {"x": 0.5, "y": 0.9}, {"x": 0.25, "y": 0.2}]
+
+
+class Scripted:
+    """An optimizer that evaluates fixed points, reports them all, and keeps what the function returned."""
+
+    def __init__(self, points, seen, seed):
+        self.points, self.seen, self.config = points, seen, SimpleNamespace(seed=seed)
+
+    def optimize(self, function):
+        values = [function(**point) for point in self.points]
+        self.seen.append(values)
+        return SimpleNamespace(front=[SimpleNamespace(params=p, values=v) for p, v in zip(self.points, values)], evaluations=len(values))
+
+
+def scripted(seen, points=POINTS):
+    return {"scripted": lambda problem, budget, seed: Scripted(points, seen, seed + 7)}
+
+
+def test_noisy_multi_runs_are_scored_on_the_noise_free_values_of_what_they_report():
+    problem = toy_problem(noise={"a": 0.05}, output_noise={"cost": 1.0})
+    seen: list = []
+    [run] = run_multi_benchmark([problem], scripted(seen), seeds=[3], budgets_per_dimension=[2])
+    # Only the second point breaks the limit on cost; the others are truly feasible whatever they seemed.
+    assert (run.reported, run.truly_feasible, run.any_truly_feasible, run.optimizer_seed) == (3, 2, True, 10)
+    clean = [{"a": 0.5, "b": 0.5}, {"a": 0.25, "b": 0.95}]
+    assert run.true_gap == pytest.approx(0.71 - problem.hypervolume(clean))
+    # b has no noise; a and cost do, drawn from one stream, so the noise repeats for the run's seed and not for another.
+    assert all(v["b"] == pytest.approx(1 - p["x"] + p["y"]) for v, p in zip(seen[0], POINTS))
+    assert all(v["a"] != p["x"] and v["cost"] != p["y"] for v, p in zip(seen[0], POINTS))
+    again, other = [], []
+    run_multi_benchmark([problem], scripted(again), seeds=[3], budgets_per_dimension=[2])
+    run_multi_benchmark([problem], scripted(other), seeds=[4], budgets_per_dimension=[2])
+    assert again == seen and other != seen
+
+
+def test_a_noisy_run_with_nothing_truly_feasible_reports_the_full_gap():
+    problem = toy_problem(output_noise={"cost": 0.01})
+    [run] = run_multi_benchmark([problem], scripted([], [{"x": 0.5, "y": 0.9}]), seeds=[0], budgets_per_dimension=[2])
+    assert (run.reported, run.truly_feasible, run.any_truly_feasible, run.true_gap) == (1, 0, False, 0.71)
+
+
+def test_a_reported_point_beyond_the_reference_counts_for_nothing():
+    problem = toy_problem()
+    [run] = run_multi_benchmark([problem], scripted([], [{"x": 0.5, "y": 0.1}, {"x": 0.5, "y": 0.29}]), seeds=[0], budgets_per_dimension=[2])
+    assert run.truly_feasible == 2 and run.true_gap == pytest.approx(0.71 - problem.hypervolume([{"a": 0.5, "b": 0.6}]))
+    far = problem.model_copy(update={"nadir": {"a": 0.4, "b": 0.4}})  # now a = 0.5 is past the reference of 1.1 x 0.4... scaled 1.25
+    [run] = run_multi_benchmark([far], scripted([], [{"x": 0.5, "y": 0.0}]), seeds=[0], budgets_per_dimension=[2])
+    assert run.truly_feasible == 1 and run.true_gap == 0.71
+
+
+def test_old_multi_run_json_still_loads():
+    old = {"problem": "p", "optimizer": "o", "budget_per_dimension": 1, "seed": 0, "gap": 0.1, "front_size": 1, "evaluations": 3, "front": [[0.1, 0.2]]}
+    run = MultiRun.model_validate(old)
+    assert run.optimizer_seed is None and run.reported == 0
+
+
+def test_multi_shards_together_make_the_unsharded_runs():
+    problems = [zdt("zdt1", 2), zdt("zdt2", 2)]
+    optimizers = {"nsga2": multi.nsga2, "random": multi.random_search}
+    whole = run_multi_benchmark(problems, optimizers, seeds=range(3), budgets_per_dimension=[2, 3])
+    assert len(whole) == len(multi_tasks(problems, optimizers, range(3), [2, 3])) == 24
+    shards = [run_multi_benchmark(problems, optimizers, seeds=range(3), budgets_per_dimension=[2, 3], shard=(i, 5)) for i in range(5)]
+
+    def key(run):
+        return (run.problem, run.optimizer, run.budget_per_dimension, run.seed)
+
+    assert sorted((r for shard in shards for r in shard), key=key) == sorted(whole, key=key)
+    assert all(len(shard) in (4, 6) for shard in shards)  # whole groups of seeds, dealt round-robin
+    with pytest.raises(ValueError, match="doesn't exist"):
+        run_multi_benchmark(problems, optimizers, seeds=[0], budgets_per_dimension=[2], shard=(2, 2))
+
+
+MULTI_SPEC = """
+from hone.benchmarks.multi import nsga2, random_search, zdt
+
+SEEDS = 3
+BUDGETS = (2,)
+
+def problems():
+    return [zdt("zdt1", 2)]
+
+def optimizers():
+    return {"nsga2": nsga2, "random": random_search}
+
+def report(runs):
+    return f"{len(runs)} multi runs reported\\n"
+"""
+SINGLE_SPEC = """
+from hone.benchmarks import quick_problems
+from hone.benchmarks.runner import random_search
+
+SEEDS = 2
+BUDGETS = (2,)
+
+def problems():
+    return quick_problems()[:1]
+
+def optimizers():
+    return {"random": random_search}
+"""
+
+
+@pytest.mark.parametrize("source, multi_objective", [(MULTI_SPEC, True), (SINGLE_SPEC, False)], ids=["multi", "single"])
+def test_sharded_runs_and_merges_a_spec(tmp_path, capsys, source, multi_objective):
+    spec = tmp_path / "spec.py"
+    spec.write_text(source)
+    shards = [str(tmp_path / f"runs-{shard}.json") for shard in range(2)]
+    for shard, path in enumerate(shards):
+        assert sharded.main(["run", str(spec), "--shard", str(shard), "--of", "2", "--out", path]) == 0
+    summaries, results, every = tmp_path / "s.json", tmp_path / "r.md", tmp_path / "runs.json"
+    assert sharded.main(["merge", str(spec), *shards, "--summaries", str(summaries), "--markdown", str(results), "--runs", str(every)]) == 0
+    runs = json.loads(every.read_text())
+    assert len(runs) == (6 if multi_objective else 2)
+    assert json.loads(summaries.read_text()) and "Benchmark results" in results.read_text()
+    if multi_objective:
+        assert "Median hypervolume gap" in results.read_text() and "6 multi runs reported" in results.read_text()
+        assert {s["optimizer"] for s in json.loads(summaries.read_text())} == {"nsga2", "random"}
+        assert "true_gap" in runs[0]
+    assert sharded.main(["merge", str(spec), shards[0], "--summaries", str(summaries)]) == 1  # a shard is missing
+
+
+@pytest.mark.parametrize("name", ["nsga2", "random", "bayesian-parego"])
+def test_paired_first_generation_evaluates_the_same_points_with_the_same_noise(name):
+    factory = DEFAULT_MULTI_OPTIMIZERS[name]
+    problem = zdt("zdt1", 3).model_copy(update={"noise": {"f1": 0.05, "f2": 0.05}})
+    per_dimension, seed = 5, 2
+    count = len(first_generation(factory(problem, per_dimension * 3, seed)))
+    assert count >= 2
+
+    def run_logged(make):
+        log: list = []
+        seeds: list = []
+
+        def logging_factory(prob, budget, s):
+            optimizer = make(prob, budget, s)
+            seeds.append(optimizer.config.seed)
+            original = optimizer.optimize
+
+            def recorded(function):
+                def call(**params):
+                    log.append((params, function(**params)))
+                    return log[-1][1]
+
+                return original(call)
+
+            optimizer.optimize = recorded
+            return optimizer
+
+        [run] = run_multi_benchmark([problem], {name: logging_factory}, seeds=[seed], budgets_per_dimension=[per_dimension])
+        return log[:count], seeds[-1], run
+
+    plain, plain_seed, plain_run = run_logged(factory)
+    paired, paired_seed, paired_run = run_logged(paired_first_generation(factory))
+    assert [p for p, _ in plain] == [p for p, _ in paired]
+    assert [v for _, v in plain] == [v for _, v in paired]
+    assert plain_seed == seed and paired_seed == paired_run.optimizer_seed == seed + 1000
+    assert plain_run.optimizer_seed == seed

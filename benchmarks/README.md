@@ -25,6 +25,8 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `multi-summaries.json` | The same results as data, with each run's median attainment surface |
 | `quick-baseline.json` | The quick suite's results, which CI compares every change against |
 | [margin-results.md](margin-results.md) | The margin of safety for limits under noise against the average alone, on the noisy engineering designs, from the Measure workflow |
+| [multi-floor-results.md](multi-floor-results.md) | The paired noise floor of the noisy multi-objective benchmark (OSY, TNK, the cantilever): whether 30 seeds resolve a 2% loss of hypervolume per cell, from the Measure workflow |
+| `multi-floor-runs.json` | Every run of it |
 | `specs/` | Specs for measurements shared among GitHub's runners by the Measure workflow; see below |
 
 ## What the suite measures
