@@ -352,6 +352,22 @@ The test is exact at 30 pairs: with no difference, P ≤ 0.049 of a cell coming 
 
 The rule above for which reserve ships still applies, with one reading: in a cell the floor marks unresolvable, an unresolved criterion 3 doesn't count as not met. Such a cell is decided on criteria 1 and 2, and between the reserves on the counts, as just stated. A fail there still counts as a fail.
 
+*The order, fixed with Hone Tech Lead on 20 Nov 2026.* Each reserve gets one outcome:
+- **pass:** it meets every criterion, as read above;
+- **fail:** it fails at least one criterion outright in some cell, including a criterion 3 fail anywhere;
+- **undecided:** it fails nothing outright, but has unresolved criterion 3 cells outside the floor's list.
+
+Then, in this order:
+
+| | Outcomes | Ships |
+| --- | --- | --- |
+| 1 | Either reserve undecided | The user decides, with the numbers |
+| 2 | Both pass | The fifth, if it gives clearly more in at least half of the floor-unresolvable cells, clearly fewer in none, and passes criteria 1 and 2 wherever the tenth does; otherwise the tenth |
+| 3 | One passes, the other fails | The one that passes |
+| 4 | Both fail | The user decides, with the numbers |
+
+The first row comes first, so the fifth can't be chosen over a tenth that was merely undecided.
+
 The runs are specs on the Measure workflow, which first needs to run multi-objective specs; see below.
 
 ### What it takes
