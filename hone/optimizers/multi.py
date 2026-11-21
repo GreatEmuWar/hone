@@ -19,7 +19,7 @@ from hone.pareto import (
     non_dominated,
 )
 
-from .core import MARGIN_FREEDOM, MARGIN_HALF_AT_LEAST, Individual, OptimizerCore, _OutputNoise
+from .core import MARGIN_FREEDOM, MARGIN_HALF_AT_LEAST, Individual, OptimizerCore, UnsupportedSearchSpace, _OutputNoise
 
 REFERENCE_MARGIN = 0.1  # the default reference point lies this share of each objective's range past its worst value
 # The final round's second half re-evaluates this many points of the front, each several times: three repeats
@@ -100,6 +100,11 @@ class MultiObjectiveOptimizer(_OutputNoise, OptimizerCore[ParetoResult]):
         self._infeasible_values: list[np.ndarray] = []  # their values to minimize, for the reference point
         self._reference: np.ndarray | None = None if self.config.reference is None else _minimizing(self.config.reference, self._objectives)
         self._reset_output_noise()
+        if self.config.noise and self.config.final_evaluations and not self.search_space.output_constraints:
+            raise UnsupportedSearchSpace(
+                "final_evaluations applies to several objectives only with constraints on the outputs; "
+                "without them, noise is handled by averaging each point's evaluations"
+            )
         # The final round for a front, only with noise and constraints on outputs.
         self._finalists: list[tuple] = []
         self._final_round = False

@@ -122,7 +122,6 @@ def test_closest_doesnt_depend_on_an_objectives_units():
         ({"objectives": {"f1": "lower", "f2": "minimize"}}, "minimize"),
         ({"objectives": BOTH, "maximize": True}, "maximize doesn't apply"),
         ({"objectives": BOTH, "threshold": 0.1}, "threshold doesn't apply"),
-        ({"objectives": BOTH, "noise": True, "final_evaluations": 5}, "final_evaluations doesn't apply"),
         ({"objectives": BOTH, "reference": {"f1": 1.0}}, "reference needs a value for each objective"),
     ],
 )

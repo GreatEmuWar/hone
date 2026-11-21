@@ -206,10 +206,13 @@ def tell_all(optimizer, outcomes):
         optimizer.tell(trial, outcome)
 
 
-def test_noise_is_refused_for_several_objectives():
-    space = SearchSpace([X, Y], [TOTAL <= 4])
-    with pytest.raises(UnsupportedSearchSpace, match="several objectives"):
-        MultiObjectiveRandomSearch(space, MultiObjectiveConfig(objectives={"a": "minimize", "b": "minimize"}, noise=True))
+def test_a_final_round_for_several_objectives_needs_constraints_on_outputs():
+    # Noise with constraints on outputs is supported for several objectives (tests/test_multi_noisy_outputs.py); a
+    # final round without them is not, rather than final_evaluations being ignored.
+    config = MultiObjectiveConfig(objectives={"a": "minimize", "b": "minimize"}, noise=True, final_evaluations=4, max_evaluations=40)
+    with pytest.raises(UnsupportedSearchSpace, match="final_evaluations"):
+        MultiObjectiveRandomSearch(SearchSpace([X, Y]), config)
+    MultiObjectiveRandomSearch(SearchSpace([X, Y], [TOTAL <= 4]), config)
 
 
 def test_outputs_are_averaged_and_a_limit_is_judged_on_the_average():
