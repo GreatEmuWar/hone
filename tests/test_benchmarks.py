@@ -583,8 +583,13 @@ def test_noise_free_multi_runs_are_unchanged_and_their_true_gap_is_their_gap():
     assert len(runs) == len(MULTI_BEFORE)
     for run in runs:
         gap, size, evaluations, total = MULTI_BEFORE[(run.problem, run.optimizer, run.seed)]
-        assert (run.gap, run.front_size, run.evaluations) == (gap, size, evaluations)
-        assert sum(map(sum, run.front)) == pytest.approx(total, abs=1e-12)
+        # Front size and evaluations are exact. The floats are not: the Gaussian process behind Bayesian
+        # optimization goes through BLAS, whose kernel and summation order depend on the CPU it runs on,
+        # so the same seeded run differs by about 1e-9 between machines (forcing OpenBLAS's Nehalem
+        # kernel instead of Haswell's moves zdt1-3d's gap in its tenth digit). On one machine it repeats exactly.
+        assert (run.front_size, run.evaluations) == (size, evaluations)
+        assert run.gap == pytest.approx(gap, rel=1e-8)
+        assert sum(map(sum, run.front)) == pytest.approx(total, rel=1e-8)
         assert run.true_gap == pytest.approx(run.gap, abs=1e-12)
         assert run.any_truly_feasible and run.truly_feasible == run.reported >= run.front_size
         assert run.optimizer_seed == run.seed
