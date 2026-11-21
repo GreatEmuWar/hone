@@ -6,8 +6,11 @@
 - rosenbrock-disk: Rosenbrock's function inside the disk x² + y² ≤ 2, whose optimum (1, 1) sits
   on the disk's edge.
 - pressure-vessel, tension-spring and welded-beam: three standard engineering design problems,
-  scored against the best designs published for them. The welded beam's stress formulas need
-  square roots, so its constraints are functions; the others are expressions.
+  scored against the best designs published for them, which Cagnina, Esquivel and Coello Coello
+  (2008), "Solving engineering optimization problems with the simple constrained particle swarm
+  optimizer", Informatica 32(3):319-326, list as problems E02, E04 and E01. The welded beam's
+  stress formulas need square roots, so its constraints are functions; the others are
+  expressions.
 
 Each engineering problem also comes with its limits on outputs, as the -outputs version: the
 objective reports the volume, stresses and so on that the limits apply to, as a simulation
@@ -81,7 +84,8 @@ def pressure_vessel() -> Problem:
     """A cylindrical vessel with hemispherical heads, at least 1,296,000 cubic inches, of least cost.
 
     Shell and head thicknesses come in sixteenths of an inch, so they are integers here. The best
-    published design costs 6059.714 (Ts = 13/16, Th = 7/16, R = 42.098, L = 176.637).
+    published design costs 6059.714 (Ts = 13/16, Th = 7/16, R = 42.098, L = 176.637)
+    (Cagnina et al., 2008, problem E02).
     """
     shell, head = RangeParameter("shell", 1, 99, integer=True), RangeParameter("head", 1, 99, integer=True)
     radius, length = RangeParameter("radius", 10, 200), RangeParameter("length", 10, 200)
@@ -104,7 +108,14 @@ def pressure_vessel() -> Problem:
 def tension_spring() -> Problem:
     """A coil spring of least weight under limits on deflection, shear stress, surge frequency and diameter.
 
-    The best published design weighs 0.0126652 (d = 0.051690, D = 0.356750, N = 11.287126).
+    The best published design weighs 0.0126652 (d = 0.051689, D = 0.356720, N = 11.288832).
+    Cagnina et al., 2008, problem E04, give the design (0.051690, 0.356750, 11.287126) with a
+    weight of 0.012665. Its rounded values break the shear stress limit by about 2e-5 (the stress
+    is 1.00002 times the limit), which is why they weigh 0.0126651, a little less than the optimum.
+    Celik and Kutucu, "Solving the tension/compression spring design problem by an improved
+    firefly algorithm", CEUR Workshop Proceedings 2255, paper 2, give the optimum as 0.0126652327883
+    at (0.051689156131, 0.356720026419, 11.288831695483), which satisfies every limit here. They
+    cite no source for it.
     """
     d, coil, n = RangeParameter("wire", 0.05, 2.0), RangeParameter("coil", 0.25, 1.3), RangeParameter("turns", 2.0, 15.0)
 
@@ -144,6 +155,7 @@ def welded_beam() -> Problem:
     """A beam welded to a support, of least cost under limits on shear, bending, buckling and deflection.
 
     The best published design costs 1.724852 (h = 0.205730, l = 3.470489, t = 9.036624, b = 0.205730).
+    Cagnina et al., 2008, problem E01, give the same cost and design with b = 0.205729.
     """
     weld, length = RangeParameter("weld", 0.1, 2.0), RangeParameter("length", 0.1, 10.0)
     thickness, width = RangeParameter("thickness", 0.1, 10.0), RangeParameter("width", 0.1, 2.0)
