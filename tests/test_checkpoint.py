@@ -20,6 +20,9 @@ from hone.parameters import ChoiceParameter, Output, RangeParameter, SearchSpace
 
 from conftest import bounded_parameters, sphere
 
+# Every test here loads a checkpoint; those that check the warning catch it with pytest.warns.
+pytestmark = pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")
+
 START = {"x": 1.0, "y": -1.0}
 
 OPTIMIZERS = {
@@ -243,3 +246,32 @@ def test_an_asynchronous_run_carries_on_from_its_checkpoint(tmp_path):
     assert stopped.stopped
     resumed = make().optimize(objectives.sometimes_slow, workers=4, checkpoint=path)
     assert resumed.evaluations == 64 and not resumed.stopped
+
+
+DEPRECATED = r"Pickle checkpoints are deprecated.*safe format arrives in hone 0\.17\.0.*will be removed in 0\.19\.0"
+
+
+def test_loading_a_checkpoint_warns_once_at_the_caller(tmp_path):
+    path = tmp_path / "run.checkpoint"
+    optimizer = OPTIMIZERS["genetic"]()
+    optimizer.ask()
+    optimizer.save_checkpoint(path)
+    with pytest.warns(FutureWarning, match=DEPRECATED) as caught:
+        OPTIMIZERS["genetic"]().load_checkpoint(path)
+    assert len(caught) == 1 and caught[0].filename == __file__
+
+
+def test_carrying_on_from_a_checkpoint_warns_once_at_the_caller(tmp_path):
+    path = tmp_path / "run.checkpoint"
+    OPTIMIZERS["genetic"]().optimize(sphere, checkpoint=path, callback=interrupt_at(3))
+    with pytest.warns(FutureWarning, match=DEPRECATED) as caught:
+        OPTIMIZERS["genetic"]().optimize(sphere, checkpoint=path)
+    assert len(caught) == 1 and caught[0].filename == __file__
+
+
+def test_saving_a_checkpoint_does_not_warn(tmp_path, recwarn):
+    optimizer = OPTIMIZERS["genetic"]()
+    optimizer.ask()
+    optimizer.save_checkpoint(tmp_path / "run.checkpoint")
+    OPTIMIZERS["genetic"]().optimize(sphere, checkpoint=tmp_path / "fresh.checkpoint")  # saves after each generation
+    assert not [w for w in recwarn if issubclass(w.category, FutureWarning)]

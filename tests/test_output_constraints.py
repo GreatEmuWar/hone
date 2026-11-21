@@ -513,6 +513,7 @@ def test_a_result_saves_and_loads_with_its_outputs(tmp_path):
     assert again == result
 
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 def test_a_checkpoint_carries_on_the_run(tmp_path):
     path = tmp_path / "run.checkpoint"
     whole = GeneticOptimizer(SPACE, GeneticOptimizerConfig(max_evaluations=200, seed=0)).optimize(bowl)
@@ -527,6 +528,7 @@ def test_a_checkpoint_carries_on_the_run(tmp_path):
     assert resumed == whole
 
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 def test_a_checkpoint_of_an_unknown_format_is_refused(tmp_path):
     path = tmp_path / "old.checkpoint"
     path.write_bytes(pickle.dumps({"format": 99}))
@@ -745,6 +747,7 @@ def test_pareto_progress_says_whether_anything_is_feasible():
     assert not seen[0].feasible and len(seen[0].front) == 0
 
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 def test_a_checkpoint_from_before_output_constraints_carries_on(tmp_path, monkeypatch):
     from hone.optimizers import core
     from hone.result import GenerationStats

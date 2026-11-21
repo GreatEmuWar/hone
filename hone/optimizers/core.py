@@ -9,6 +9,7 @@ import os
 import pickle
 import platform
 import time
+import warnings
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from functools import cache, partial
@@ -375,8 +376,15 @@ class OptimizerCore[ResultT](ABC):
         are handed out again by ask(), and can still be told by their ids.
 
         A checkpoint is a pickle, which can run code when it is loaded: only load checkpoints
-        you saved yourself.
+        you saved yourself. Loading one warns with a FutureWarning: pickle checkpoints are
+        deprecated, a safe format arrives in hone 0.17.0, and loading pickles will be removed
+        in 0.19.0.
         """
+        _warn_pickle_checkpoint(path, stacklevel=3)  # at the caller of load_checkpoint()
+        self._load_checkpoint(path)
+
+    def _load_checkpoint(self, path: str | Path) -> None:
+        """load_checkpoint() without the warning, for optimize(), which warns at its own caller."""
         checkpoint = pickle.loads(Path(path).read_bytes())
         if not isinstance(checkpoint, dict) or checkpoint.get("format") not in READABLE_FORMATS:
             raise ValueError(f"{path} is not a checkpoint this version of hone can read")
@@ -433,7 +441,9 @@ class OptimizerCore[ResultT](ABC):
             checkpoint: A file to save the run's state to after each generation. If the file
                 exists, the run carries on from it instead of starting over, so a run killed
                 partway through picks up where it left off; one that finished returns its
-                result at once. The result is the same as an uninterrupted run's.
+                result at once. The result is the same as an uninterrupted run's. Carrying
+                on from the file warns that pickle checkpoints are deprecated, as
+                load_checkpoint() does.
 
         Pressing Ctrl+C also stops the run and returns the result so far, marked as stopped,
         once at least one evaluation has succeeded.
@@ -453,7 +463,8 @@ class OptimizerCore[ResultT](ABC):
             self.reset()
             self._objective_name, self._run_workers, self._run_timeout = name, workers, timeout
             if checkpoint is not None and Path(checkpoint).exists():
-                self.load_checkpoint(checkpoint)
+                _warn_pickle_checkpoint(checkpoint, stacklevel=3)  # at the caller of optimize()
+                self._load_checkpoint(checkpoint)
             reported = len(self._history)
 
             def after_generation() -> int:
@@ -554,6 +565,16 @@ class OptimizerCore[ResultT](ABC):
 
     def _random_individual(self, generation: int) -> Individual:
         return Individual(params=self.search_space.sample(self.rng), generation=generation)
+
+
+def _warn_pickle_checkpoint(path: str | Path, stacklevel: int) -> None:
+    """Warn that path, a pickle checkpoint, is being loaded; stacklevel counts from this function."""
+    warnings.warn(
+        f"Pickle checkpoints are deprecated, since loading one can run code: a safe format arrives in "
+        f"hone 0.17.0, and loading pickle checkpoints will be removed in 0.19.0 (loading {path})",
+        FutureWarning,
+        stacklevel=stacklevel,
+    )
 
 
 CHECKPOINT_FORMAT = 2  # raised when the checkpoint layout changes, so old files are refused clearly

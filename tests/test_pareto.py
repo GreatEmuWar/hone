@@ -230,6 +230,7 @@ def test_a_result_saves_loads_rebuilds_and_repeats(tmp_path):
     assert loaded.rebuild_optimizer().optimize(zdt1) == result
 
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 def test_a_checkpointed_run_resumes(tmp_path):
     whole = search().optimize(zdt1)
     partial = search()
