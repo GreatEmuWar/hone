@@ -21,7 +21,7 @@ from hone.benchmarks.multi import _with_noise
 from hone.benchmarks.runner import SkipBudget
 from hone.benchmarks.sharded import load_spec
 from hone.optimizers import multi_bayesian
-from hone.optimizers.core import Individual
+from hone.optimizers.core import Individual, UnsupportedSearchSpace
 
 OBJECTIVES = {"a": "minimize", "b": "minimize"}
 X = RangeParameter("x", 0, 10)
@@ -157,10 +157,11 @@ def test_without_noise_a_failing_draw_still_leaves_the_front_as_before():
     assert len(optimizer.result().front.points) == 1 and optimizer.result().infeasible == 1
 
 
-def test_noise_without_output_constraints_reserves_nothing_even_with_final_evaluations():
+def test_noise_without_output_constraints_reserves_nothing():
     plain = SearchSpace([X, Y])
-    optimizer = random_search(plain, final_evaluations=10)
-    assert optimizer._reserve == 0
+    assert random_search(plain)._reserve == 0
+    with pytest.raises(UnsupportedSearchSpace, match="final_evaluations"):
+        random_search(plain, final_evaluations=10)
 
 
 # --- the reserve and the final round ------------------------------------------------------

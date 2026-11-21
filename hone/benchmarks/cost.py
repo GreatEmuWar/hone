@@ -187,7 +187,9 @@ def measure_multi_cell(
         raise ValueError(f"candidates {candidates} must be a multiple of batch_size {batch_size}")
     space, objective = _multi_problem(dimensions, limits, seed, noise)
     batches = candidates // batch_size + 1  # the first is the cold fit
-    settings: dict[str, Any] = {"noise": True} if noise else {}
+    # With noise, no final round: its re-evaluations are chosen without a proposal, so they'd only cut the timed batches
+    # short. The margin stays on, so each proposal pays for re-judging every row on its averages.
+    settings: dict[str, Any] = {"noise": True, "final_evaluations": 0} if noise else {}
     config = MultiObjectiveBayesianConfig(
         objectives={"f1": "minimize", "f2": "minimize"},
         method=method,
