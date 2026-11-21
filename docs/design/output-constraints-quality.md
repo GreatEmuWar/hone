@@ -340,6 +340,12 @@ Per problem, optimizer and budget (a *cell*), each reserve is compared with the 
 
 If a reserve fails only through unresolved cells, the choice goes to the user with the numbers rather than to the other reserve by default: an unresolved cell means the user decides.
 
+**Cells the floor can't resolve**, decided by the user on 20 Nov 2026, after the floor was measured and before the comparison runs. In a cell that the floor marks as unable to resolve δ, criterion 3 is reported but not judged. The cell is decided on criteria 1 and 2, which are absolute outcomes, as item 1's lesson asks where a ratio can't be resolved. The cells are those listed as unresolvable in `benchmarks/multi-floor-results.md`: fixed by that measurement, not re-judged from the comparison.
+- *Identical-run cells are excluded explicitly.* Where random search's whole budget fits in its first generation (OSY at 10 evaluations per dimension, TNK at 10 and 20, the cantilever at 10), the floor's pairs are identical runs, so it marks those cells as resolving while saying nothing about the noise. In the comparison, criterion 3 is reported but not judged there either, and they are decided on criteria 1 and 2.
+- *What the reserve choice rests on there.* In these cells the pull request reports, for each reserve and for the baseline, the number of truly feasible reported front points. The reserve choice there rests on that count: the smaller reserve ships unless the larger gives clearly more. The rule for "clearly more", and any absolute guard on shrinkage, is being set by Hone Applied Mathematician and will be fixed here before the comparison runs.
+
+The rule above for which reserve ships still applies, with "meets criteria 1 to 3 in every cell" read as criteria 1 and 2 only in these cells.
+
 The runs are specs on the Measure workflow, which first needs to run multi-objective specs; see below.
 
 ### What it takes
