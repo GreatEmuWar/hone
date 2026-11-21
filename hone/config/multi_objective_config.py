@@ -20,7 +20,8 @@ class MultiObjectiveConfig(OptimizerConfig):
     for one objective: by default a tenth of max_evaluations is kept back for a final round that
     re-evaluates points of the front, and a limit is judged on a point's average outputs with a
     margin of safety. final_evaluations=0 keeps nothing back, and feasibility_confidence=None
-    turns the margin off.
+    turns the margin off. With noise and no constraints on outputs, a final_evaluations above 0
+    is refused when the optimizer is created, raising UnsupportedSearchSpace, rather than ignored.
     """
     objectives: dict[str, Direction] = Field(min_length=2)
     """Each objective's name, and whether to minimize or maximize it."""
