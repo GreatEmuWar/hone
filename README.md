@@ -395,10 +395,11 @@ Everything else works as with one objective: constraints, conditions, workers an
 With `noise=True` and a limit on an output, as in `Output("stress") <= 250`, a point's outputs are averaged like its values, and the point is judged on the averages. The limit is on the true output, and a single noisy draw can pass it by luck.
 
 ```python
-from hone import NSGA2, NSGA2Config, Output
+from hone import NSGA2, NSGA2Config, Output, SearchSpace
 
+search_space = SearchSpace([width, height], constraints=[Output("stress") <= 250])
 config = NSGA2Config(objectives={"mass": "minimize", "deflection": "minimize"}, noise=True, max_evaluations=2000, seed=0)
-result = NSGA2(search_space, config, constraints=[Output("stress") <= 250]).optimize(analyse)  # analyse returns mass, deflection and stress
+result = NSGA2(search_space, config).optimize(analyse)  # analyse returns mass, deflection and stress
 ```
 
 Every draw counts toward a point's averages, including those that break a limit; a draw that broke it is also counted in `result.infeasible`. A point passes a limit only if its average clears it with the margin of safety: about 1.64 standard errors with many repeats, more with few (`feasibility_confidence=0.95`; `None` judges on the averages alone). The front is that of the points that pass, with dominance judged on their average values. Each `ParetoPoint.outputs` holds average outputs, and `ParetoResult.feasible` says whether any point passes on its averages.
