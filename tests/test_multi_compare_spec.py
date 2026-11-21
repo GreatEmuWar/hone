@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from hone.benchmarks.multi import MultiRun
 from hone.benchmarks.sharded import load_spec
 
@@ -22,7 +24,7 @@ def _runs(cell, variant, specs):
 
 
 def _judge(cell, base, reserve):
-    runs = _runs(cell, "baseline", base) + _runs(cell, "tenth", reserve)
+    runs = _runs(cell, "baseline", base) + _runs(cell, "tenth", reserve) + _runs(cell, "fifth", reserve)
     (c,) = spec._cells(runs)
     return c["tenth"]
 
@@ -105,10 +107,10 @@ def test_half_of_baseline_flag():
     base = [(10, 8, 0.1)] * 30
     enough = [(10, 4, 0.1)] * 11 + [(10, 3, 0.1)] * 19  # 4 is at least half of 8 in 11 seeds
     assert _judge(FLOOR_CELL, base, enough)["half"] == 11
-    assert "keeps half" not in spec.report(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", enough))
+    assert "keeps half" not in spec.report(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", enough) + _runs(FLOOR_CELL, "fifth", enough))
     short = [(10, 4, 0.1)] * 10 + [(10, 3, 0.1)] * 20
     assert _judge(FLOOR_CELL, base, short)["half"] == 10
-    text = spec.report(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", short))
+    text = spec.report(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", short) + _runs(FLOOR_CELL, "fifth", enough))
     assert "tenth keeps half the baseline's truly feasible points in 10 of 30 seeds" in text
     # only floor cells are checked
     assert "keeps half" not in spec.report(_runs(RESOLVED_CELL, "baseline", base) + _runs(RESOLVED_CELL, "tenth", short))
@@ -193,3 +195,30 @@ def test_report_end_to_end_on_synthetic_runs():
     text = spec.report(runs)
     assert "| tenth | pass |" in text and "| fifth | pass |" in text and "Verdict: **tenth**" in text
     assert "Averaging alone, for the record" in text and "assumes they hold" in text
+
+
+def test_no_reported_points_is_vacuous_for_criterion_1_but_not_shown_as_met():
+    # (a) the baseline had feasible runs: criterion 2 catches the fall
+    base = _same()
+    j = _judge(RESOLVED_CELL, base, [(0, 0, 0.1)] * 30)
+    assert j["no_points"] and j["c1"] and j["falls"] and not j["c2"]
+    # (b) the baseline had none, under 90%, and the reserve has none: no rise, and not unchanged since the runs differ
+    base = [(3, 0, 0.1)] * 30
+    j = _judge(RESOLVED_CELL, base, [(0, 0, 0.2)] * 30)
+    assert j["no_points"] and j["c1"] and not j["unchanged"] and not j["c2"]
+    # both entirely empty and identical: the unchanged exemption applies as written
+    j = _judge(RESOLVED_CELL, [(0, 0, 0.1)] * 30, [(0, 0, 0.1)] * 30)
+    assert j["no_points"] and j["unchanged"] and j["c2"]
+    runs = _runs(RESOLVED_CELL, "baseline", [(0, 0, 0.1)] * 30) + _runs(RESOLVED_CELL, "tenth", [(0, 0, 0.1)] * 30)
+    runs += _runs(RESOLVED_CELL, "fifth", [(0, 0, 0.1)] * 30)
+    text = spec.report(runs)
+    assert "| no reported points |" in text and "| met | met" not in text
+    assert any("no reported points" in reason for reason in spec.choose_reserve(spec._cells(runs))[3])
+
+
+def test_floor_cell_missing_a_reserve_raises():
+    runs = _runs(FLOOR_CELL, "baseline", _same()) + _runs(FLOOR_CELL, "tenth", _same())
+    with pytest.raises(ValueError, match="noisy-osy, random, 50/dim.*fifth"):
+        spec.report(runs)
+    # a cell outside the list may lack one
+    spec._cells(_runs(RESOLVED_CELL, "baseline", _same()) + _runs(RESOLVED_CELL, "tenth", _same()))

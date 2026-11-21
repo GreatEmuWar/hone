@@ -161,7 +161,7 @@ def _judge_reserve(reserve_runs, base_runs, threshold):
     c3, bounds = _criterion_3([r.true_gap - b.true_gap for r, b in zip(reserve_runs, base_runs)], threshold)
     low_count = (floor.order_statistics(n) or (10, 0))[0] + 1  # 11 of 30
     return {
-        "figures": figures, "c1": c1, "c2": rises and not falls, "falls": falls, "unchanged": unchanged,
+        "figures": figures, "c1": c1, "no_points": figures["pooled"] != figures["pooled"], "c2": rises and not falls, "falls": falls, "unchanged": unchanged,
         "c3": c3, "bounds": bounds, "n": n,
         "half": sum(r.truly_feasible >= b.truly_feasible / 2 for r, b in zip(reserve_runs, base_runs)),
         "flag_at": low_count,
@@ -185,6 +185,10 @@ def _cells(runs):
         grouped.setdefault((run.problem, kind, run.budget_per_dimension), {}).setdefault(variant, {})[run.seed] = run
     cells = []
     for key, variants in sorted(grouped.items()):
+        if key in FLOOR_UNRESOLVABLE:
+            missing = [r for r in RESERVES if r not in variants]
+            if missing:
+                raise ValueError(f"{_label({'key': key})} is a cell the floor can't resolve and has no runs of the {' or '.join(missing)}")
         base = variants.get("baseline")
         if not base:
             continue
@@ -238,6 +242,16 @@ def _status(reserve, cells):
 
 
 def choose_reserve(cells):
+    """As _choose, with a note added to the reasons for every cell where a reserve reported no points at all."""
+    choice, outcomes, branch, reasons = _choose(cells)
+    notes = [
+        f"{reserve}: {_label(cell)}: criterion 1 met only vacuously, no reported points (criterion 2 judges the cell)"
+        for cell in cells for reserve in RESERVES if cell.get(reserve) and cell[reserve].get("no_points")
+    ]
+    return choice, outcomes, branch, reasons + notes
+
+
+def _choose(cells):
     """(choice, outcomes, branch, reasons): choice is "tenth", "fifth" or "user"; outcomes maps each reserve to its outcome.
 
     cells are dicts as _cells builds them: "key", "floor", per reserve {"c1", "c2", "c3"} and "more_fifth" ("more", "fewer",
@@ -317,7 +331,7 @@ def report(runs):
                 f"| {problem} | {kind} | {budget} | {'unresolvable' if cell['floor'] else 'resolves'} | {reserve} | {r['n']} "
                 f"| {_pct(f['pooled'])} ({_pct(b['pooled'])}) | {_pct(f['mean_share'])} ({_pct(b['mean_share'])}) | {f['empty']} ({b['empty']}) "
                 f"| {f['front']:g} ({b['front']:g}) | {f['feasible']:g} ({b['feasible']:g}) | {f['any']} ({b['any']}) "
-                f"| {'met' if r['c1'] else 'not met'} | {c2} | {low:.4f} | {high:.4f} | {cell['threshold']:.4f} | {r['c3']} | {half} |"
+                f"| {'no reported points' if r['no_points'] else 'met' if r['c1'] else 'not met'} | {c2} | {low:.4f} | {high:.4f} | {cell['threshold']:.4f} | {r['c3']} | {half} |"
             )
     floor_cells = [c for c in cells if c["floor"] and c.get("more_fifth")]
     if floor_cells:
