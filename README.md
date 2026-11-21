@@ -307,7 +307,7 @@ result.save("run.json")
 result = Result.load("run.json")
 ```
 
-`rebuild_optimizer()` sets up a new optimizer exactly as the result's was, so a saved run can be repeated. Run it on the same objective and it returns the same result; for CMA-ES and Bayesian optimization, also use the same number of workers, `result.run.workers`. An optimizer class of your own is rebuilt with `rebuild_optimizer(MyOptimizer)`.
+`rebuild_optimizer()` sets up a new optimizer exactly as the result's was, so a saved run can be repeated. Run it on the same objective, with the same versions of hone and NumPy, and it returns the same result: a seed fixes the random draws, not the method, so a new version of hone can choose different candidates. `result.run` records both versions. This release changes seeded results where the margin of safety applies, with noise and constraints on outputs. For CMA-ES and Bayesian optimization, also use the same number of workers, `result.run.workers`. An optimizer class of your own is rebuilt with `rebuild_optimizer(MyOptimizer)`.
 
 ```python
 optimizer = Result.load("run.json").rebuild_optimizer()
