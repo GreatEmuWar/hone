@@ -311,6 +311,14 @@ The scaling and the reference point are fixed per problem from the true front, n
 
 There is a limit for random search. With the same optimizer seed, the default and the baseline propose identical designs and differ only in the final round and the judging. A floor from a different search stream is therefore much wider than that comparison's real spread under no change, and criterion 3 is lenient for random search.
 
+**The floor, measured** on 20 Nov 2026 by the Measure workflow: 2,520 runs, the table in `benchmarks/multi-floor-results.md`. 21 of 42 cells resolve δ.
+- *The cantilever resolves everywhere:* all 14 cells, with U − L at most 0.013 against a δ of 0.026.
+- *TNK resolves for Bayesian optimization at 50 and 100 evaluations per dimension* (both methods), and nowhere for NSGA-II.
+- *OSY resolves almost nowhere:* U − L runs from 0.045 to 0.12 against a δ of 0.019. Its baseline fronts are small, with medians of 1 to 14 points, and its true gaps large: 0.12 to 0.27 for Bayesian optimization, 0.5 to 0.97 for NSGA-II and random search.
+- *Four of the cells that resolve say nothing:* random search where the whole budget fits in its first generation of 50, or nearly does (OSY at 10, TNK at 10 and 20, the cantilever at 10). There the pair's runs are identical and every difference is 0.
+
+So in about half the cells, criterion 3 can't resolve δ at 30 seeds. Under the rule for choosing the reserve, those cells count as not met, and the choice goes to the user. The baseline's own figures also show what the comparison starts from. Believing every draw, Bayesian optimization reports 14% to 39% of its front points on OSY truly infeasible on average per run, and up to 15% on TNK at 100 per dimension. NSGA-II and random search stay under 3%, mostly because their fronts are small and well inside the limits.
+
 ### Pass criteria, fixed before measuring
 
 Per problem, optimizer and budget (a *cell*), each reserve is compared with the baseline, paired by seed, and judged on every criterion below on its own:
