@@ -106,6 +106,7 @@ def test_nsga2_with_noise_averages_points():
     assert result.front and all(p.evaluations >= 1 for p in result.front)
 
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 def test_nsga2_checkpoints_and_rebuilds(tmp_path):
     whole = nsga2(max_evaluations=400).optimize(ZDT1.function)
     partial = nsga2(max_evaluations=400)

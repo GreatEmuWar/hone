@@ -28,7 +28,7 @@ hone is maintained by one person, so replies are on a best-effort basis. You sho
 hone runs the objective function you give it, so some behaviour that would be a vulnerability elsewhere is the point here. In particular these are by design, not vulnerabilities:
 
 - **Your own code runs.** Objective functions and `Constraint.function` constraints are ordinary Python, run in your process or in worker processes hone starts.
-- **Checkpoints are pickles.** Loading one with `load_checkpoint()` can run code, as the README and its docstring say: only load checkpoints you saved yourself.
+- **Checkpoints are pickles.** Loading one with `load_checkpoint()` can run code, as the README and its docstring say: only load checkpoints you saved yourself. Pickle checkpoints are deprecated and loading one warns from 0.15.0; a safe format arrives in 0.17.0, and loading pickles will be removed in 0.19.0.
 
 These would be vulnerabilities, and are worth reporting:
 

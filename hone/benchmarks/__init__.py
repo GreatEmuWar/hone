@@ -1,6 +1,7 @@
 """Benchmark problems and a runner for comparing optimizers. Run `python -m hone.benchmarks --help`."""
 from .conditional import conditional_problems
 from .constrained import constrained_problems
+from .engineering import engineering_problems, engineering_table
 from .ml import ml_problems
 from .multi import MultiProblem, multi_problems, run_multi_benchmark, summarize_multi
 from .outputs import noisy_output_problems, output_problems

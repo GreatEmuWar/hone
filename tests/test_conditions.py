@@ -269,6 +269,7 @@ def test_a_result_with_conditions_saves_rebuilds_and_repeats(tmp_path):
     }
 
 
+@pytest.mark.filterwarnings("ignore:Pickle checkpoints are deprecated:FutureWarning")  # loads a checkpoint
 def test_a_checkpointed_run_with_conditions_resumes(tmp_path):
     whole = random_search(SPACE, population_size=10).optimize(score)
     partial = random_search(SPACE, population_size=10)

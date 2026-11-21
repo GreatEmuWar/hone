@@ -10,6 +10,8 @@ from hone.benchmarks import (
     Run,
     Summary,
     batch_optimizers,
+    engineering_problems,
+    engineering_table,
     load_summaries,
     noisy_output_problems,
     output_problems,
@@ -491,3 +493,49 @@ def test_cli_runs_the_outputs_suite_with_batch_sizes(tmp_path, capsys):
 def test_cli_batch_sizes_default_to_none_outside_the_outputs_suite(capsys):
     assert main(["--quick", "--seeds", "1", "--budgets", "2"]) == 0
     assert "bayesian-4" not in capsys.readouterr().out
+
+
+def _summary(problem, optimizer, budget, error):
+    return Summary(
+        problem=problem, optimizer=optimizer, budget_per_dimension=budget, runs=10,
+        median_error=error, lower_quartile=error, upper_quartile=error, solved=0.0,
+    )
+
+
+def test_the_engineering_table_has_a_row_per_problem_and_a_column_per_optimizer():
+    problems = [ALL[0].model_copy(update={"name": "beam", "optimum": 2.0}), ALL[0].model_copy(update={"name": "flat", "optimum": 0.0})]
+    summaries = [
+        _summary("beam", "cma-es", 10, 1.0),
+        _summary("beam", "cma-es", 100, 0.05),  # the best median: 2.05, 2.5% above the optimum
+        _summary("beam", "cma-es", 1000, 0.05),  # as good, at a larger budget
+        _summary("beam", "random", 10, math.inf),
+        _summary("flat", "cma-es", 10, 0.25),
+        _summary("flat", "random", 10, 3.0),
+        _summary("flat", "random", 10, 0.5),  # a later file's result replaces the earlier one
+        _summary("other", "genetic", 10, 0.0),  # not a problem of the table
+    ]
+    table = engineering_table(summaries, problems)
+    rows = [line for line in table.splitlines() if line.startswith("|")]
+    assert rows[0] == "| Problem | Published optimum | cma-es | random |"
+    assert rows[2] == "| beam | 2 | 2.05 (+2.5%) at 100 | none feasible |"
+    assert rows[3] == "| flat | 0 | 0.25 (+0.25) at 10 | 0.5 (+0.5) at 10 |"
+    assert len(rows) == 4
+
+
+def test_the_engineering_table_covers_the_designs_and_the_cec_problems():
+    names = [problem.name for problem in engineering_problems()]
+    assert names == [
+        "pressure-vessel", "pressure-vessel-outputs", "tension-spring", "tension-spring-outputs",
+        "welded-beam", "welded-beam-outputs", "g06", "g07", "g10",
+    ]
+
+
+def test_the_engineering_flag_writes_the_table_from_saved_summaries(tmp_path):
+    first, second, out = tmp_path / "a.json", tmp_path / "b.json", tmp_path / "engineering.md"
+    save_summaries([_summary("g07", "cma-es", 10, 1.0)], first)
+    save_summaries([_summary("g07", "cma-es", 10, 0.5)], second)
+    assert main(["--engineering", "--summaries", str(first), str(second), "--markdown", str(out)]) == 0
+    text = out.read_text()
+    assert text.startswith("# Engineering designs against their published optima")
+    assert "| g07 | 24.3062 | 24.8062 (+2.1%) at 10 |" in text
+    assert "| g06 | -6961.81 | n/a |" in text
