@@ -9,10 +9,12 @@ from hone.result import GenerationStats, Progress, Result
 
 from .core import (
     CHECKPOINT_FORMAT,
+    DEFAULT_FINAL_EVALUATIONS,
     OBJECTIVE,
     EvaluationFailed,
     Individual,
     MARGIN_FREEDOM,
+    MARGIN_HALF_AT_LEAST,
     OptimizerCore,
     Trial,
     _OutputNoise,
@@ -24,6 +26,8 @@ from .core import (
 
 __all__ = [
     "CHECKPOINT_FORMAT",
+    "DEFAULT_FINAL_EVALUATIONS",
+    "MARGIN_HALF_AT_LEAST",
     "OBJECTIVE",
     "EvaluationFailed",
     "Individual",
@@ -37,9 +41,7 @@ __all__ = [
     "_key",
 ]
 
-DEFAULT_FINAL_EVALUATIONS = 10  # kept back by default with noise and constraints on outputs, when a tenth of the budget is less, or there is none
 SECOND_HALF_POINTS = 2  # the points the final round's second half re-evaluates, each several times
-MARGIN_HALF_AT_LEAST = 2  # the final round splits in two halves only if each gets at least this many evaluations
 
 
 class Optimizer(_OutputNoise, OptimizerCore[Result]):
@@ -218,25 +220,6 @@ class Optimizer(_OutputNoise, OptimizerCore[Result]):
         chosen = self._chosen()
         # Only a point that satisfies every constraint on the outputs can reach the threshold.
         return chosen is not None and chosen[3] and self._reached(chosen[0])
-
-    def _reserved(self) -> int:
-        """Evaluations kept back for the final round with noise: final_evaluations, or its default.
-
-        The default is none, except with constraints on outputs, where it is a tenth of
-        max_evaluations, at least DEFAULT_FINAL_EVALUATIONS and at most half, or
-        DEFAULT_FINAL_EVALUATIONS without max_evaluations: judged on one draw, a design on the
-        boundary of a limit passes it half the time.
-        """
-        config = self.config
-        if not config.noise:
-            return 0
-        if config.final_evaluations is not None:
-            return config.final_evaluations
-        if not self.search_space.output_constraints:
-            return 0
-        if config.max_evaluations is None:
-            return DEFAULT_FINAL_EVALUATIONS
-        return min(max(DEFAULT_FINAL_EVALUATIONS, config.max_evaluations // 10), config.max_evaluations // 2)
 
     def _begin_final_round(self) -> bool:
         if self._reserve and not self._final_round and self._observations:

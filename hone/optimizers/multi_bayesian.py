@@ -1,4 +1,5 @@
 """Bayesian optimization of several objectives: Gaussian process models, and a random weighting of the objectives for each candidate."""
+import math
 from typing import Any, Callable, List
 
 import numpy as np
@@ -56,6 +57,7 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
         self.batch_size = self.config.population_size or self._workers
         self._X: list[np.ndarray] = []  # every evaluated point, encoded
         self._Y: list[np.ndarray | None] = []  # its values to minimize, or None if it failed
+        self._keys: list[tuple] = []  # its key, to look up its averages with noise and constraints on outputs
         self._thetas: dict[int, np.ndarray] = {}  # each model's hyperparameters, kept between fits
         self._fitted_at: dict[int, int] = {}  # observations at each model's last hyperparameter fit
         self._reset_outputs()
@@ -78,7 +80,11 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
             if individual.evaluated:
                 self._X.append(self._encoding.encode(individual.params))
                 self._Y.append(None if individual.failed else _minimizing(individual.values or {}, self._objectives))
+                self._keys.append(self._key(individual.params))
                 self._absorb_outputs(individual)
+        if self._averaged():
+            # A point evaluated again since has new averages: judge every row by its point's current averages.
+            self._violations = [math.inf if y is None else self._violation(key) for y, key in zip(self._Y, self._keys)]
         with threadpool_limits(limits=1, user_api="blas"):
             proposals = self._propose(self.batch_size)
         return [Individual(params=self._encoding.decode(x), generation=generation) for x in proposals]
@@ -96,6 +102,7 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
         scaled = (Y - low) / np.where(high > low, high - low, 1.0)
         pending = [self._encoding.encode(ind.params) for ind in self._outstanding()]
         constrained = bool(self.search_space.output_constraints)
+        averaged = self._averaged()
         # Improvement counts only from points that satisfy every output constraint.
         feasible = np.array(self._violations) == 0 if constrained else np.ones(len(X), dtype=bool)
         # The constraints' models don't depend on the weights, so they are fitted once and believe each candidate chosen.
@@ -114,12 +121,20 @@ class MultiObjectiveBayesian(MultiObjectiveOptimizer, _ModelSearch):
                 acquisition = log_feasibility  # nothing feasible yet: find somewhere that is
             elif self.config.method == "parego":
                 model = self._model(0, X, combined, [*pending, *chosen])
-                best = float(model.standardize(combined[feasible].min())) if feasible.any() else float(model.z.min())
+                if averaged and feasible.any():
+                    # With noise the lowest draw is likely a lucky one: use the lowest the model predicts at a passing row.
+                    best = float(model.predict(X)[0][feasible].min())
+                else:
+                    best = float(model.standardize(combined[feasible].min())) if feasible.any() else float(model.z.min())
                 acquisition = _improvement(model, best)
             else:
                 models = [self._model(j, X, scaled[:, j], [*pending, *chosen]) for j in range(scaled.shape[1])]
                 draws = self.rng.standard_normal((SAMPLES, len(models)))
-                best = float(combined[feasible].min()) if feasible.any() else float(combined.min())
+                if averaged and feasible.any():
+                    predicted = _chebyshev(np.stack([m.predict_original(X[feasible])[0] for m in models], axis=-1), weights)
+                    best = float(predicted.min())
+                else:
+                    best = float(combined[feasible].min()) if feasible.any() else float(combined.min())
                 acquisition = _sampled_improvement(models, weights, best, draws)
             if log_feasibility is not None and acquisition is not log_feasibility:
                 acquisition = _times(acquisition, log_feasibility)

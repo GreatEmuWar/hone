@@ -81,6 +81,8 @@ class Individual(_Unpickles):
 
 
 MARGIN_FREEDOM = 3  # degrees of freedom a limit's pooled noise needs before the margin of safety applies to it
+DEFAULT_FINAL_EVALUATIONS = 10  # kept back by default with noise and constraints on outputs, when a tenth of the budget is less, or there is none
+MARGIN_HALF_AT_LEAST = 2  # the final round splits in two halves only if each gets at least this many evaluations
 
 
 class _OutputNoise:
@@ -135,6 +137,25 @@ class _OutputNoise:
                 widen = k * spread * (size if math.isfinite(size) and size > 0 else 1.0) / math.sqrt(n)
             total += constraint.widened_violation(active, outputs, widen)
         return float(total)
+
+    def _reserved(self) -> int:
+        """Evaluations kept back for the final round with noise: final_evaluations, or its default.
+
+        The default is none, except with constraints on outputs, where it is a tenth of
+        max_evaluations, at least DEFAULT_FINAL_EVALUATIONS and at most half, or
+        DEFAULT_FINAL_EVALUATIONS without max_evaluations: judged on one draw, a design on the
+        boundary of a limit passes it half the time.
+        """
+        config = self.config
+        if not config.noise:
+            return 0
+        if config.final_evaluations is not None:
+            return config.final_evaluations
+        if not self.search_space.output_constraints:
+            return 0
+        if config.max_evaluations is None:
+            return DEFAULT_FINAL_EVALUATIONS
+        return min(max(DEFAULT_FINAL_EVALUATIONS, config.max_evaluations // 10), config.max_evaluations // 2)
 
     def _margin_on(self) -> bool:
         """Whether limits are judged with a margin of safety: with noise, constraints on outputs and a feasibility_confidence."""

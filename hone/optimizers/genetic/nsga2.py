@@ -104,7 +104,12 @@ class NSGA2(MultiObjectiveOptimizer, Breeding):
         if self.config.noise:
             # A point evaluated again since has a new average; rank by it.
             for individual in pool:
-                individual.values = self._values(self._observed[self._key(individual.params)].mean)
+                key = self._key(individual.params)
+                individual.values = self._values(self._observed[key].mean)
+                if self._averaged():
+                    # Constrained domination is judged on the averages, margin included.
+                    individual.outputs = self._average_outputs(key)
+                    individual.violation = self._violation(key)
         survivors = self._survivors(pool, size)
         niched = self._niche_children(survivors, int(self._niche_share * size), generation)
         children = niched + [self._child(survivors, generation) for _ in range(size - len(niched))]
