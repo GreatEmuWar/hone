@@ -1,6 +1,6 @@
 """Item 8's paired noise floor: how small a difference the noisy multi-objective benchmark can resolve.
 
-The three noisy engineering designs, 30 seeds, 10 to 100 evaluations per dimension, four optimizers each run
+Noisy OSY, TNK and the cantilever with its stress as an output, 30 seeds, 10 to 100 evaluations per dimension, four optimizers each run
 twice: as the baseline (every draw believed, noise=False) and paired, which searches with a different seed but
 starts from the baseline's own first generation. The report gives each cell's interval for the paired-minus-baseline
 true gap, and says whether the benchmark can resolve a difference of DELTA. The comparison spec, the default
