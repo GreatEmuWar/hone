@@ -19,7 +19,7 @@ FLOOR = 1e-8
 
 def _factory(kind, confidence):
     def make(problem, budget, seed):
-        space, common = problem.search_space, {"max_evaluations": budget, "seed": seed, "noise": True, "confidence": confidence}
+        space, common = problem.search_space, {"max_evaluations": budget, "seed": seed, "noise": True, "feasibility_confidence": confidence}
         if kind == "bayesian":
             if budget > BAYESIAN_MAX_EVALUATIONS:
                 raise SkipBudget(f"{budget} evaluations is more than Bayesian optimization is run with")
