@@ -330,6 +330,8 @@ Per problem, optimizer and budget (a *cell*), each reserve is compared with the 
 - if only one passes, that one ships;
 - if neither passes, the numbers go to the user.
 
+If a reserve fails only through unresolved cells, the choice goes to the user with the numbers rather than to the other reserve by default: an unresolved cell means the user decides.
+
 The runs are specs on the Measure workflow, which first needs to run multi-objective specs; see below.
 
 ### What it takes
