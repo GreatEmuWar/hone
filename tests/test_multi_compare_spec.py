@@ -1,4 +1,5 @@
 import json
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
@@ -13,14 +14,25 @@ FLOOR_CELL = (OSY, "random", 50)  # in FLOOR_UNRESOLVABLE
 RESOLVED_CELL = (CANT, "random", 50)  # not
 
 
-def _runs(cell, variant, specs):
-    """specs: one (reported, truly_feasible, true_gap) per seed."""
+def _runs(cell, variant, specs, front=None):
+    """specs: one (reported, truly_feasible, true_gap) per seed; front is every run's recorded front."""
     problem, kind, budget = cell
     return [
         MultiRun(problem=problem, optimizer=f"{kind}@{variant}", budget_per_dimension=budget, seed=seed, gap=0.0, front_size=rep,
-                 evaluations=0, front=[], reported=rep, truly_feasible=tf, any_truly_feasible=tf > 0, true_gap=gap)
+                 evaluations=0, front=front or [], reported=rep, truly_feasible=tf, any_truly_feasible=tf > 0, true_gap=gap)
         for seed, (rep, tf, gap) in enumerate(specs)
     ]
+
+
+def _filled(runs):
+    """runs plus identical baseline, tenth and fifth runs in every cell of the spec's grid they leave out, so report() has all 42."""
+    given = {(r.problem, r.optimizer.partition("@")[0], r.budget_per_dimension) for r in runs}
+    extra = []
+    for cell in spec.expected_cells():
+        if cell not in given:
+            for variant in ("baseline", "tenth", "fifth"):
+                extra += _runs(cell, variant, _same(tf=10, gap=0.5))
+    return runs + extra
 
 
 def _judge(cell, base, reserve):
@@ -107,13 +119,13 @@ def test_half_of_baseline_flag():
     base = [(10, 8, 0.1)] * 30
     enough = [(10, 4, 0.1)] * 11 + [(10, 3, 0.1)] * 19  # 4 is at least half of 8 in 11 seeds
     assert _judge(FLOOR_CELL, base, enough)["half"] == 11
-    assert "keeps half" not in spec.report(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", enough) + _runs(FLOOR_CELL, "fifth", enough))
+    assert "keeps half" not in spec.report(_filled(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", enough) + _runs(FLOOR_CELL, "fifth", enough)))
     short = [(10, 4, 0.1)] * 10 + [(10, 3, 0.1)] * 20
     assert _judge(FLOOR_CELL, base, short)["half"] == 10
-    text = spec.report(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", short) + _runs(FLOOR_CELL, "fifth", enough))
+    text = spec.report(_filled(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", short) + _runs(FLOOR_CELL, "fifth", enough)))
     assert "tenth keeps half the baseline's truly feasible points in 10 of 30 seeds" in text
     # only floor cells are checked
-    assert "keeps half" not in spec.report(_runs(RESOLVED_CELL, "baseline", base) + _runs(RESOLVED_CELL, "tenth", short) + _runs(RESOLVED_CELL, "fifth", short))
+    assert "keeps half" not in spec.report(_filled(_runs(RESOLVED_CELL, "baseline", base) + _runs(RESOLVED_CELL, "tenth", short) + _runs(RESOLVED_CELL, "fifth", short)))
 
 
 def test_clearly_more_fewer_and_ties():
@@ -136,22 +148,34 @@ def _cell(floor_=True, key=FLOOR_CELL, tenth="pass", fifth="pass", more=None):
     }
 
 
-def _many(more):
-    return [_cell(key=(OSY, "nsga2", i), more=m) for i, m in enumerate(more)]
+def _floor_cells(more=0, fewer=0, count=21):
+    """count of the floor cells, the first `more` clearly more for the fifth, the next `fewer` clearly fewer, the rest neither."""
+    flags = ["more"] * more + ["fewer"] * fewer
+    flags += ["neither"] * (count - len(flags))
+    return [_cell(key=key, more=flag) for key, flag in zip(sorted(spec.FLOOR_UNRESOLVABLE), flags)]
 
 
 def test_verdict_branch_2_both_pass():
-    choice, outcomes, branch, _ = spec.choose_reserve(_many(["neither"] * 4))
+    choice, outcomes, branch, reasons = spec.choose_reserve(_floor_cells())
     assert (choice, outcomes) == ("tenth", {"tenth": "pass", "fifth": "pass"}) and branch.startswith("2")
-    assert spec.choose_reserve(_many(["more", "more", "neither", "neither"]))[0] == "fifth"
-    assert spec.choose_reserve(_many(["more", "neither", "neither", "neither"]))[0] == "tenth"
-    assert spec.choose_reserve(_many(["more", "more", "more", "fewer"]))[0] == "tenth"  # clearly fewer in one cell
-    cells = _many(["more", "neither"]) + [_cell(floor_=False, key=RESOLVED_CELL, more="fewer")]
+    assert "clearly more in 0 of 21 unresolvable cells" in reasons[0]
+    assert spec.choose_reserve(_floor_cells(more=11))[0] == "fifth"  # 11 of 21 is at least half
+    assert spec.choose_reserve(_floor_cells(more=10))[0] == "tenth"  # 10 of 21 is not
+    assert spec.choose_reserve(_floor_cells(more=11, fewer=1))[0] == "tenth"  # clearly fewer in one cell
+    cells = _floor_cells(more=11) + [_cell(floor_=False, key=RESOLVED_CELL, more="fewer")]
     assert spec.choose_reserve(cells)[0] == "fifth"  # only unresolvable cells are counted
 
 
+def test_at_least_half_is_of_all_21_floor_cells_not_the_ones_present():
+    assert len(spec.FLOOR_UNRESOLVABLE) == 21
+    # every floor cell present is clearly more, but only 10 are present: 10 of 21 is under half
+    assert spec.choose_reserve(_floor_cells(more=10, count=10))[0] == "tenth"
+    assert spec.choose_reserve(_floor_cells(more=11, count=11))[0] == "fifth"
+
+
 def test_verdict_unresolved_inside_floor_list_does_not_count():
-    choice, outcomes, _, _ = spec.choose_reserve([_cell(tenth="unresolved", fifth="unresolved", more="more")])
+    cells = [_cell(key=cell["key"], tenth="unresolved", fifth="unresolved", more="more") for cell in _floor_cells()]
+    choice, outcomes, _, _ = spec.choose_reserve(cells)
     assert outcomes == {"tenth": "pass", "fifth": "pass"} and choice == "fifth"
     # a fail inside the list still counts
     assert spec.choose_reserve([_cell(tenth="fail", fifth="pass")])[:2] == ("fifth", {"tenth": "fail", "fifth": "pass"})
@@ -192,7 +216,7 @@ def test_report_end_to_end_on_synthetic_runs():
         runs += _runs(cell, "tenth", _same(tf=10, gap=0.5))
         runs += _runs(cell, "fifth", _same(tf=10, gap=0.5))
         runs += _runs(cell, "alone", _same(tf=10, gap=0.5))
-    text = spec.report(runs)
+    text = spec.report(_filled(runs))
     assert "| tenth | pass |" in text and "| fifth | pass |" in text and "Verdict: **tenth**" in text
     assert "Averaging alone, for the record" in text and "assumes they hold" in text
 
@@ -211,8 +235,9 @@ def test_no_reported_points_is_vacuous_for_criterion_1_but_not_shown_as_met():
     assert j["no_points"] and j["unchanged"] and j["c2"]
     runs = _runs(RESOLVED_CELL, "baseline", [(0, 0, 0.1)] * 30) + _runs(RESOLVED_CELL, "tenth", [(0, 0, 0.1)] * 30)
     runs += _runs(RESOLVED_CELL, "fifth", [(0, 0, 0.1)] * 30)
-    text = spec.report(runs)
-    assert "| no reported points |" in text and "| met | met" not in text
+    text = spec.report(_filled(runs))
+    rows = [line for line in text.splitlines() if line.startswith(f"| {CANT} | random | 50 |")]
+    assert rows and all("| no reported points |" in row and "| met | met" not in row for row in rows)
     assert any("no reported points" in reason for reason in spec.choose_reserve(spec._cells(runs))[3])
     assert "no information: no feasible point under either" in text
     assert text.count("no information: no feasible point under either") == 2  # tenth and fifth
@@ -220,7 +245,7 @@ def test_no_reported_points_is_vacuous_for_criterion_1_but_not_shown_as_met():
     assert spec.choose_reserve(cells)[:2] == ("tenth", {"tenth": "pass", "fifth": "pass"})  # neither helped nor hurt
     # a cell that isn't empty and identical isn't flagged
     runs = _runs(RESOLVED_CELL, "baseline", _same()) + _runs(RESOLVED_CELL, "tenth", _same()) + _runs(RESOLVED_CELL, "fifth", _same())
-    assert "no information" not in spec.report(runs)
+    assert "no information" not in spec.report(_filled(runs))
 
 
 def test_floor_cell_missing_a_reserve_raises():
@@ -234,3 +259,124 @@ def test_floor_cell_missing_a_reserve_raises():
     with pytest.raises(ValueError, match="tenth or fifth"):
         spec._cells(_runs(RESOLVED_CELL, "baseline", _same()))
     assert spec._cells([]) == []  # a cell with no runs at all is fine
+
+
+def test_the_grid_comes_from_the_specs_own_problems_optimizers_and_budgets():
+    cells = spec.expected_cells()
+    # 3 problems x 4 optimizers x 4 budgets is 48, less the six where Bayesian optimization would pass BAYESIAN_MAX_EVALUATIONS
+    assert len(cells) == 42 == len(set(cells))
+    assert {c[0] for c in cells} == {p.name for p in spec.problems()} and {c[1] for c in cells} == set(spec.KINDS)
+    assert spec.FLOOR_UNRESOLVABLE <= set(cells)
+
+
+def test_the_report_refuses_a_verdict_unless_all_42_cells_have_30_seed_pairs():
+    complete = _filled([])
+    assert "Verdict" in spec.report(complete)  # complete runs are judged
+    first = spec.expected_cells()[0]
+    # a cell with no runs at all
+    gone = [r for r in complete if (r.problem, r.optimizer.partition("@")[0], r.budget_per_dimension) != first]
+    with pytest.raises(ValueError, match=rf"{first[0]}, {first[1]}, {first[2]}/dim: 0 of 30 seed pairs for baseline against tenth"):
+        spec.report(gone)
+    # 29 seeds of the tenth: baseline against tenth and fifth against tenth are short, baseline against fifth is not
+    short = [
+        r for r in complete
+        if not (r.optimizer == f"{first[1]}@tenth" and (r.problem, r.budget_per_dimension) == (first[0], first[2]) and r.seed == 29)
+    ]
+    with pytest.raises(ValueError) as error:
+        spec.report(short)
+    text = str(error.value)
+    assert "29 of 30 seed pairs for baseline against tenth" in text and "29 of 30 seed pairs for fifth against tenth" in text
+    assert "baseline against fifth" not in text and "no verdict is given" in text
+    # a cell outside the grid is named too
+    with pytest.raises(ValueError, match="noisy-osy, random, 7/dim: not a cell of this spec's grid"):
+        spec.report(complete + _runs((OSY, "random", 7), "baseline", _same()))
+
+
+def test_a_cell_with_reserve_runs_and_no_baseline_is_not_dropped_silently():
+    runs = _runs(RESOLVED_CELL, "tenth", _same()) + _runs(RESOLVED_CELL, "fifth", _same())
+    with pytest.raises(ValueError, match="noisy-cantilever-outputs, random, 50/dim has runs of fifth and tenth and no baseline"):
+        spec._cells(runs)
+    no_baseline = [r for r in _filled([]) if not (r.optimizer == "random@baseline" and (r.problem, r.budget_per_dimension) == (CANT, 50))]
+    with pytest.raises(ValueError, match="noisy-cantilever-outputs, random, 50/dim: 0 of 30 seed pairs for baseline against tenth"):
+        spec.report(no_baseline)
+
+
+def test_the_reserves_must_be_run_on_the_baselines_seeds():
+    runs = _runs(RESOLVED_CELL, "baseline", _same(30)) + _runs(RESOLVED_CELL, "tenth", _same(30)) + _runs(RESOLVED_CELL, "fifth", _same(29))
+    with pytest.raises(ValueError, match="the fifth and the baseline were not run on the same seeds"):
+        spec._cells(runs)
+
+
+def test_unchanged_compares_the_fronts_not_only_their_scores():
+    base = _runs(RESOLVED_CELL, "baseline", _same(tf=0, gap=0.3), front=[[0.1, 0.9]])
+    same = _runs(RESOLVED_CELL, "tenth", _same(tf=0, gap=0.3), front=[[0.1, 0.9]])
+    other = _runs(RESOLVED_CELL, "tenth", _same(tf=0, gap=0.3), front=[[0.4, 0.6]])  # a different infeasible front, scoring alike
+    assert spec._unchanged(same, base) and not spec._unchanged(other, base)
+    # so the exemption from rising applies only to the first
+    assert spec._judge_reserve(same, base, 0.04)["c2"] and not spec._judge_reserve(other, base, 0.04)["c2"]
+
+
+def test_the_report_gives_the_seeds_where_the_baseline_has_a_feasible_point_beside_the_shrinkage_flag():
+    base = [(10, 0, 0.1)] * 20 + [(10, 8, 0.1)] * 10  # a feasible point in 10 seeds only
+    assert _judge(FLOOR_CELL, base, base)["base_any"] == 10
+    base = [(10, 8, 0.1)] * 30
+    worse = [(10, 3, 0.1)] * 30  # keeps half of the baseline's in no seed
+    text = spec.report(_filled(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", worse) + _runs(FLOOR_CELL, "fifth", worse)))
+    assert "tenth keeps half the baseline's truly feasible points in 0 of 30 seeds (the baseline has a truly feasible point in 30 seeds)" in text
+    assert "| 0 of 30 (30 with a feasible baseline) |" in text
+
+
+TNK10 = [("noisy-tnk", kind, 10) for kind in ("bayesian-models", "bayesian-parego", "nsga2", "random")]
+
+
+def test_the_cells_with_identical_reserves_are_the_four_tnk_cells_at_10_per_dimension():
+    assert spec.identical_reserve_cells() == TNK10
+    assert [c for c in TNK10 if c in spec.FLOOR_UNRESOLVABLE] == TNK10[:3]  # three of the 21 floor cells
+    # tenth max(10, 2) = 10 and fifth min(max(20, 4), 10) = 10 on TNK's 2 dimensions and 20 evaluations
+    assert spec._reserve("tenth", 20) == spec._reserve("fifth", 20) == 10
+    assert spec._reserve("tenth", 60) == 10 and spec._reserve("fifth", 60) == 20  # OSY at 10 per dimension differs
+
+
+def test_identical_reserves_must_give_identical_runs_and_the_report_says_which_cells_they_are():
+    complete = _filled([])
+    text = spec.report(complete)
+    line = (
+        "3 of the 21 floor cells (TNK at 10 per dimension) have identical reserves and cannot come out clearly more; "
+        "they stay in the denominator by decision of 20–21 Nov 2026."
+    )
+    assert line in text and text.index(line) < text.index("### Which reserve ships")
+    for cell in TNK10:
+        assert "- {}, {}, {}/dim".format(*cell) in text
+    # the tenth and the fifth differing in such a cell is a bug in the feature: an error naming the cell and the seeds
+    broken = [r for r in complete if not (r.optimizer == "nsga2@fifth" and (r.problem, r.budget_per_dimension) == ("noisy-tnk", 10) and r.seed == 3)]
+    broken.append(_runs(("noisy-tnk", "nsga2", 10), "fifth", [(10, 9, 0.5)] * 4)[3])  # seed 3, truly feasible 9 instead of 10
+    with pytest.raises(ValueError, match=r"noisy-tnk, nsga2, 10/dim: the tenth and the fifth both keep back 10 evaluations.*differ at seeds \[3\].*final_evaluations"):
+        spec.report(broken)
+    # in a cell where the reserves differ, differing runs are the point and raise nothing
+    cell = (OSY, "random", 10)
+    other = [r for r in complete if (r.problem, r.optimizer.partition("@")[0], r.budget_per_dimension) != cell]
+    other += _runs(cell, "baseline", _same()) + _runs(cell, "tenth", _same()) + _runs(cell, "fifth", _same(tf=9))
+    assert "Verdict" in spec.report(other)
+
+
+def test_criterion_3_boundaries_20_of_30_and_exactly_delta():
+    assert floor.order_statistics(30) == (10, 19)  # the 11th and the 20th smallest of 30
+    delta = 0.04
+
+    def verdict(low, exact=0):
+        """low differences of 0, exact equal to delta, the rest above it."""
+        differences = [0.0] * low + [delta] * exact + [0.5] * (30 - low - exact)
+        return spec._criterion_3(differences, delta)[0]
+
+    assert verdict(20) == "pass" and verdict(19) == "unresolved"  # the 20th smallest must be at most delta
+    assert verdict(10) == "fail" and verdict(11) == "unresolved"  # the 11th smallest must be above delta
+    assert verdict(0, exact=20) == "pass"  # d equal to delta is at most delta
+    assert verdict(0, exact=11) == "unresolved" and verdict(0, exact=10) == "fail"  # and is not above it
+    assert verdict(30) == "pass" and verdict(0) == "fail"
+
+
+def test_shares_are_fractions_and_one_in_ten_is_within_the_limit():
+    figures = spec._share_figures(_runs(RESOLVED_CELL, "tenth", [(10, 9, 0.1)] * 30))
+    assert figures["pooled"] == figures["mean_share"] == Fraction(1, 10) and isinstance(figures["pooled"], Fraction)
+    assert spec._within(figures["pooled"]) and not spec._within(Fraction(11, 100)) and spec._within(None)
+    assert spec._judge_reserve(_runs(RESOLVED_CELL, "tenth", [(10, 9, 0.1)] * 30), _runs(RESOLVED_CELL, "baseline", _same()), 0.04)["c1"]

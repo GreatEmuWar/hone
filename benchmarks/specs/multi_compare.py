@@ -15,15 +15,17 @@ else moves) and 5 (cost) are checked by tests and the cost harness, and the verd
 """
 import math
 import statistics
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
-from hone.benchmarks.multi import DEFAULT_MULTI_OPTIMIZERS, MultiProblem
+from hone.benchmarks.multi import DEFAULT_MULTI_OPTIMIZERS, MultiProblem, multi_tasks
 from hone.benchmarks.multi_outputs import noisy_multi_output_problems
 from hone.benchmarks.runner import BAYESIAN_MAX_EVALUATIONS, POPULATION_SIZE, SkipBudget
 from hone.benchmarks.sharded import load_spec
 from hone.config import MultiObjectiveBayesianConfig, MultiObjectiveConfig, NSGA2Config
 from hone.optimizers import MultiObjectiveBayesian, MultiObjectiveRandomSearch
+from hone.optimizers.base import DEFAULT_FINAL_EVALUATIONS
 from hone.optimizers.genetic import NSGA2
 
 floor = load_spec(Path(__file__).with_name("multi_floor.py"))
@@ -34,8 +36,9 @@ RESERVES = ("tenth", "fifth")
 SEEDS = 30
 BUDGETS = (10, 20, 50, 100)
 DELTA = floor.DELTA  # 0.02: a share of the true front's scaled hypervolume
-SHARE = 0.10  # criterion 1's limit on the share of reported points that truly break a limit
-ANY_FLOOR = 0.9  # criterion 2: a cell whose baseline share of runs with a feasible point is under this must rise
+SHARE = Fraction(1, 10)  # criterion 1's limit on the share of reported points that truly break a limit
+ANY_FLOOR = Fraction(9, 10)  # criterion 2: a cell whose baseline share of runs with a feasible point is under this must rise
+# The shares and the 10% comparisons are Fractions, so a share of exactly one in ten is within the limit whatever the float rounding.
 
 # The cells the paired noise floor can't resolve δ in: benchmarks/multi-floor-results.md, copied from its list. A test
 # recomputes them from benchmarks/multi-floor-runs.json.
@@ -70,6 +73,18 @@ def problems():
     return noisy_multi_output_problems()
 
 
+def expected_cells():
+    """Every (problem, optimizer, budget per dimension) cell the spec runs, from its own grid: 42 of the 48 combinations.
+
+    The grid is the one the sharded runner makes: multi_tasks over the baseline factories, which leaves out the cells a
+    factory skips (Bayesian optimization past BAYESIAN_MAX_EVALUATIONS). Every variant runs where its baseline does.
+    """
+    found = problems()
+    baselines = {f"{kind}@baseline": _factory(kind, "baseline") for kind in KINDS}
+    tasks = multi_tasks(found, baselines, range(SEEDS), BUDGETS)
+    return sorted({(found[index].name, name.partition("@")[0], budget) for index, name, budget, _ in tasks})
+
+
 # --- the optimizers ------------------------------------------------------------------
 
 
@@ -82,6 +97,20 @@ def _noise_options(variant: str, budget: int) -> dict[str, Any]:
     if variant == "alone":
         return {"noise": True, "final_evaluations": 0, "feasibility_confidence": None}
     raise ValueError(variant)
+
+
+def _reserve(variant: str, budget: int) -> int:
+    """The evaluations a reserve variant keeps back for the final round, with the noisy problems' limits on outputs."""
+    reserved = _noise_options(variant, budget)["final_evaluations"]
+    if reserved is None:  # the default, the rule in BayesianBase._reserved
+        return min(max(DEFAULT_FINAL_EVALUATIONS, budget // 10), budget // 2)
+    return reserved
+
+
+def identical_reserve_cells():
+    """The cells where the tenth and the fifth keep back the same number of evaluations, so their runs must be identical."""
+    dimensions = {p.name: p.dimensions for p in problems()}
+    return [key for key in expected_cells() if _reserve("tenth", key[2] * dimensions[key[0]]) == _reserve("fifth", key[2] * dimensions[key[0]])]
 
 
 def _factory(kind: str, variant: str):
@@ -119,10 +148,10 @@ def optimizers():
 def _share_figures(runs):
     reported = sum(r.reported for r in runs)
     false = sum(r.reported - r.truly_feasible for r in runs)
-    with_points = [(r.reported - r.truly_feasible) / r.reported for r in runs if r.reported > 0]
+    with_points = [Fraction(r.reported - r.truly_feasible, r.reported) for r in runs if r.reported > 0]
     return {
-        "pooled": false / reported if reported else math.nan,
-        "mean_share": statistics.mean(with_points) if with_points else math.nan,
+        "pooled": Fraction(false, reported) if reported else None,  # None: no reported point at all
+        "mean_share": statistics.mean(with_points) if with_points else None,
         "empty": sum(r.reported == 0 for r in runs),
         "front": statistics.median(r.reported for r in runs),
         "feasible": statistics.median(r.truly_feasible for r in runs),
@@ -132,12 +161,17 @@ def _share_figures(runs):
 
 
 def _within(value):
-    """Whether a share is within SHARE. No points at all (nan) is vacuously within: criterion 2 is what catches an empty cell."""
-    return math.isnan(value) or value <= SHARE
+    """Whether a share is within SHARE. No points at all (None) is vacuously within: criterion 2 is what catches an empty cell."""
+    return value is None or value <= SHARE
 
 
 def _unchanged(reserve, base):
-    return all((a.reported, a.truly_feasible, a.true_gap) == (b.reported, b.truly_feasible, b.true_gap) for a, b in zip(reserve, base))
+    """Seed for seed, the same reported points: their counts, the true gap and the fronts themselves, so two different
+    infeasible fronts that score alike are not counted as unchanged."""
+    return all(
+        (a.reported, a.truly_feasible, a.true_gap, a.front) == (b.reported, b.truly_feasible, b.true_gap, b.front)
+        for a, b in zip(reserve, base)
+    )
 
 
 def _criterion_3(differences, threshold):
@@ -157,13 +191,14 @@ def _judge_reserve(reserve_runs, base_runs, threshold):
     c1 = _within(figures["pooled"]) and _within(figures["mean_share"])
     unchanged = _unchanged(reserve_runs, base_runs)
     rises = figures["any"] > base["any"] or base["any"] >= ANY_FLOOR * n or unchanged
-    falls = (base["any"] - figures["any"]) > n / 10
+    falls = (base["any"] - figures["any"]) > Fraction(n, 10)
     c3, bounds = _criterion_3([r.true_gap - b.true_gap for r, b in zip(reserve_runs, base_runs)], threshold)
     low_count = (floor.order_statistics(n) or (10, 0))[0] + 1  # 11 of 30
     return {
-        "figures": figures, "c1": c1, "no_points": figures["pooled"] != figures["pooled"], "c2": rises and not falls, "falls": falls, "unchanged": unchanged,
+        "figures": figures, "c1": c1, "no_points": figures["pooled"] is None, "c2": rises and not falls, "falls": falls, "unchanged": unchanged,
         "c3": c3, "bounds": bounds, "n": n,
         "half": sum(r.truly_feasible >= b.truly_feasible / 2 for r, b in zip(reserve_runs, base_runs)),
+        "base_any": base["any"],  # the seeds where the baseline has a truly feasible point: the others pass "half" trivially
         "flag_at": low_count,
     }
 
@@ -178,41 +213,87 @@ def _clearly(larger_runs, smaller_runs):
     return "more" if low >= 1 else "fewer" if high <= -1 else "neither"
 
 
-def _cells(runs):
+def _group(runs):
     grouped = {}
     for run in runs:
         kind, _, variant = run.optimizer.partition("@")
         grouped.setdefault((run.problem, kind, run.budget_per_dimension), {}).setdefault(variant, {})[run.seed] = run
+    return grouped
+
+
+def _cell_name(key):
+    return "{}, {}, {}/dim".format(*key)
+
+
+def _paired(variants, first, second):
+    """The seeds both variants have a run for."""
+    return sorted(variants.get(first, {}).keys() & variants.get(second, {}).keys())
+
+
+def check_complete(runs):
+    """Raise ValueError, naming what is missing, unless every cell of the spec's grid has SEEDS seed pairs for each comparison.
+
+    The comparisons are the baseline against the tenth, the baseline against the fifth and the fifth against the tenth. A
+    cell with reserve runs and no baseline is missing its pairs like any other; nothing is dropped silently.
+    """
+    grouped = _group(runs)
+    expected = expected_cells()
+    missing = [f"{_cell_name(key)}: not a cell of this spec's grid" for key in sorted(grouped.keys() - set(expected))]
+    for key in expected:
+        variants = grouped.get(key, {})
+        for first, second in (("baseline", "tenth"), ("baseline", "fifth"), ("fifth", "tenth")):
+            pairs = len(_paired(variants, first, second))
+            if pairs != SEEDS:
+                missing.append(f"{_cell_name(key)}: {pairs} of {SEEDS} seed pairs for {first} against {second}")
+    if missing:
+        raise ValueError(
+            f"the runs are incomplete, so no verdict is given: {len(missing)} comparisons lack their {SEEDS} seed pairs "
+            f"across the {len(expected)} cells:\n" + "\n".join(missing)
+        )
+
+
+def _same_run(a, b):
+    """Two runs alike in everything they record, whatever optimizer name they carry."""
+    return a.model_copy(update={"optimizer": ""}) == b.model_copy(update={"optimizer": ""})
+
+
+def _cells(runs):
+    dimensions = {p.name: p.dimensions for p in problems()}
     cells = []
-    for key, variants in sorted(grouped.items()):
+    for key, variants in sorted(_group(runs).items()):
         base = variants.get("baseline")
         if not base:
-            continue
+            raise ValueError(f"{_cell_name(key)} has runs of {' and '.join(sorted(variants))} and no baseline runs")
         missing = [r for r in RESERVES if r not in variants]
         if missing:
-            raise ValueError(f"{_label({'key': key})} has baseline runs and no runs of the {' or '.join(missing)}")
-        threshold = DELTA * next(p for p in problems() if p.name == key[0]).true_hypervolume
-        cell = {"key": key, "floor": key in FLOOR_UNRESOLVABLE, "baseline": None, "alone": None, "threshold": threshold}
+            raise ValueError(f"{_cell_name(key)} has baseline runs and no runs of the {' or '.join(missing)}")
         for reserve in RESERVES:
-            if reserve in variants:
-                seeds = sorted(base.keys() & variants[reserve].keys())
-                if seeds:
-                    cell[reserve] = _judge_reserve([variants[reserve][s] for s in seeds], [base[s] for s in seeds], threshold)
-                    cell["baseline"] = _share_figures([base[s] for s in seeds])
-        cell["more_fifth"] = None
-        if "tenth" in variants and "fifth" in variants:
-            seeds = sorted(variants["tenth"].keys() & variants["fifth"].keys())
-            if seeds:
-                cell["more_fifth"] = _clearly([variants["fifth"][s] for s in seeds], [variants["tenth"][s] for s in seeds])
+            if sorted(variants[reserve]) != sorted(base):
+                raise ValueError(f"{_cell_name(key)}: the {reserve} and the baseline were not run on the same seeds")
+        threshold = DELTA * next(p for p in problems() if p.name == key[0]).true_hypervolume
+        seeds = sorted(base)
+        budget = key[2] * dimensions[key[0]]
+        identical = _reserve("tenth", budget) == _reserve("fifth", budget)
+        if identical:
+            different = [s for s in seeds if s not in variants["tenth"] or s not in variants["fifth"] or not _same_run(variants["tenth"][s], variants["fifth"][s])]
+            if different:
+                raise ValueError(
+                    f"{_cell_name(key)}: the tenth and the fifth both keep back {_reserve('tenth', budget)} evaluations, but their "
+                    f"runs differ at seeds {different}: an explicit final_evaluations behaves differently from the default"
+                )
+        cell = {"key": key, "floor": key in FLOOR_UNRESOLVABLE, "identical_reserves": identical, "alone": None, "threshold": threshold}
+        cell["baseline"] = _share_figures([base[s] for s in seeds])
+        for reserve in RESERVES:
+            cell[reserve] = _judge_reserve([variants[reserve][s] for s in seeds], [base[s] for s in seeds], threshold)
+        cell["more_fifth"] = _clearly([variants["fifth"][s] for s in seeds], [variants["tenth"][s] for s in seeds])
         if "alone" in variants:
             cell["alone"] = _share_figures(list(variants["alone"].values()))
-        if cell["baseline"] is not None:
-            cells.append(cell)
+        cells.append(cell)
     return cells
 
 
 def _label(cell):
-    return "{}, {}, {}/dim".format(*cell["key"])
+    return _cell_name(cell["key"])
 
 
 def _status(reserve, cells):
@@ -256,7 +337,7 @@ def _choose(cells):
     cells are dicts as _cells builds them: "key", "floor", per reserve {"c1", "c2", "c3"} and "more_fifth" ("more", "fewer",
     "neither" or None). In order:
       1. either reserve undecided: user;
-      2. both pass: the fifth ships only if clearly more in at least half of the floor-unresolvable cells with both reserves,
+      2. both pass: the fifth ships only if clearly more in at least half of all len(FLOOR_UNRESOLVABLE) = 21 floor-unresolvable cells,
          clearly fewer in none, and it meets criteria 1 and 2 wherever the tenth does; otherwise the tenth;
       3. exactly one passes and the other fails: the one that passes;
       4. both fail: user.
@@ -273,12 +354,13 @@ def _choose(cells):
         floor_cells = [c for c in both if c["floor"]]
         more = [c for c in floor_cells if c["more_fifth"] == "more"]
         fewer = [c for c in floor_cells if c["more_fifth"] == "fewer"]
+        total = len(FLOOR_UNRESOLVABLE)  # "at least half" of every cell the floor can't resolve, present or not
         keeps = all(c["fifth"]["c1"] and c["fifth"]["c2"] for c in both if c["tenth"]["c1"] and c["tenth"]["c2"])
         reasons = [
-            f"the fifth gives clearly more in {len(more)} of {len(floor_cells)} unresolvable cells and clearly fewer in {len(fewer)}"
+            f"the fifth gives clearly more in {len(more)} of {total} unresolvable cells and clearly fewer in {len(fewer)}"
         ]
         reasons += [f"clearly more: {_label(c)}" for c in more] + [f"clearly fewer: {_label(c)}" for c in fewer]
-        if floor_cells and 2 * len(more) >= len(floor_cells) and not fewer and keeps:
+        if 2 * len(more) >= total and not fewer and keeps:
             return "fifth", outcomes, "2: both pass, the fifth is clearly more", reasons
         return "tenth", outcomes, "2: both pass, the tenth by default", reasons
     if tenth == "pass":
@@ -289,10 +371,12 @@ def _choose(cells):
 
 
 def _pct(x):
-    return "n/a" if math.isnan(x) else f"{x:.1%}"
+    return "n/a" if x is None else f"{float(x):.1%}"
 
 
 def report(runs):
+    """The report, or ValueError naming what is missing: it refuses a verdict unless check_complete(runs) passes."""
+    check_complete(runs)
     cells = _cells(runs)
     lines = ["## Noise with several objectives: each reserve against believing every draw", ""]
     lines += [
@@ -305,7 +389,7 @@ def report(runs):
         "checked by tests and the cost harness, not from these runs, and the verdict assumes they hold. The `alone` runs are for the record.",
         "",
         "| Problem | Optimizer | Per dim | Floor | Reserve | Pairs | Pooled infeasible (base) | Mean share (base) | Empty (base) | Median front (base) "
-        "| Median truly feasible (base) | Any feasible (base) | C1 | C2 | L | U | δ | C3 | Seeds at least half of base |",
+        "| Median truly feasible (base) | Any feasible (base) | C1 | C2 | L | U | δ | C3 | Seeds at least half of base (seeds with a feasible baseline) |",
         "| --- | --- | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: | ---: | --- | ---: |",
     ]
     flagged = []
@@ -321,13 +405,16 @@ def report(runs):
             c2 = "met" if r["c2"] else ("falls" if r["falls"] else "no rise")
             if r["unchanged"]:
                 c2 += " (unchanged)"
-            if r["unchanged"] and r["no_points"] and b["pooled"] != b["pooled"] and r["figures"]["any"] == 0:
+            if r["unchanged"] and r["no_points"] and b["pooled"] is None and r["figures"]["any"] == 0:
                 flagged.append(f"{_label(cell)}: {reserve}: no information: no feasible point under either")
             half = ""
             if cell["floor"]:
-                half = f"{r['half']} of {r['n']}"
+                half = f"{r['half']} of {r['n']} ({r['base_any']} with a feasible baseline)"
                 if r["half"] < r["flag_at"]:
-                    flagged.append(f"{_label(cell)}: {reserve} keeps half the baseline's truly feasible points in {r['half']} of {r['n']} seeds")
+                    flagged.append(
+                        f"{_label(cell)}: {reserve} keeps half the baseline's truly feasible points in {r['half']} of {r['n']} seeds "
+                        f"(the baseline has a truly feasible point in {r['base_any']} seeds)"
+                    )
             lines.append(
                 f"| {problem} | {kind} | {budget} | {'unresolvable' if cell['floor'] else 'resolves'} | {reserve} | {r['n']} "
                 f"| {_pct(f['pooled'])} ({_pct(b['pooled'])}) | {_pct(f['mean_share'])} ({_pct(b['mean_share'])}) | {f['empty']} ({b['empty']}) "
@@ -340,6 +427,11 @@ def report(runs):
         lines += ["", "### The fifth against the tenth, in the cells the floor can't resolve", "",
                   "| Problem | Optimizer | Per dim | Fifth against tenth |", "| --- | --- | ---: | --- |"]
         lines += ["| {} | {} | {} | {} |".format(*c["key"], names[c["more_fifth"]]) for c in floor_cells]
+    identical = [c for c in cells if c["identical_reserves"]]
+    if identical:
+        lines += ["", "### Cells where the tenth and the fifth keep back the same number of evaluations", "",
+                  "Their runs were checked seed for seed and are identical, so the fifth against the tenth says nothing there.", ""]
+        lines += [f"- {_label(c)}{' (floor cell)' if c['floor'] else ''}" for c in identical]
     alone = [c for c in cells if c["alone"]]
     if alone:
         lines += ["", "### Averaging alone, for the record (never judged)", "",
@@ -350,6 +442,11 @@ def report(runs):
             lines.append("| {} | {} | {} | {} | {} | {} | {:g} | {} | {:.4f} |".format(
                 *c["key"], _pct(a["pooled"]), _pct(a["mean_share"]), a["empty"], a["feasible"], a["any"], a["gap"]))
     choice, outcomes, branch, reasons = choose_reserve(cells)
+    same_floor = [c for c in cells if c["floor"] and c["identical_reserves"]]
+    if same_floor:
+        where = ", ".join(sorted({f"{c['key'][0].removeprefix('noisy-').upper()} at {c['key'][2]} per dimension" for c in same_floor}))
+        lines += ["", f"{len(same_floor)} of the {len(FLOOR_UNRESOLVABLE)} floor cells ({where}) have identical reserves and cannot come out "
+                  "clearly more; they stay in the denominator by decision of 20–21 Nov 2026."]
     lines += ["", "### Which reserve ships", "",
               "| Reserve | Outcome |", "| --- | --- |",
               f"| tenth | {outcomes['tenth']} |", f"| fifth | {outcomes['fifth']} |", "",
