@@ -1,12 +1,11 @@
 """Constraints on outputs: limits judged once an evaluation reports what they need, written like any other constraint."""
 import math
 import pickle
-from statistics import NormalDist
 
 import numpy as np
-
 import pytest
 from pydantic import ValidationError
+from scipy.stats import t as student_t
 
 from hone.optimizers.base import MARGIN_FREEDOM
 from hone.optimizers.core import Individual
@@ -260,7 +259,7 @@ def test_progress_and_the_threshold_follow_the_average_outputs():
 def test_the_genetic_optimizer_refreshes_violations_when_it_breeds():
     space = SearchSpace([RangeParameter("n", 0, 0, integer=True)], [TOTAL <= 4])
     config = GeneticOptimizerConfig(
-        population_size=4, tournament_size=2, generations=3, noise=True, final_evaluations=0, confidence=None, seed=0
+        population_size=4, tournament_size=2, generations=3, noise=True, final_evaluations=0, feasibility_confidence=None, seed=0
     )
     optimizer = GeneticOptimizer(space, config)
     tell_all(optimizer, [{"objective": 0.0, "total": 3.0}, {"objective": 1.0, "total": 7.0}, {"objective": 1.0, "total": 7.0}, {"objective": 1.0, "total": 7.0}])
@@ -294,7 +293,7 @@ def test_without_the_margin_the_final_round_re_evaluates_the_finalists_and_judge
         value = bowl(x, y)
         return {"objective": value["objective"] + rng.normal(), "total": value["total"] + 0.5 * rng.normal()}
 
-    optimizer = RandomSearch(SPACE, OptimizerConfig(population_size=10, max_evaluations=60, noise=True, confidence=None, seed=0))
+    optimizer = RandomSearch(SPACE, OptimizerConfig(population_size=10, max_evaluations=60, noise=True, feasibility_confidence=None, seed=0))
     result = optimizer.optimize(noisy_bowl)
     assert result.evaluations == 60 and len(optimizer._finalists) == 5
     key = optimizer._key(optimizer.search_space.check(result.best_params))
@@ -316,13 +315,13 @@ def test_the_margin_widens_a_limit_by_k_standard_errors_of_the_pooled_noise():
     optimizer, key = _one_point([3.0, 7.0, 7.0, 7.0])
     # relative margins -0.25, 0.75, 0.75, 0.75: mean 0.5, pooled sd 0.5 on 3 degrees of freedom
     assert optimizer._limit_noise() == [(pytest.approx(0.5), 3)]
-    k = NormalDist().inv_cdf(0.95)
+    k = student_t.ppf(0.95, 3)  # at the limit's 3 degrees of freedom
     assert optimizer._violation(key) == pytest.approx(0.5 + k * 0.5 / math.sqrt(4))
 
 
 def test_a_design_just_inside_a_noisy_limit_fails_the_margin_and_one_clear_of_it_passes():
     inside = [3.9, 3.8, 4.1, 3.6]  # average 3.85, under 4 by less than its noise
-    assert _one_point(inside, confidence=None)[0]._violation(_one_point(inside, confidence=None)[1]) == 0
+    assert _one_point(inside, feasibility_confidence=None)[0]._violation(_one_point(inside, feasibility_confidence=None)[1]) == 0
     optimizer, key = _one_point(inside)
     assert optimizer._violation(key) > 0
     optimizer, key = _one_point([t - 1 for t in inside])  # average 2.85
@@ -360,7 +359,7 @@ def test_without_noise_or_without_output_constraints_the_margin_changes_nothing(
 
     def run(confidence):
         rng.bit_generator.state = np.random.default_rng(0).bit_generator.state
-        config = GeneticOptimizerConfig(population_size=10, max_evaluations=60, noise=noise, confidence=confidence, seed=0)
+        config = GeneticOptimizerConfig(population_size=10, max_evaluations=60, noise=noise, feasibility_confidence=confidence, seed=0)
         return GeneticOptimizer(space, config).optimize(objective)
 
     with_margin, without = run(0.95), run(None)
@@ -534,6 +533,19 @@ def test_a_checkpoint_of_an_unknown_format_is_refused(tmp_path):
     path.write_bytes(pickle.dumps({"format": 99}))
     with pytest.raises(ValueError, match="not a checkpoint this version of hone can read"):
         RandomSearch(SPACE).load_checkpoint(path)
+
+
+def test_a_checkpoint_saved_under_the_old_name_confidence_is_refused(tmp_path):
+    # `confidence` was renamed feasibility_confidence before any release; main's checkpoints carry the old key
+    path = tmp_path / "old.checkpoint"
+    optimizer = RandomSearch(SPACE, OptimizerConfig(population_size=4, generations=1, seed=0))
+    optimizer.save_checkpoint(path)
+    checkpoint = pickle.loads(path.read_bytes())
+    config = checkpoint["setup"]["config"]
+    config["confidence"] = config.pop("feasibility_confidence")
+    path.write_bytes(pickle.dumps(checkpoint))
+    with pytest.raises(ValueError, match="set up differently"):
+        RandomSearch(SPACE, OptimizerConfig(population_size=4, generations=1, seed=0)).load_checkpoint(path)
 
 
 def test_progress_says_whether_the_best_is_feasible(capsys):

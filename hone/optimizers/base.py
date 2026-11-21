@@ -1,7 +1,7 @@
 """The base class of every single-objective optimizer: one number per evaluation, to minimize or maximize."""
 import math
 import numbers
-from statistics import NormalDist
+from scipy.stats import t as student_t
 from typing import Any, Callable
 
 import numpy as np
@@ -80,7 +80,7 @@ class Optimizer(OptimizerCore[Result]):
     By default a tenth of the budget is then kept back for the final round, so the result's
     feasibility rests on more than one draw; see final_evaluations. And by default a limit is
     judged with a margin of safety: a design's average margin must clear it by a number of
-    standard errors set by confidence, the noise in each limit pooled over every design evaluated
+    standard errors set by feasibility_confidence, the noise in each limit pooled over every design evaluated
     more than once. The final round then comes in two halves: the first re-evaluates the
     finalists, which gives the pooled noise its degrees of freedom, and the second the designs
     likeliest to pass with the margin, now that it is known.
@@ -275,7 +275,7 @@ class Optimizer(OptimizerCore[Result]):
         """The total violation of the output constraints by the point's average outputs: 0 without any.
 
         With the margin of safety, each limit whose noise is known is judged with its average
-        margin widened by k standard errors, so a design passes only if it clears the limit by them.
+        margin widened by k standard errors, k the Student t quantile at the limit's degrees of freedom, so a design passes only if it clears the limit by them.
         With more, the standard errors are those the point would have after that many more evaluations.
         """
         outputs = self._average_outputs(key)
@@ -284,7 +284,6 @@ class Optimizer(OptimizerCore[Result]):
         point = self._points[key]
         if not self._margin_on():
             return self.search_space.output_violation(point, outputs)
-        k = NormalDist().inv_cdf(self.config.confidence)  # type: ignore[arg-type]
         n = len(self._output_observations[key]) + more
         active = self.search_space.active(point)
         total = 0.0
@@ -294,13 +293,14 @@ class Optimizer(OptimizerCore[Result]):
             widen = 0.0
             if freedom >= MARGIN_FREEDOM:
                 size = constraint.size(active, outputs)
+                k = float(student_t.ppf(self.config.feasibility_confidence, freedom))  # type: ignore[arg-type]
                 widen = k * spread * (size if math.isfinite(size) and size > 0 else 1.0) / math.sqrt(n)
             total += constraint.widened_violation(active, outputs, widen)
         return float(total)
 
     def _margin_on(self) -> bool:
-        """Whether limits are judged with a margin of safety: with noise, constraints on outputs and a confidence."""
-        return bool(self.config.noise and self.search_space.output_constraints and self.config.confidence is not None)
+        """Whether limits are judged with a margin of safety: with noise, constraints on outputs and a feasibility_confidence."""
+        return bool(self.config.noise and self.search_space.output_constraints and self.config.feasibility_confidence is not None)
 
     def _limit_noise(self) -> list[tuple[float, int]]:
         """Each output constraint's noise: the pooled standard deviation of its relative margin, and its degrees of freedom.
