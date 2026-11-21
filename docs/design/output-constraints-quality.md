@@ -178,17 +178,21 @@ Added on 8 Nov 2026 from item 2's measurement, and taken into 0.15.0 by the user
 
 The problem. With noise, a limit is judged on the average of a design's outputs. The best design usually sits on a limit, where its true margin is near zero, so whether its average passes is close to a coin flip however often it is measured, and the better the optimizer, the closer it sits. On the noisy engineering designs, only 43% to 70% of Bayesian optimization's returned designs truly satisfy every limit at 50 evaluations per dimension, and `Result.feasible` says True for most of the rest. A result that breaks a limit while reporting that it doesn't is the worst kind of wrong answer.
 
-The rule. A design passes a limit only if its average margin clears it by k standard errors:
+The rule. A design passes a limit only if the margin of its average outputs clears it by k standard errors:
 
-    average margin + k × s / √n ≤ 0
+    margin of the average outputs + k × s / √n ≤ 0
 
-where n is the number of times the design was evaluated, s is the noise in that limit's margin, and k = Φ⁻¹(confidence), so `confidence=0.95` gives k ≈ 1.64 per limit. As a design is measured more often, its standard error shrinks and it may sit closer to the limit. The violation used by Deb's rule becomes the relative violation of the shifted margin, so ranking, the result, `Result.feasible`, progress and the threshold all use the same test.
+where n is the number of times the design was evaluated, s is the noise in that limit's margin, and k is the quantile at `feasibility_confidence` of the t distribution with the limit's pooled degrees of freedom. This is the margin of the averages, not the average of the margins, as item 2 decided; for a limit that is linear in the outputs the two are the same. The first version used the normal quantile, k = Φ⁻¹(confidence), so 0.95 gave k ≈ 1.64 whatever the degrees of freedom. With s estimated from only a few repeats, that is too small. At the minimum of 3 degrees of freedom, a design sitting exactly on the limit passes with about 10% probability, not 5%: 90% per limit, not 95%. The t quantile, 2.35 at 3 degrees of freedom, approaching 1.64 as they grow, gives the stated 95%. The user adopted it on 20 Nov 2026, along with renaming the setting. As a design is measured more often, its standard error shrinks and it may sit closer to the limit. The violation used by Deb's rule becomes the relative violation of the shifted margin, so ranking, the result, `Result.feasible`, progress and the threshold all use the same test.
 
 Where s comes from. Few designs are evaluated twice during a search, so s can't be each design's own spread. It is pooled: for each limit, the within-design variance of its margin over every design evaluated at least twice, weighted by degrees of freedom. That assumes the noise in a limit's margin is about the same everywhere, which suits a simulator's or a rig's noise and is stated in the docs. Margins rather than outputs are pooled, so a limit on several outputs, such as `Output("a") <= Output("b")`, gets the noise of its own difference. Until there are at least 3 degrees of freedom for a limit, there is no margin on it and the current rule applies.
 
+A limit that varies with the design, such as `Output("stress") <= Output("strength")`, or one whose bound is computed from the parameters, has no fixed size to scale its margin by. So its margin is pooled and widened in the outputs' own units, which assumes the noise in that difference is about the same at every design. Where the noise grows with the quantities, as it usually does, write the limit as a ratio, such as `Output("stress") / Output("strength") <= 1`. It then has a fixed size of 1, and its margin is relative like that of any limit that is a number. The docs say so.
+
 The final round in two halves. Today the final round re-evaluates up to 5 finalists chosen before any repeats exist, then returns the best of them by average. Under the margin, the first half of the reserve re-evaluates the finalists as now, which gives the pooled estimate its degrees of freedom; the second half re-ranks every evaluated design by its averages with the margin, as every optimizer ranks its finalists, and spends the rest on the new leaders that are likeliest to pass, so a design with some slack can still win if the first finalists all sat on the limit. The result is the best finalist that passes with the margin, or, if none does, the least violating, with `feasible=False`.
 
-The setting. `confidence: float | None` on every config, used only with noise and output constraints. The default is 0.95. `None` turns the margin off and gives exactly the behaviour of item 2. It joins the run's settings, so a checkpoint saved without it is refused as set up differently, as `final_evaluations` was.
+What the confidence means. It is per limit, per design, and before selection. A design that truly breaks a limit passes that limit's test with probability at most 1 − `feasibility_confidence`, each time it is judged. It says nothing directly about the result, which is chosen as the best of many designs judged this way, and selection favours those that passed by luck. Hone Applied Mathematician's toy model of a search converging onto one limit put the result at about 20% truly infeasible while reporting feasible, at 0.95. Item 7's measured criterion was met all the same: at most 10% of results reporting feasible while truly breaking a limit, in every cell, below. The docs state the guarantee as per limit and per design, and the 10% as what was measured, not promised.
+
+The setting. `feasibility_confidence: float | None` on every config (named `confidence` when item 7 shipped, and renamed before 0.15.0 was released, since `sensitivity()` has a `confidence` of its own), used only with noise and output constraints. The default is 0.95. `None` turns the margin off and gives exactly the behaviour of item 2. It joins the run's settings, so a checkpoint saved without it is refused as set up differently, as `final_evaluations` was.
 
 Pass criteria, fixed before measuring. Over 30 seeds on the three noisy engineering designs at 10, 20, 50 and 100 evaluations per dimension, for Bayesian optimization (up to its 200-evaluation cap), CMA-ES, the genetic optimizer and random search, against item 2's behaviour (`confidence=None`):
 
@@ -226,98 +230,116 @@ What it doesn't do. Feasibility as a probability from the models, which would us
 
 ## 8. Noise with several objectives
 
-Decision 2's second half: noise with output constraints for `MultiObjectiveBayesian`, `NSGA2` and `MultiObjectiveRandomSearch`, reusing items 2 and 7. Design, for sign-off before it is built. No code has changed for it.
+Decision 2's second half: noise with output constraints for `MultiObjectiveBayesian`, `NSGA2` and `MultiObjectiveRandomSearch`, reusing items 2 and 7. This is the design, for sign-off before it is built; no code has changed for it. Hone Applied Mathematician reviewed a first draft on 20 Nov 2026, and the review's changes are folded in.
 
 ### What happens today
 
-- **The refusal.** `OptimizerCore.__init__` raises `UnsupportedSearchSpace` for output constraints with `noise=True` unless the class sets `supports_noisy_outputs`, which only the single-objective `Optimizer` does. `MultiObjectiveConfig` also rejects any `final_evaluations` above 0 ("doesn't apply to several objectives yet"). It inherits `confidence` from `OptimizerConfig`, but nothing reads it.
-- **Noise without output constraints already works.** `MultiObjectiveOptimizer._record` keeps an `_Observed` per point with running sums of its objective vector. With noise, a point's values are the average of its evaluations, the front is recomputed from the averages (`_front_stale`), and each `ParetoPoint` carries its standard errors. `NSGA2._next_population` sets each pool member's values to its point's current average before choosing survivors. `MultiObjectiveBayesian` adds one row to `_Y` per evaluation, holding the point's running average at that time, which matches what single-objective Bayesian optimization does with `individual.fitness`.
-- **What output constraints do, without noise.** `_record` judges the violation on that single draw. A draw that breaks a limit never reaches `_observed`: it counts in `_infeasible`, its values go to `_infeasible_values` for the reference point, and the individual keeps its values and violation for ranking. `ParetoPoint.outputs` holds the first draw's outputs. NSGA-II ranks by constrained domination on each individual's `violation`. Multi-objective Bayesian optimization models each margin with `_constraint_models`, takes `_violations` row by row from that draw, measures improvement only from feasible rows, and multiplies it by the probability of feasibility.
-- **Why lifting the refusal alone would be wrong.** A point's average would count only its passing draws, which biases it toward passing. Its outputs would be one draw's, and its place on the front would rest on that draw. Item 7's measurement showed what that costs when one objective sits on a limit: up to 53% of results reported feasible while truly breaking a limit. A front is worse, because most of its points usually sit on some limit.
+- **The refusal.** `OptimizerCore.__init__` raises `UnsupportedSearchSpace` for output constraints with `noise=True` unless the class sets `supports_noisy_outputs`, which only the single-objective `Optimizer` does. `MultiObjectiveConfig` also rejects any `final_evaluations` above 0 ("doesn't apply to several objectives yet"). It inherits `feasibility_confidence` from `OptimizerConfig`, but nothing reads it.
+- **Noise without output constraints already works.** `MultiObjectiveOptimizer._record` keeps an `_Observed` per point with running sums of its objective vector. With noise, a point's values are the average of its evaluations, the front is recomputed from the averages (`_front_stale`), and each `ParetoPoint` carries its standard errors. `NSGA2._next_population` sets each pool member's values to its point's current average before choosing survivors. `MultiObjectiveBayesian` adds one row to `_Y` per evaluation, holding the point's running average at that time, as single-objective Bayesian optimization does with `individual.fitness`.
+- **What output constraints do, without noise.** `_record` judges the violation on the single draw. A draw that breaks a limit never reaches `_observed`. It counts in `_infeasible`, its values go to `_infeasible_values` for the reference point, and the individual keeps its values and violation for ranking. `ParetoPoint.outputs` holds the first draw's outputs. NSGA-II ranks by constrained domination on each individual's `violation`. Multi-objective Bayesian optimization models each margin with `_constraint_models` and takes `_violations` row by row from that draw. It measures improvement only from feasible rows, multiplied by the probability of feasibility.
+- **Why lifting the refusal alone would be wrong.** A point's average would count only its passing draws, which biases it toward passing. Its outputs would be one draw's, and its place on the front would rest on that draw. Item 7 measured the cost with one objective sitting on a limit: up to 53% of results were reported feasible while truly breaking a limit. A front is worse, because most of its points usually sit on some limit.
 
 ### The design
 
-**Averaging per point, as in item 2, for all three optimizers.** Every successful draw of a point enters its `_Observed`: objectives as now, plus a list of its outputs. Whether the point passes is judged on its average outputs, with item 7's margin. The front is the non-dominated set of the points that pass, with dominance judged on the average objectives as it is today. `ParetoPoint.outputs` becomes the average outputs. `ParetoResult.infeasible` still counts the draws that broke a limit, as `Result.infeasible` does, and `ParetoResult.feasible` says whether any point passes on its averages. Without noise, a point is evaluated once, so all of this reduces to what happens today.
+**Averaging per point, as in item 2, for all three optimizers.** Every successful draw of a point enters its `_Observed`: objectives as now, plus a list of its outputs. Whether the point passes is judged on its average outputs, with item 7's margin. The front is the non-dominated set of the points that pass, with dominance judged on the average objectives as today. `ParetoPoint.outputs` becomes the average outputs. `ParetoResult.infeasible` still counts the draws that broke a limit, as `Result.infeasible` does. `ParetoResult.feasible` says whether any point passes on its averages. Without noise, each point is evaluated once, and all of this reduces to what happens today.
 
-**One implementation of the rule.** `_average_outputs`, `_violation`, `_limit_noise` and `_margin_on`, with their storage (`_output_observations`, `_points`, `_noise_cache`), move from `base.Optimizer` into a mixin in `core.py`, used by both families. A limit's pooled noise, the `MARGIN_FREEDOM` threshold and the k = Φ⁻¹(`confidence`) margin per limit are then literally the same code. The move must leave every single-objective seeded run exactly unchanged, and the existing seeded-result tests check that.
+**One implementation of the rule.** `_average_outputs`, `_violation`, `_limit_noise` and `_margin_on` move from `base.Optimizer` into a mixin in `core.py`, used by both families, along with their storage (`_output_observations`, `_points`, `_noise_cache`). Three things are then literally the same code for both: each limit's pooled noise, the `MARGIN_FREEDOM` threshold, and the margin of k standard errors per limit, with k the t quantile at the limit's pooled degrees of freedom, as section 7 now states. The move must leave every single-objective seeded run exactly unchanged.
 
 **NSGA-II.** Before choosing survivors, each pool member's values, outputs and violation are refreshed from its point's averages, as the genetic optimizer's `_refresh_averages` does. Constrained domination is then judged on the averages.
 
 **Multi-objective Bayesian optimization**, mirroring item 2's changes to `BayesianOptimizer`:
-- Keep each row's point key, and before proposing, re-judge every row's violation from its point's current averages, with the margin.
+- Keep each row's point key. Before proposing, re-judge every row's violation from its point's current averages, with the margin.
 - Improvement counts only from rows that pass.
-- With noise, the incumbent comes from the model, not from the draws, since the lowest draw is likely a lucky one. With `parego`, it is the lowest predicted combination among passing rows. With `models`, it is the combination of the predicted means at those rows.
+- With noise, the incumbent comes from the model, not from the draws, since the lowest draw is likely a lucky one. With `parego`, it is the lowest predicted combination among the passing rows. With `models`, it is the combination of the predicted means at those rows.
 - With nothing passing, the search for a feasible design is unchanged, as item 1 decided.
 - Batches keep the kriging believer. Item 6's constant liar was measured on one objective only, and moving it here would be a separate change.
 
 **Multi-objective random search** needs nothing beyond the averaging.
 
-**A final round for a front.** The reserve is the same as for one objective: `final_evaluations=None` keeps back a tenth of `max_evaluations`, at least 10 and at most half, with noise and output constraints, and none otherwise. The refusal in `MultiObjectiveConfig` goes. `confidence` defaults to 0.95, and `None` turns the margin off. With the margin on and enough reserve, the round comes in two halves, as in item 7:
-- *First half: the front's points, to measure the noise.* If the front has more points than the half can give two evaluations each, the finalists are chosen greedily by hypervolume contribution, so the subset spreads along the front instead of crowding one end. Each finalist gets at least two evaluations. This gives the pooled noise its degrees of freedom.
-- *Second half: the points whose pass is least certain.* Every evaluated point is re-judged on its averages with the margin, using the standard error it would have after its share of the half (`more`, as item 7 does). The front is recomputed, and the rest of the reserve goes to those front points whose widened margin is smallest in standard errors on any limit. It is concentrated on a few of them, so each gets several repeats, since item 7 found that spreading thinly leaves every standard error wide.
-- *The result* is the front of the points that pass with the margin on their averages. A point the round never reached is still judged with its one-draw margin, which is wide, so it stays on the front only if it clears every limit by a lot.
+**A final round for a front.** The reserve is the same as for one objective. With noise and output constraints, `final_evaluations=None` keeps back a tenth of `max_evaluations`, at least 10 and at most half; otherwise it keeps back none. The refusal in `MultiObjectiveConfig` goes. `feasibility_confidence` defaults to 0.95, and `None` turns the margin off. With the margin on and enough reserve, the round comes in two halves, as in item 7:
 
-With `confidence=None`, there is one round: the first half's rule, taking the whole reserve, which is item 2's behaviour.
+- *First half: the front's points, to measure the noise.* The finalists are chosen greedily by hypervolume contribution, so they spread along the front instead of crowding one end. Their number is capped so that each gets at least two evaluations. Beyond the cap, every limit is given at least `MARGIN_FREEDOM` (3) degrees of freedom among the finalists where it applies: if the chosen finalists don't give a limit that, the next by contribution among the points where it applies is added. Otherwise a conditional limit would silently have no margin.
+- *Second half: the points whose pass is least certain.* Every evaluated point is re-judged on its averages with the margin, using the standard error it would have after its share of the half (`more`, as item 7 does). The front is recomputed. The half then goes to the front points whose widened margin, in standard errors, is smallest on any limit, and only `SECOND_HALF_FRONT_POINTS = 4` of them: count = max(1, min(4, half // 3)). Four, because three repeats halve a point's one-draw standard error (1/√4), and four points keep more of a two- or three-objective front than its ends; item 7 found that spreading the half thinly leaves every standard error wide.
+- *The result* is the front of the points that pass with the margin on their averages. A point the round never reached is still judged at n = 1, where the margin is widest, so it stays on the front only if it clears every limit by a lot.
 
-**Checkpoints.** `final_evaluations` and `confidence` are already fields of every multi-objective config, so they are already part of a checkpoint's setup. Until now, no multi-objective run could combine noise with output constraints, so no saved checkpoint changes meaning. A checkpoint saved before `confidence` existed is already refused as set up differently, as for one objective. A test pins that.
+With the margin off, there is one round, item 2's behaviour: the first half's rule takes the whole reserve.
+
+**Checkpoints.** `final_evaluations` and `feasibility_confidence` are already fields of every multi-objective config, so they are already part of a checkpoint's setup. No multi-objective run could combine noise with output constraints until now, so no saved checkpoint changes meaning. A checkpoint saved before `feasibility_confidence` existed is already refused as set up differently, as for one objective; a test pins that.
 
 **Names.** New code and fields use the final names (`max_evaluations`, `batch_size`, `best_value`). Existing names, such as `population_size` on `MultiObjectiveBayesianConfig`, stay until 0.22.0.
+
+### What the rule guarantees, and what it doesn't
+
+These go in the docs as well as here.
+
+- **A rate per point, not per front.** Each limit keeps its own margin, uncorrected for the number of limits. A design that truly breaks any one limit passes with probability at most 1 − `feasibility_confidence`, since it has to pass that limit's test. This is the intersection-union argument. So the bound is on the rate per reported point, judged before selection, as section 7 says for one objective. It is not a bound on the chance that every reported point is feasible. The cost is power: a design with k standard errors of slack on each of m limits passes them all with probability about 0.5^m.
+- **Selection is stronger on a front.** A point that passes a limit by luck dominates its truly feasible neighbours and pushes them off the front. On OSY, whose whole front sits on its limits, criterion 1 at 10% may fail for this reason. That is expected, and the margin isn't to be tuned around it.
+- **Concentrated repeats bias what survives.** Repeated points regress toward their means, while an unrepeated point keeps its one lucky objective draw and dominates too often. Unrepeated points survive only well inside the limits, so the front leans toward the interior. And exposing one false pass brings back its dominated neighbours at n = 1, where most of them fail, so a region of the front can vanish. Spending the second half in two or three rounds, re-ranking between them, might reduce this. It isn't part of this design, and is left as a possible later experiment.
+- **Dominance is judged on averages and ignores objective noise.** A point can sit on the front because of a lucky objective draw, as it can today with noise and no output constraints. The margin protects the limits, not the objectives. This stays as it is and is stated in the docs.
+- **The pooled noise is stretched further.** Pooling each limit's noise over every repeated point assumes the noise is about the same everywhere, and a front spans much more of the space than one optimum. The benchmark's noise has a constant standard deviation, so it can't show this failing. An optional cell with noise proportional to each output would test it.
 
 ### The benchmark
 
 Two problems with known fronts, made noisy with their limits as outputs, plus the cantilever:
 
-- **OSY** (Osyczka and Kundu, 1995): 6 variables, 2 objectives and 6 limits, all reported as outputs. Its whole front lies on the boundaries of the limits, in five pieces with an analytic form, so its true hypervolume is computed from that form. It is the hard case for honest reporting, since every front point sits on a limit.
-- **TNK** (Tanaka et al., 1995): 2 variables, 2 objectives and 2 limits, with a front that is disconnected and lies on the wavy limit. It is added because OSY's 6 dimensions leave Bayesian optimization only the budgets of 10 and 20 per dimension under its 200-evaluation cap, while TNK gives it four. If the reviewer prefers one standard problem, TNK is the one to drop.
-- **The cantilever** (`examples/cantilever_beam.py`): three objectives and a choice of material, with the stress limit, now a function constraint, reported as an output instead. With two continuous variables per material, its true front comes from a dense noise-free grid of each material, built once and saved.
+- **OSY** (Osyczka and Kundu, 1995): 6 variables, 2 objectives and 6 limits, all reported as outputs. Its whole front lies on the limits' boundaries, in five pieces with an analytic form, so its true hypervolume is computed from that form. It is the hard case for honest reporting, since every front point sits on a limit.
+- **TNK** (Tanaka et al., 1995): 2 variables, 2 objectives and 2 limits, with a disconnected front on the wavy limit. With two variables it gives Bayesian optimization four budgets under its 200-evaluation cap, where OSY's six leave it two, and it costs little to run.
+- **The cantilever**: three objectives and a choice of material. The benchmark's variant, `cantilever_outputs()` in `hone.benchmarks`, reports the stress as an output. `examples/cantilever_beam.py` is unchanged and keeps its function constraint. With two continuous variables per material, the true front comes from a dense noise-free grid of each material, built once and saved.
 
-Noise is added to every objective and every output, scaled as `ENGINEERING_NOISE` scales it for the noisy engineering designs, at about 1% of each quantity's typical value. The settings are 30 seeds and 10, 20, 50 and 100 evaluations per dimension, with Bayesian optimization up to its cap. The optimizers are NSGA-II, multi-objective Bayesian optimization with both `parego` and `models`, and random search.
+Noise is added to every objective and every output, scaled as `ENGINEERING_NOISE` scales it for the noisy engineering designs, at about 1% of each quantity's typical value. **The noise has its own seed**, a field of the spec, separate from the optimizer's seed. Today `runner.py` seeds the noise from the run's seed. Unless the spec sets it apart, the noise seed stays equal to the run's seed, so existing measurements are unchanged.
 
-Each is run three ways:
-- the new default (averaging, final round, `confidence=0.95`);
-- averaging alone (`final_evaluations=0`, `confidence=None`), for the record;
-- every draw believed (`noise=False`), which is the baseline: it is the only way to run these problems today.
+The runs use 30 seeds at 10, 20, 50 and 100 evaluations per dimension, with Bayesian optimization run up to its cap. The optimizers are NSGA-II, multi-objective Bayesian optimization with both `parego` and `models`, and random search. Each runs three ways, on the same optimizer and noise seeds:
+- the new default: averaging, the final round, and the margin at 0.95;
+- averaging alone: `final_evaluations=0` and the margin off, for the record;
+- every draw believed: `noise=False`. This is the baseline, the only way to run these problems today.
 
-All three use the same seeds. Each reported front point is re-evaluated without noise and scored three ways:
-- whether it truly satisfies every limit;
-- the *true gap*: the true front's scaled hypervolume less that of the truly feasible reported points at their noise-free values;
-- whether the run holds any truly feasible point at all.
+Each reported front point is re-evaluated without noise. For each run, the measurement records:
+- the front's size;
+- how many of its points truly satisfy every limit;
+- whether the run holds any truly feasible point at all;
+- the *true gap*: the true front's scaled hypervolume less that of the truly feasible reported points, at their noise-free values.
 
-**The paired noise floor**, run before any comparison. The baseline runs against itself on a paired draw: the same problem noise and the same first generation, with a different random stream for the search after it. In the benchmark this takes no optimizer change. The second run uses seed s + 1000, with the first generation of seed s passed as its initial points: the whole spread for Bayesian optimization, the whole first population for NSGA-II and random search. The floor F for an optimizer is the 90th percentile, over its cells, of |median paired difference in true gap| between the two.
+The scaling and the reference point are fixed per problem from the true front, never from a run, and a point beyond the reference counts for nothing. The true gap doesn't penalise a falsely reported point beyond leaving it out, so it is read together with criterion 1.
+
+**The floor run** comes before any comparison. The baseline runs against itself: the noise seed stays at s for both runs of a pair, and only the optimizer's seed changes, to s + 1000. The two runs see the same noise on any design both evaluate, and differ only in the search. Per cell, the floor run applies criterion 3's statistics to these pairs. That shows whether 30 seeds can resolve δ in that cell: 30 pairs resolve about half the standard deviation of the paired differences. A cell that can't resolve δ is reported as such before the comparison runs.
+
+There is a limit for random search. With the same optimizer seed, the default and the baseline propose identical designs and differ only in the final round and the judging. A floor from a different search stream is therefore much wider than that comparison's real spread under no change, and criterion 3 is lenient for random search.
 
 ### Pass criteria, fixed before measuring
 
-Per problem, optimizer and budget (a *cell*), the default against the baseline, paired by seed:
+Per problem, optimizer and budget (a *cell*), the default is compared with the baseline, paired by seed:
 
-1. **Honest reporting.** Pooled over a cell's 30 runs, at most 10% of reported front points truly break a limit. The baseline's figure is reported beside it.
+1. **Honest reporting.** Read two ways:
+   - pooled over a cell's 30 runs, at most 10% of reported front points truly break a limit;
+   - per run, in at most 3 of the 30 runs do more than 10% of the reported points truly break a limit.
+
+   Runs with an empty front are counted separately, not as passes. Each cell's median front size and median number of truly feasible reported points are reported beside the baseline's, so a front that passes by shrinking shows.
 2. **Truly feasible runs.** The share of runs whose front holds at least one truly feasible point rises in every cell where it was under 90%, and falls by no more than one run in ten anywhere. A cell the change leaves seed-for-seed unchanged need not rise, as the user clarified for item 7.
-3. **Hypervolume.** The median paired difference in true gap (default less baseline) is no more than F. This is the cost of the margin and the final round. Item 7 found a statistical margin costs about what a safety factor does, so a failure here comes to the user with the numbers, rather than being tuned away.
+3. **Hypervolume, the guard on shrinkage.** δ, the tolerated loss, is 2% of the true front's scaled hypervolume, fixed by the user on 20 Nov 2026. Per cell, sort the 30 paired differences in true gap (default less baseline). The 20th smallest is a 95% upper bound on their median, and the 11th smallest a 95% lower bound (binomial(30, ½): P(X ≤ 10) = 0.049). The cell **passes** if the 20th is at most δ and **fails** if the 11th is above δ. Otherwise it is **unresolved**, and goes to the user with its numbers. Item 7 found that a statistical margin costs about what a safety factor does, so a failure comes to the user too, rather than being tuned away.
 4. **Nothing else moves.** Seeded multi-objective runs without noise, or with noise and no output constraints, are exactly unchanged. So is every seeded single-objective run, after the shared code moves. Tests check both.
-5. **Cost.** Step 1b timed only single-objective Bayesian optimization, so `hone.benchmarks.cost` gains multi-objective cells: seconds per `MultiObjectiveBayesian` candidate at 50 to 500 evaluations, with 0 and 8 limits on outputs, at batch sizes 1 and 8, for both methods. They are timed on main and on the branch in the same session on the same machine. Neither may exceed ×1.2 of main at 500 evaluations without the user's sign-off. Re-judging rows adds one pass over the points per proposal, so no change is expected.
+5. **Cost.** Step 1b timed only single-objective Bayesian optimization, so `hone.benchmarks.cost` gains multi-objective cells. They time seconds per `MultiObjectiveBayesian` candidate at 50 to 500 evaluations, with 0 and 8 limits on outputs, at batch sizes 1 and 8, for both methods. Main and the branch are timed in the same session on the same machine. Neither method may exceed ×1.2 of main at 500 evaluations without the user's sign-off. Re-judging rows adds one pass over the points per proposal, so no change is expected.
 
-The measurements run as specs on the Measure workflow, which needs to run multi-objective specs first; see below.
+The runs are specs on the Measure workflow, which first needs to run multi-objective specs; see below.
 
 ### What it takes
 
 - **Benchmark infrastructure:**
   - `MultiProblem` gains `noise`, `output_noise` and outputs.
-  - `MultiRun` gains the true gap, the front size, the truly infeasible front points and whether any point is truly feasible.
-  - `osy()`, `tnk()` and `cantilever_outputs()` are added, with a test of each true front.
+  - The specs gain a noise seed apart from the optimizer's.
+  - `MultiRun` gains the true gap, the front size, the number of truly feasible front points, and whether any point is truly feasible.
+  - New problems `osy()`, `tnk()` and `cantilever_outputs()`, with a test of each true front.
   - `hone.benchmarks.sharded` and the Measure workflow accept specs whose problems are `MultiProblem`s.
-- **The shared mixin**, moved out of `base.Optimizer`, with single-objective results unchanged.
-- **The averaging** in `MultiObjectiveOptimizer._record`, the NSGA-II refresh, and the row re-judging and incumbent in multi-objective Bayesian optimization.
+- **The shared mixin,** moved out of `base.Optimizer`, with every single-objective result unchanged.
+- **The averaging:** in `MultiObjectiveOptimizer._record`, the refresh in NSGA-II, and the re-judged rows and incumbent in multi-objective Bayesian optimization.
 - **The final round** for a front, the validator change, and `supports_noisy_outputs = True` on the three optimizers.
-- **Two specs:** the floor run and the comparison, plus the cost cells. Docs follow: the README's noise section, the docstrings and the changelog.
+- **The specs:** the floor run, the comparison and the cost cells.
+- **The docs:** the README's noise section, including what the rule guarantees and what it doesn't, the docstrings and the changelog.
 
-It ships as one pull request after item 7, as the Delivery section says. The benchmark infrastructure comes first within it, so the floor can run while the optimizer work is built.
-
-### Open questions for review
-
-1. **The floor statistic.** Is the 90th percentile of |median paired difference| over an optimizer's cells the right floor for criterion 3? The alternative is a per-cell bootstrap interval on the paired difference. That is sharper, but each cell's 30 pairs are thin.
-2. **The first half's finalists.** Should they be chosen greedily by hypervolume contribution, or should every front point get an equal share? The latter is simpler, but on a large front it gives each point less than two evaluations.
-3. **Dominance on averages ignores objective noise.** A point can sit on the front because of a lucky objective draw, as it can today with noise and no output constraints. The margin protects the limits, not the objectives, so this is left as it is and stated in the docs.
-4. **A margin per limit.** With OSY's 6 limits at k ≈ 1.64 each, the chance that a design on all six boundaries passes them all is lower than 0.95 per limit suggests. Item 7 judged each limit alone, and this keeps that.
+Delivery: three pull requests in order, each reviewable alone, by the user's decision of 20 Nov 2026.
+- **(a) The mixin move,** a pure refactor: every seeded result unchanged, for one objective and several. It starts only after the t-quantile pull request (`margin-t-quantile`) merges, since both change `base.py` around the margin code.
+- **(b) The benchmark infrastructure and the floor run,** with no optimizer change. The floor runs on the Measure workflow while (c) is built.
+- **(c) The feature:** the averaging, the final round, the validator, `supports_noisy_outputs`, the comparison spec, the cost cells and the docs.
 
 ## Delivery
 
-Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, measured, the current method staying; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) item 7, the margin of safety, added on 8 Nov 2026; (7) noise with several objectives, which reuses it; (8) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
+Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, measured, the current method staying; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) item 7, the margin of safety, added on 8 Nov 2026; (6b) the margin's t quantile and the rename to `feasibility_confidence`, decided on 20 Nov 2026 from item 7's review; (7) noise with several objectives, which reuses it, as three pull requests: the refactor, the benchmark and its floor, then the feature; (8) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
