@@ -230,7 +230,7 @@ What it doesn't do. Feasibility as a probability from the models, which would us
 
 ## 8. Noise with several objectives
 
-Decision 2's second half: noise with output constraints for `MultiObjectiveBayesian`, `NSGA2` and `MultiObjectiveRandomSearch`, reusing items 2 and 7. This is the design, for sign-off before it is built; no code has changed for it. Hone Applied Mathematician reviewed a first draft on 20 Nov 2026, and the review's changes are folded in.
+Decision 2's second half: noise with output constraints for `MultiObjectiveBayesian`, `NSGA2` and `MultiObjectiveRandomSearch`, reusing items 2 and 7. Hone Applied Mathematician reviewed a first draft on 20 Nov 2026, and the review's changes are folded in. The user signed the design off on 20 Nov 2026, adding the second reserve size below.
 
 ### What happens today
 
@@ -256,7 +256,11 @@ Decision 2's second half: noise with output constraints for `MultiObjectiveBayes
 
 **Multi-objective random search** needs nothing beyond the averaging.
 
-**A final round for a front.** The reserve is the same as for one objective. With noise and output constraints, `final_evaluations=None` keeps back a tenth of `max_evaluations`, at least 10 and at most half; otherwise it keeps back none. The refusal in `MultiObjectiveConfig` goes. `feasibility_confidence` defaults to 0.95, and `None` turns the margin off. With the margin on and enough reserve, the round comes in two halves, as in item 7:
+**A final round for a front.** With noise and output constraints, `final_evaluations=None` keeps back a reserve; otherwise it keeps back none. Two sizes of reserve are measured, and the rule for choosing between them was fixed on 20 Nov 2026, before measuring (see the pass criteria):
+- *a tenth*, the same as for one objective: a tenth of `max_evaluations`, at least 10 and at most half;
+- *a fifth*, sized for a front: a fifth of `max_evaluations`, at least 20 and at most half.
+
+The refusal in `MultiObjectiveConfig` goes. `feasibility_confidence` defaults to 0.95, and `None` turns the margin off. With the margin on and enough reserve, the round comes in two halves, as in item 7:
 
 - *First half: the front's points, to measure the noise.* The finalists are chosen greedily by hypervolume contribution, so they spread along the front instead of crowding one end. Their number is capped so that each gets at least two evaluations. Beyond the cap, every limit is given at least `MARGIN_FREEDOM` (3) degrees of freedom among the finalists where it applies: if the chosen finalists don't give a limit that, the next by contribution among the points where it applies is added. Otherwise a conditional limit would silently have no margin.
 - *Second half: the points whose pass is least certain.* Every evaluated point is re-judged on its averages with the margin, using the standard error it would have after its share of the half (`more`, as item 7 does). The front is recomputed. The half then goes to the front points whose widened margin, in standard errors, is smallest on any limit, and only `SECOND_HALF_FRONT_POINTS = 4` of them: count = max(1, min(4, half // 3)). Four, because three repeats halve a point's one-draw standard error (1/√4), and four points keep more of a two- or three-objective front than its ends; item 7 found that spreading the half thinly leaves every standard error wide.
@@ -276,7 +280,7 @@ These go in the docs as well as here.
 - **Selection is stronger on a front.** A point that passes a limit by luck dominates its truly feasible neighbours and pushes them off the front. On OSY, whose whole front sits on its limits, criterion 1 at 10% may fail for this reason. That is expected, and the margin isn't to be tuned around it.
 - **Concentrated repeats bias what survives.** Repeated points regress toward their means, while an unrepeated point keeps its one lucky objective draw and dominates too often. Unrepeated points survive only well inside the limits, so the front leans toward the interior. And exposing one false pass brings back its dominated neighbours at n = 1, where most of them fail, so a region of the front can vanish. Spending the second half in two or three rounds, re-ranking between them, might reduce this. It isn't part of this design, and is left as a possible later experiment.
 - **Dominance is judged on averages and ignores objective noise.** A point can sit on the front because of a lucky objective draw, as it can today with noise and no output constraints. The margin protects the limits, not the objectives. This stays as it is and is stated in the docs.
-- **The reserve was sized for one result.** In most Bayesian cells it is the floor of 10, so each half is 5: two finalists, then one front point. At those budgets, expect reported fronts of two or three measured points plus interior points, and criterion 3 failing or unresolved there. The lever is the reserve's size for a front, which is the user's decision at sign-off.
+- **The reserve was sized for one result.** In most Bayesian cells it is the floor of 10, so each half is 5: two finalists, then one front point. At those budgets, expect reported fronts of two or three measured points plus interior points, and criterion 3 failing or unresolved there. The lever is the reserve's size for a front, so the user decided at sign-off, on 20 Nov 2026, to measure a fifth (at least 20) beside the tenth, and let the pass criteria choose.
 - **The pooled noise is stretched further.** Pooling each limit's noise over every repeated point assumes the noise is about the same everywhere, and a front spans much more of the space than one optimum. The benchmark's noise has a constant standard deviation, so it can't show this failing. An optional cell with noise proportional to each output would test it.
 
 ### The benchmark
@@ -289,8 +293,9 @@ Two problems with known fronts, made noisy with their limits as outputs, plus th
 
 Noise is added to every objective and every output, scaled as `ENGINEERING_NOISE` scales it for the noisy engineering designs, at about 1% of each quantity's typical value. **The noise has its own seed**, a field of the spec, separate from the optimizer's seed. Today `runner.py` seeds the noise from the run's seed. Unless the spec sets it apart, the noise seed stays equal to the run's seed, so existing measurements are unchanged.
 
-The runs use 30 seeds at 10, 20, 50 and 100 evaluations per dimension, with Bayesian optimization run up to its cap. The optimizers are NSGA-II, multi-objective Bayesian optimization with both `parego` and `models`, and random search. Each runs three ways, on the same optimizer and noise seeds:
-- the new default: averaging, the final round, and the margin at 0.95;
+The runs use 30 seeds at 10, 20, 50 and 100 evaluations per dimension, with Bayesian optimization run up to its cap. The optimizers are NSGA-II, multi-objective Bayesian optimization with both `parego` and `models`, and random search. Each runs four ways, on the same optimizer and noise seeds:
+- the new default with a tenth kept back: averaging, the final round, and the margin at 0.95;
+- the same with a fifth kept back, everything else as the default;
 - averaging alone: `final_evaluations=0` and the margin off, for the record;
 - every draw believed: `noise=False`. This is the baseline, the only way to run these problems today.
 
@@ -308,7 +313,7 @@ There is a limit for random search. With the same optimizer seed, the default an
 
 ### Pass criteria, fixed before measuring
 
-Per problem, optimizer and budget (a *cell*), the default is compared with the baseline, paired by seed:
+Per problem, optimizer and budget (a *cell*), each reserve is compared with the baseline, paired by seed, and judged on every criterion below on its own:
 
 1. **Honest reporting.** Read two ways:
    - pooled over a cell's 30 runs, at most 10% of reported front points truly break a limit;
@@ -319,6 +324,11 @@ Per problem, optimizer and budget (a *cell*), the default is compared with the b
 3. **Hypervolume, the guard on shrinkage.** δ, the tolerated loss, is 2% of the true front's scaled hypervolume, fixed by the user on 20 Nov 2026. Per cell, sort the 30 paired differences in true gap (default less baseline). The 20th smallest is a 95% upper bound on their median, and the 11th smallest a 95% lower bound (binomial(30, ½): P(X ≤ 10) = 0.049). The cell **passes** if the 20th is at most δ and **fails** if the 11th is above δ. Otherwise it is **unresolved**, and goes to the user with its numbers. Item 7 found that a statistical margin costs about what a safety factor does, so a failure comes to the user too, rather than being tuned away.
 4. **Nothing else moves.** Seeded multi-objective runs without noise, or with noise and no output constraints, are exactly unchanged. So is every seeded single-objective run, after the shared code moves. Tests check both.
 5. **Cost.** Step 1b timed only single-objective Bayesian optimization, so `hone.benchmarks.cost` gains multi-objective cells. They time seconds per `MultiObjectiveBayesian` candidate at 50 to 500 evaluations, with 0 and 8 limits on outputs, at batch sizes 1 and 8, for both methods. Main and the branch are timed in the same session on the same machine. Neither method may exceed ×1.2 of main at 500 evaluations without the user's sign-off. Re-judging rows adds one pass over the points per proposal, so no change is expected.
+
+**Which reserve ships**, decided on 20 Nov 2026, before measuring. A reserve passes if it meets criteria 1 to 3 in every cell, a cell left unresolved by criterion 3 counting as not met, and criteria 4 and 5:
+- if both pass, the smaller reserve, a tenth, ships;
+- if only one passes, that one ships;
+- if neither passes, the numbers go to the user.
 
 The runs are specs on the Measure workflow, which first needs to run multi-objective specs; see below.
 
