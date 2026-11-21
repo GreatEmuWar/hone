@@ -56,10 +56,24 @@ class MultiProblem(BaseModel):
     nadir: dict[str, float]  # and its worst
     true_hypervolume: float  # of the true front, scaled, up to REFERENCE
     tags: frozenset[str] = frozenset()
+    # Gaussian noise the benchmark adds: a standard deviation for each objective and for each
+    # output that the search space's constraints on outputs use. Empty means none.
+    noise: dict[str, float] = {}
+    output_noise: dict[str, float] = {}
 
     @property
     def dimensions(self) -> int:
         return len(self.search_space.parameters)
+
+    @property
+    def outputs(self) -> list[str]:
+        """The quantities the function reports besides the objectives, for its constraints on outputs."""
+        return [name for name in self.search_space.outputs if name not in self.objectives]
+
+    @property
+    def noisy(self) -> bool:
+        """Whether the benchmark adds noise to any objective or output."""
+        return any(v > 0 for v in self.noise.values()) or any(v > 0 for v in self.output_noise.values())
 
     def scaled(self, values: dict[str, float]) -> np.ndarray:
         """values scaled to minimize, from 0 at the ideal to 1 at the nadir."""
