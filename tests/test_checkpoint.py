@@ -275,3 +275,18 @@ def test_saving_a_checkpoint_does_not_warn(tmp_path, recwarn):
     optimizer.save_checkpoint(tmp_path / "run.checkpoint")
     OPTIMIZERS["genetic"]().optimize(sphere, checkpoint=tmp_path / "fresh.checkpoint")  # saves after each generation
     assert not [w for w in recwarn if issubclass(w.category, FutureWarning)]
+
+
+def test_the_checkpoint_state_keeps_the_names_of_the_output_noise_attributes(tmp_path):
+    """Old checkpoints load because these names are unchanged: they are pickled as they are."""
+    def limited(x, y):
+        return {"objective": sphere(x, y), "total": x + y}
+
+    space = SearchSpace(bounded_parameters(), [Output("total") <= 1])
+    optimizer = GeneticOptimizer(space, GeneticOptimizerConfig(population_size=20, max_evaluations=200, noise=True, seed=3))
+    path = tmp_path / "run.checkpoint"
+    assert optimizer.optimize(limited, checkpoint=path, callback=interrupt_at(3)).stopped
+    with open(path, "rb") as f:
+        saved = pickle.load(f)
+    assert {"_output_observations", "_points", "_noise_cache"} <= set(saved["state"])
+    assert saved["state"]["_output_observations"]

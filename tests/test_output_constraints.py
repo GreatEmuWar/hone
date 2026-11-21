@@ -796,3 +796,24 @@ def test_sensitivity_holds_reduced_parameters_at_a_feasible_point():
     space = SearchSpace([X, Y], [TOTAL <= 4])
     report = sensitivity(lambda x, y: {"objective": -(x + y), "total": x + y}, space, max_evaluations=60, seed=0)
     assert report.best_params["x"] + report.best_params["y"] <= 4
+
+
+def test_output_limits_under_noise_have_one_implementation():
+    import hone
+    import hone.optimizers.base
+    import hone.optimizers.core
+    from hone.optimizers.core import OptimizerCore, _OutputNoise
+
+    def subclasses(cls):
+        for sub in cls.__subclasses__():
+            yield sub
+            yield from subclasses(sub)
+
+    names = ["_average_outputs", "_violation", "_margin_on", "_limit_noise", "_reset_output_noise"]
+    classes = {hone.NSGA2, hone.GeneticOptimizer, hone.CMAES, hone.BayesianOptimizer, hone.RandomSearch, hone.MultiObjectiveBayesian, hone.MultiObjectiveRandomSearch, *subclasses(OptimizerCore)}
+    for cls in classes:
+        for klass in cls.__mro__:
+            if klass is not _OutputNoise:
+                assert not [name for name in names if name in vars(klass)], (cls, klass)
+    assert all(name in vars(_OutputNoise) for name in names)
+    assert hone.optimizers.base.MARGIN_FREEDOM is hone.optimizers.core.MARGIN_FREEDOM

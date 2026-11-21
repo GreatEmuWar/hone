@@ -19,6 +19,7 @@ from typing import Any, Callable, ClassVar, List
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
+from scipy.stats import t as student_t
 
 from hone.config import OptimizerConfig
 from hone.objective_function import ObjectiveFunction
@@ -77,6 +78,91 @@ class Individual(_Unpickles):
         return self is other
 
     __hash__ = object.__hash__
+
+
+MARGIN_FREEDOM = 3  # degrees of freedom a limit's pooled noise needs before the margin of safety applies to it
+
+
+class _OutputNoise:
+    """The one implementation of judging output limits under noise, shared by both optimizer families so they cannot drift.
+
+    It keeps every set of outputs seen at each point, averages them, pools the noise of each limit's
+    relative margin, and judges a limit with a margin of k standard errors, k the Student t quantile
+    at the limit's pooled degrees of freedom.
+    """
+    config: Any
+    search_space: SearchSpace
+    _evaluations: int
+    _output_observations: dict[tuple, list[dict[str, float]]]
+    _points: dict[tuple, dict[str, Any]]
+    _noise_cache: tuple[int, list[tuple[float, int]]] | None
+
+    def _reset_output_noise(self) -> None:
+        self._output_observations = {}  # every set of outputs seen at each point
+        self._points = {}
+        self._noise_cache = None  # (evaluations when computed, each limit's pooled noise)
+
+    def _average_outputs(self, key: tuple) -> dict[str, float] | None:
+        """The average of every set of outputs seen at the point, by output; None without constraints on outputs."""
+        seen = self._output_observations.get(key)
+        if not seen:
+            return None
+        return {name: float(np.mean([outputs[name] for outputs in seen])) for name in self.search_space.outputs}
+
+    def _violation(self, key: tuple, more: int = 0) -> float:
+        """The total violation of the output constraints by the point's average outputs: 0 without any.
+
+        With the margin of safety, each limit whose noise is known is judged with its average
+        margin widened by k standard errors, k the Student t quantile at the limit's degrees of freedom, so a design passes only if it clears the limit by them.
+        With more, the standard errors are those the point would have after that many more evaluations.
+        """
+        outputs = self._average_outputs(key)
+        if outputs is None:
+            return 0.0
+        point = self._points[key]
+        if not self._margin_on():
+            return self.search_space.output_violation(point, outputs)
+        n = len(self._output_observations[key]) + more
+        active = self.search_space.active(point)
+        total = 0.0
+        for constraint, (spread, freedom) in zip(self.search_space.output_constraints, self._limit_noise()):
+            if not constraint.applies(active):
+                continue
+            widen = 0.0
+            if freedom >= MARGIN_FREEDOM:
+                size = constraint.size(active, outputs)
+                k = float(student_t.ppf(self.config.feasibility_confidence, freedom))
+                widen = k * spread * (size if math.isfinite(size) and size > 0 else 1.0) / math.sqrt(n)
+            total += constraint.widened_violation(active, outputs, widen)
+        return float(total)
+
+    def _margin_on(self) -> bool:
+        """Whether limits are judged with a margin of safety: with noise, constraints on outputs and a feasibility_confidence."""
+        return bool(self.config.noise and self.search_space.output_constraints and self.config.feasibility_confidence is not None)
+
+    def _limit_noise(self) -> list[tuple[float, int]]:
+        """Each output constraint's noise: the pooled standard deviation of its relative margin, and its degrees of freedom.
+
+        Pooled over every point evaluated more than once, from the spread of the margin among its
+        evaluations, which assumes the noise is about the same everywhere. (0, 0) for a limit no
+        point has been evaluated twice where it applies.
+        """
+        if self._noise_cache is not None and self._noise_cache[0] == self._evaluations:
+            return self._noise_cache[1]
+        constraints = self.search_space.output_constraints
+        squares, freedom = [0.0] * len(constraints), [0] * len(constraints)
+        for key, seen in self._output_observations.items():
+            if len(seen) < 2:
+                continue
+            margins = [self.search_space.output_margins(self._points[key], outputs) for outputs in seen]
+            for j in range(len(constraints)):
+                values = [float(v) for m in margins if (v := m[j]) is not None and math.isfinite(v)]
+                if len(values) >= 2:
+                    squares[j] += float(np.var(values) * len(values))
+                    freedom[j] += len(values) - 1
+        noise = [(math.sqrt(sq / df) if df else 0.0, df) for sq, df in zip(squares, freedom)]
+        self._noise_cache = (self._evaluations, noise)
+        return noise
 
 
 class OptimizerCore[ResultT](ABC):
