@@ -113,7 +113,7 @@ def test_half_of_baseline_flag():
     text = spec.report(_runs(FLOOR_CELL, "baseline", base) + _runs(FLOOR_CELL, "tenth", short) + _runs(FLOOR_CELL, "fifth", enough))
     assert "tenth keeps half the baseline's truly feasible points in 10 of 30 seeds" in text
     # only floor cells are checked
-    assert "keeps half" not in spec.report(_runs(RESOLVED_CELL, "baseline", base) + _runs(RESOLVED_CELL, "tenth", short))
+    assert "keeps half" not in spec.report(_runs(RESOLVED_CELL, "baseline", base) + _runs(RESOLVED_CELL, "tenth", short) + _runs(RESOLVED_CELL, "fifth", short))
 
 
 def test_clearly_more_fewer_and_ties():
@@ -214,11 +214,23 @@ def test_no_reported_points_is_vacuous_for_criterion_1_but_not_shown_as_met():
     text = spec.report(runs)
     assert "| no reported points |" in text and "| met | met" not in text
     assert any("no reported points" in reason for reason in spec.choose_reserve(spec._cells(runs))[3])
+    assert "no information: no feasible point under either" in text
+    assert text.count("no information: no feasible point under either") == 2  # tenth and fifth
+    cells = spec._cells(runs)
+    assert spec.choose_reserve(cells)[:2] == ("tenth", {"tenth": "pass", "fifth": "pass"})  # neither helped nor hurt
+    # a cell that isn't empty and identical isn't flagged
+    runs = _runs(RESOLVED_CELL, "baseline", _same()) + _runs(RESOLVED_CELL, "tenth", _same()) + _runs(RESOLVED_CELL, "fifth", _same())
+    assert "no information" not in spec.report(runs)
 
 
 def test_floor_cell_missing_a_reserve_raises():
     runs = _runs(FLOOR_CELL, "baseline", _same()) + _runs(FLOOR_CELL, "tenth", _same())
     with pytest.raises(ValueError, match="noisy-osy, random, 50/dim.*fifth"):
         spec.report(runs)
-    # a cell outside the list may lack one
-    spec._cells(_runs(RESOLVED_CELL, "baseline", _same()) + _runs(RESOLVED_CELL, "tenth", _same()))
+    # so must any cell with baseline runs, floor cell or not
+    runs = _runs(RESOLVED_CELL, "baseline", _same()) + _runs(RESOLVED_CELL, "tenth", _same())
+    with pytest.raises(ValueError, match="noisy-cantilever-outputs, random, 50/dim.*fifth"):
+        spec._cells(runs)
+    with pytest.raises(ValueError, match="tenth or fifth"):
+        spec._cells(_runs(RESOLVED_CELL, "baseline", _same()))
+    assert spec._cells([]) == []  # a cell with no runs at all is fine

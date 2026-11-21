@@ -185,13 +185,12 @@ def _cells(runs):
         grouped.setdefault((run.problem, kind, run.budget_per_dimension), {}).setdefault(variant, {})[run.seed] = run
     cells = []
     for key, variants in sorted(grouped.items()):
-        if key in FLOOR_UNRESOLVABLE:
-            missing = [r for r in RESERVES if r not in variants]
-            if missing:
-                raise ValueError(f"{_label({'key': key})} is a cell the floor can't resolve and has no runs of the {' or '.join(missing)}")
         base = variants.get("baseline")
         if not base:
             continue
+        missing = [r for r in RESERVES if r not in variants]
+        if missing:
+            raise ValueError(f"{_label({'key': key})} has baseline runs and no runs of the {' or '.join(missing)}")
         threshold = DELTA * next(p for p in problems() if p.name == key[0]).true_hypervolume
         cell = {"key": key, "floor": key in FLOOR_UNRESOLVABLE, "baseline": None, "alone": None, "threshold": threshold}
         for reserve in RESERVES:
@@ -322,6 +321,8 @@ def report(runs):
             c2 = "met" if r["c2"] else ("falls" if r["falls"] else "no rise")
             if r["unchanged"]:
                 c2 += " (unchanged)"
+            if r["unchanged"] and r["no_points"] and b["pooled"] != b["pooled"] and r["figures"]["any"] == 0:
+                flagged.append(f"{_label(cell)}: {reserve}: no information: no feasible point under either")
             half = ""
             if cell["floor"]:
                 half = f"{r['half']} of {r['n']}"
