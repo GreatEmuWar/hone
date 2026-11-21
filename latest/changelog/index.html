@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://hone-python.dev/latest/changelog/">
       
       
-        <link rel="prev" href="../benchmarks/multi-results/">
+        <link rel="prev" href="../benchmarks/multi-floor-results/">
       
       
       
@@ -1079,6 +1079,8 @@
       
         
       
+        
+      
     
     
     
@@ -1400,6 +1402,34 @@
     
   
     Several objectives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/multi-floor-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Noise floor, several objectives
   
 
     
@@ -2810,6 +2840,7 @@
 <ul>
 <li><strong>Benchmark runs record what the result claimed.</strong> With constraints on outputs, each <code>Run</code> has <code>reported_feasible</code>, so a measurement can count results that say they satisfy their limits but truly don't. The Measure workflow deals a seed's runs of every optimizer to the same shard, since GitHub's runners differ in processor and OpenBLAS rounds by processor.</li>
 <li><strong>Measurements shared among GitHub's runners.</strong> The Measure workflow, started by hand, runs a spec from <code>benchmarks/specs/</code> in up to 40 shards, one job each, and puts them together, checked so that every run the spec makes is there exactly once. <code>run_benchmark</code> takes <code>shard=(index, count)</code>, and <code>python -m hone.benchmarks.sharded</code> runs and merges shards on any machine.</li>
+<li><strong>A noisy multi-objective benchmark with limits on outputs, for noise with several objectives.</strong> <code>hone.benchmarks.multi_outputs</code> adds OSY, TNK and the cantilever with its stress as an output, each with a true front, and noisy versions with about 1% noise on every objective and output. A multi-objective run can be noisy now: the noise comes from one stream per run, seeded by the run's seed, and each <code>MultiRun</code> records how many of the points it reported truly satisfy every limit and its true gap, scored on noise-free values. <code>run_multi_benchmark</code> takes <code>shard=</code>, so the Measure workflow runs multi-objective specs too. The floor run, <code>benchmarks/specs/multi_floor.py</code>, measures how much the true gap varies between paired runs of an unchanged optimizer, before any optimizer change. No optimizer code changed.</li>
 <li><strong>The CMA-ES Rosenbrock test states a rate, not a seed.</strong> It required 10-dimensional Rosenbrock solved on each of three seeds, but CMA-ES ends in a local minimum on about 7% of seeds, and which ones depends on the platform's maths libraries: seed 0 started missing after a macOS update. It now requires at least 15 of 20 seeds.</li>
 <li><strong>The cost of a Bayesian candidate, measured.</strong> <code>python -m hone.benchmarks --cost</code> (or <code>make benchmark-cost</code>) times Bayesian optimization's proposals against the evaluations so far, 50 to 500, and the limits on outputs, 0 to 8, at batch sizes 1 and 8, each cell the mean over 3 seeds, with a profiled run of g07. The table, in <code>benchmarks/cost-results.md</code> and <code>cost-summaries.json</code>, is the ceiling later changes are held to: at most ×1.2 at 500 evaluations without sign-off, which <code>--baseline</code> checks. At 500 evaluations a candidate takes 0.08 seconds with no limits and 0.78 with eight, on an Apple M2.</li>
 <li><strong>The search before anything is feasible stays as it is, on evidence.</strong> Bayesian optimization's maximizing the probability of feasibility was tested over 30 paired seeds against a model of the total violation and against quasi-Monte Carlo expected improvement in it. Both reach a first feasible design sooner on a small ball, but never find the deceptive pocket by searching, where the current method finds it in every run at 100 evaluations per dimension. No optimizer code changed. <code>benchmarks/infeasible_search.py</code> reproduces the test, and the design doc records it, with what 30 seeds can resolve.</li>
@@ -3036,7 +3067,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../benchmarks/multi-results/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Several objectives">
+          <a href="../benchmarks/multi-floor-results/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Noise floor, several objectives">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -3046,7 +3077,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Several objectives
+                Noise floor, several objectives
               </div>
             </div>
           </a>
