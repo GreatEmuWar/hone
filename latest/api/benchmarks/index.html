@@ -1115,6 +1115,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#hone.benchmarks.engineering_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        engineering_table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#hone.benchmarks.standard_problems" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1240,6 +1251,8 @@
       
         
           
+        
+      
         
       
         
@@ -1461,6 +1474,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../benchmarks/engineering-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engineering designs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../benchmarks/cost-results/" class="md-nav__link">
         
   
@@ -1653,6 +1694,17 @@
     <span class="md-ellipsis">
       
         to_markdown
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hone.benchmarks.engineering_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        engineering_table
       
     </span>
   </a>
@@ -1870,6 +1922,38 @@ maths libraries round the same way, and each problem's seeds spread over every s
     <div class="doc doc-contents first">
 
         <p>An overview of wins at each budget, then a table per budget with a row per problem.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="hone.benchmarks.engineering_table" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">engineering_table</span>
+
+
+<a href="#hone.benchmarks.engineering_table" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">engineering_table</span><span class="p">(</span><span class="n">summaries</span><span class="p">:</span> <span class="n"><span title="collections.abc.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Summary
+
+
+  
+      pydantic-model
+   (hone.benchmarks.runner.Summary)" href="#hone.benchmarks.Summary">Summary</a></span><span class="p">],</span> <span class="n">problems</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Problem
+
+
+  
+      pydantic-model
+   (hone.benchmarks.problems.Problem)" href="#hone.benchmarks.Problem">Problem</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="str">str</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>A row per problem and a column per optimizer: the best median value over the budgets, its gap and budget.</p>
+<p>Where the summaries hold the same problem, optimizer and budget more than once, the last wins,
+so a later file of summaries replaces an earlier one's results.</p>
 
 
     </div>
