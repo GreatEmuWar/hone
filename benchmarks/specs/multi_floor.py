@@ -108,6 +108,12 @@ def report(runs):
         f"A cell resolves δ, {DELTA:.0%} of the true front's scaled hypervolume, when U is at most δ, L is at least -δ and U - L is at most δ; "
         f"otherwise the benchmark can't resolve δ there. Gaps are in scaled hypervolume. The baseline's own figures follow.",
         "",
+        "A cell that resolves δ is one where a real no-change would pass criterion 3 and a real loss of 2δ or more would fail it "
+        "(about 1.5δ when the interval is centred on zero, as it should be here); a loss between δ and that comes out unresolved. "
+        "The bounds are one draw of a random interval, so the verdict is a guide, not a guarantee. "
+        "For random search the floor is wider than the real comparison's spread, since there the default and the baseline propose "
+        "the same designs, so a random-search cell that can't resolve δ here may still resolve in the comparison.",
+        "",
         "| Problem | Optimizer | Per dim | Pairs | L | U | U - L | δ | Verdict | Median true gap | Pooled infeasible | Mean infeasible share | Empty fronts | Median front | Median truly feasible | Runs with a feasible point |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
