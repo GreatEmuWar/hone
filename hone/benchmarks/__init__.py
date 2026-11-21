@@ -4,6 +4,7 @@ from .constrained import constrained_problems
 from .engineering import engineering_problems, engineering_table
 from .ml import ml_problems
 from .multi import MultiProblem, multi_problems, run_multi_benchmark, summarize_multi
+from .multi_outputs import cantilever_outputs, noisy_multi_output_problems, osy, tnk
 from .outputs import noisy_output_problems, output_problems
 from .problems import Problem, noisy_problems, quick_problems, standard_problems
 from .runner import (

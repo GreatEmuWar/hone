@@ -234,28 +234,53 @@ def multi_problems() -> list[MultiProblem]:
 
 # --- optimizers --------------------------------------------------------------------
 
-MultiFactory = Callable[[MultiProblem, int, int], Any]
+# A factory takes the problem, the budget and the run's seed, and optionally the points to evaluate first.
+MultiFactory = Callable[..., Any]
+Points = list[dict[str, Any]]
 
 
-def nsga2(problem: MultiProblem, budget: int, seed: int) -> MultiObjectiveOptimizer:
-    return NSGA2(problem.search_space, NSGA2Config(objectives=problem.objectives, max_evaluations=budget, seed=seed))
+def nsga2(problem: MultiProblem, budget: int, seed: int, *, initial_points: Points | None = None) -> MultiObjectiveOptimizer:
+    config = NSGA2Config(objectives=problem.objectives, max_evaluations=budget, seed=seed)
+    return NSGA2(problem.search_space, config, initial_points=initial_points)
 
 
 def _bayesian(method: str) -> MultiFactory:
-    def factory(problem: MultiProblem, budget: int, seed: int) -> MultiObjectiveOptimizer:
+    def factory(problem: MultiProblem, budget: int, seed: int, *, initial_points: Points | None = None) -> MultiObjectiveOptimizer:
         if budget > BAYESIAN_MAX_EVALUATIONS:
             raise SkipBudget(f"{budget} evaluations is more than Bayesian optimization is run with")
         config = MultiObjectiveBayesianConfig(objectives=problem.objectives, max_evaluations=budget, seed=seed, method=method)
-        return MultiObjectiveBayesian(problem.search_space, config)
+        return MultiObjectiveBayesian(problem.search_space, config, initial_points=initial_points)
 
     return factory
 
 
-def random_search(problem: MultiProblem, budget: int, seed: int) -> MultiObjectiveOptimizer:
+def random_search(problem: MultiProblem, budget: int, seed: int, *, initial_points: Points | None = None) -> MultiObjectiveOptimizer:
     config = MultiObjectiveConfig(
         objectives=problem.objectives, population_size=POPULATION_SIZE, generations=budget, max_evaluations=budget, seed=seed
     )
-    return MultiObjectiveRandomSearch(problem.search_space, config)
+    return MultiObjectiveRandomSearch(problem.search_space, config, initial_points=initial_points)
+
+
+def first_generation(optimizer: MultiObjectiveOptimizer) -> Points:
+    """The points a fresh optimizer would evaluate first, in order, without evaluating anything.
+
+    The optimizer is used up by this: build another to run.
+    """
+    return [dict(trial.params) for trial in optimizer.ask()]
+
+
+def paired_first_generation(factory: MultiFactory, offset: int = 1000) -> MultiFactory:
+    """factory's optimizer, searching with seed + offset but starting from the first generation that factory's own seed makes.
+
+    A run of the pair and a run of factory itself evaluate the same first generation in the same
+    order, so with the same noise seed they see the same noisy values there and differ only after it.
+    """
+
+    def paired(problem: MultiProblem, budget: int, seed: int, **kwargs: Any) -> Any:
+        first = first_generation(factory(problem, budget, seed))
+        return factory(problem, budget, seed + offset, initial_points=first, **kwargs)
+
+    return paired
 
 
 def weighted_sums(problem: MultiProblem, budget: int, seed: int) -> "WeightedSums":
@@ -281,7 +306,9 @@ class WeightedSums:
             self.weights = [np.array(w, dtype=float) / 2 for w in [(2, 0, 0), (0, 2, 0), (0, 0, 2), (1, 1, 0), (1, 0, 1), (0, 1, 1)]]
 
     def run(self) -> tuple[list[dict[str, float]], int]:
+        """Every point's values, and the evaluations made; the points' parameters are left in self.params, in the same order."""
         seen: list[dict[str, float]] = []
+        self.params: list[dict[str, Any]] = []
         evaluations = 0
         for i, weights in enumerate(self.weights):
             share = self.budget // len(self.weights) + (i < self.budget % len(self.weights))
@@ -289,6 +316,7 @@ class WeightedSums:
             def weighted(**params: Any) -> float:
                 values = self.problem.function(**params)
                 seen.append(values)
+                self.params.append(dict(params))
                 return float(weights @ self.problem.scaled(values))
 
             if share <= BAYESIAN_MAX_EVALUATIONS:
@@ -323,6 +351,13 @@ class MultiRun(BaseModel):
     front_size: int
     evaluations: int
     front: list[list[float]]  # the run's front, scaled, for attainment surfaces
+    # The fields below judge the reported points by their noise-free values, which differ from
+    # the values the run saw only when the problem is noisy.
+    optimizer_seed: int | None = None  # the seed the optimizer searched with, which a factory may offset from the run's
+    reported: int = 0  # the points the optimizer reported as its front
+    truly_feasible: int = 0  # of those, how many satisfy every constraint on outputs when evaluated without noise
+    any_truly_feasible: bool = False
+    true_gap: float = 0.0  # the true front's scaled hypervolume less that of the truly feasible reported points, noise-free
 
 
 class MultiSummary(BaseModel):
@@ -339,16 +374,10 @@ class MultiSummary(BaseModel):
     attainment: list[list[float]] | None = None  # for two objectives, the median attainment surface's corners, scaled
 
 
-def run_multi_benchmark(
-    problems: Iterable[MultiProblem],
-    optimizers: dict[str, MultiFactory] | None = None,
-    seeds: Iterable[int] = range(10),
-    budgets_per_dimension: Iterable[int] = BUDGETS,
-    jobs: int = 1,
-) -> list[MultiRun]:
-    """Run every optimizer on every problem with every seed and budget, as run_benchmark does for one objective."""
-    problems = list(problems)
-    optimizers = optimizers if optimizers is not None else DEFAULT_MULTI_OPTIMIZERS
+def multi_tasks(
+    problems: list[MultiProblem], optimizers: dict[str, MultiFactory], seeds: Iterable[int], budgets_per_dimension: Iterable[int]
+) -> list[tuple[int, str, int, int]]:
+    """Every run run_multi_benchmark makes, in its order: (problem index, optimizer, budget per dimension, seed)."""
     seeds, budgets = list(seeds), list(budgets_per_dimension)
     tasks = []
     for index, problem in enumerate(problems):
@@ -360,6 +389,32 @@ def run_multi_benchmark(
                 except SkipBudget:
                     continue
                 tasks += [(index, name, per_dimension, seed) for seed in seeds]
+    return tasks
+
+
+def run_multi_benchmark(
+    problems: Iterable[MultiProblem],
+    optimizers: dict[str, MultiFactory] | None = None,
+    seeds: Iterable[int] = range(10),
+    budgets_per_dimension: Iterable[int] = BUDGETS,
+    jobs: int = 1,
+    shard: tuple[int, int] | None = None,
+) -> list[MultiRun]:
+    """Run every optimizer on every problem with every seed and budget, as run_benchmark does for one objective.
+
+    With shard=(index, count), only a count-th of the runs are made, dealt as run_benchmark deals
+    them: round-robin by problem, budget and seed, so every optimizer's run of one seed is made on
+    the same machine and each problem's seeds spread over every shard.
+    """
+    if shard is not None and not 0 <= shard[0] < shard[1]:
+        raise ValueError(f"shard {shard[0]} of {shard[1]} doesn't exist")
+    problems = list(problems)
+    optimizers = optimizers if optimizers is not None else DEFAULT_MULTI_OPTIMIZERS
+    tasks = multi_tasks(problems, optimizers, seeds, budgets_per_dimension)
+    if shard is not None:
+        groups = list(dict.fromkeys((index, per_dimension, seed) for index, _, per_dimension, seed in tasks))
+        mine = set(groups[shard[0] :: shard[1]])
+        tasks = [task for task in tasks if (task[0], task[2], task[3]) in mine]
     global _shared
     _shared = (problems, optimizers)
     if jobs == 1 or "fork" not in multiprocessing.get_all_start_methods():
@@ -371,19 +426,47 @@ def run_multi_benchmark(
 _shared: tuple[list[MultiProblem], dict[str, MultiFactory]] = ([], {})
 
 
+def _with_noise(problem: MultiProblem, seed: int) -> Callable[..., dict[str, float]]:
+    """problem's function plus Gaussian noise, repeatable for the run's seed.
+
+    Every quantity the function returns, in the order it returns them, gets an independent draw
+    from one stream, with the standard deviation problem.noise or problem.output_noise gives it
+    (none for a quantity in neither).
+    """
+    rng = np.random.default_rng([seed, zlib.crc32(problem.name.encode())])
+    sds = {**problem.output_noise, **problem.noise}
+
+    @functools.wraps(problem.function)
+    def noisy(**params: Any) -> dict[str, float]:
+        return {name: v + sds.get(name, 0.0) * rng.standard_normal() for name, v in problem.function(**params).items()}
+
+    return noisy
+
+
 def _task(task: tuple[int, str, int, int]) -> MultiRun:
     index, name, per_dimension, seed = task
     problems, optimizers = _shared
     problem = problems[index]
     optimizer = optimizers[name](problem, per_dimension * problem.dimensions, seed)
+    reported: list[tuple[dict[str, Any], dict[str, float]]]  # the reported points' parameters and the values the run saw
     if isinstance(optimizer, WeightedSums):
+        if problem.noisy:
+            raise ValueError("weighted-sums is run on noise-free problems only")
         seen, evaluations = optimizer.run()
+        optimizer_seed: int | None = seed
+        every = np.array([problem.scaled(v) for v in seen]).reshape(-1, len(problem.objectives))
+        reported = [(optimizer.params[i], seen[i]) for i in (non_dominated(every) if len(every) else [])]
     else:
-        result = optimizer.optimize(problem.function)
-        seen, evaluations = [p.values for p in result.front], result.evaluations
+        result = optimizer.optimize(_with_noise(problem, seed) if problem.noisy else problem.function)
+        evaluations, optimizer_seed = result.evaluations, optimizer.config.seed
+        reported = [(point.params, point.values) for point in result.front]
+        seen = [values for _, values in reported]
     vectors = np.array([problem.scaled(v) for v in seen]).reshape(-1, len(problem.objectives))
     front = vectors[non_dominated(vectors)] if len(vectors) else vectors
     volume = hypervolume(front, np.full(len(problem.objectives), REFERENCE))
+    truth = [(params, problem.function(**params)) for params, _ in reported]
+    feasible = [values for params, values in truth if _truly_feasible(problem, params, values)]
+    true_volume = problem.hypervolume(feasible)  # a point beyond the reference counts for nothing
     return MultiRun(
         problem=problem.name,
         optimizer=name,
@@ -393,7 +476,18 @@ def _task(task: tuple[int, str, int, int]) -> MultiRun:
         front_size=len(front),
         evaluations=evaluations,
         front=front.tolist(),
+        optimizer_seed=optimizer_seed,
+        reported=len(reported),
+        truly_feasible=len(feasible),
+        any_truly_feasible=bool(feasible),
+        true_gap=max(problem.true_hypervolume - true_volume, 0.0),
     )
+
+
+def _truly_feasible(problem: MultiProblem, params: dict[str, Any], values: dict[str, float]) -> bool:
+    """Whether the noise-free values at params satisfy every constraint on outputs."""
+    outputs = {name: float(values[name]) for name in problem.search_space.outputs}
+    return problem.search_space.output_violation(params, outputs) == 0
 
 
 def attainment_surface(fronts: list[np.ndarray], share: float = 0.5) -> list[list[float]]:
