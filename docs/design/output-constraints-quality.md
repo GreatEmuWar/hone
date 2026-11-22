@@ -124,6 +124,59 @@ With no scale, raw-unit margins reach the bilog transform, and standardizing aft
 
 On the pressure vessel with its limits on outputs, Bayesian optimization at 200 evaluations (31.6) beats CMA-ES at 4,000 (277); the welded beam goes the other way (0.0112 against 3e-7). Measure seconds per candidate up to 500 evaluations (k + 1 Gaussian processes at O(n³)) and state the rule in those terms. Count step 0's problems too. Change the rule only for spaces with output constraints.
 
+### The current rule on suites it wasn't chosen from
+
+The rule was set from the standard suite. Checked on 21 Nov 2026 against the saved summaries of the ML, constrained and outputs suites, 10 seeds each, by asking in each cell whether the rule's pick has the lowest median error of the optimizers run. Errors below 1e-8 count as equal, as in the overview, and batched Bayesian runs count as Bayesian.
+
+- **ML tuning: 13 of 15 cells.** Both misses are at 10 evaluations per dimension (20 and 80 evaluations), by ×1.5, which is one misclassified sample in the validation set. The rule holds.
+- **Constrained, limits on inputs and the engineering designs: 57 of 65.** Past 200 evaluations the misses are:
+  - the boundary ellipsoid at 50 per dimension in 5 and 10 dimensions, where CMA-ES is ×2.1 and ×3.3 behind the genetic optimizer;
+  - the pressure vessel, which has integer variables, so the rule picks the genetic optimizer. CMA-ES beats it by ×1.07 to ×1.09, and with its limits on outputs by ×1.7 to ×2.2.
+- **Outputs, step 0's problems and the engineering designs with limits on outputs: 64 of 70.** The misses are:
+  - pocket-2d at 20 and 40 evaluations, where no optimizer's median run is feasible;
+  - pocket-2d at 2,000, where CMA-ES is ×479 behind the genetic optimizer;
+  - the pressure vessel at 400 and 4,000, where CMA-ES beats the genetic pick by ×2.2 and ×2.5;
+  - the spring at 300, by ×1.04.
+
+Up to 200 evaluations the rule's pick, Bayesian optimization, is best in every constrained and outputs cell but the two pocket cells where nothing is feasible. The question item 4 asks is past 200, where Bayesian optimization isn't run.
+
+The pressure vessel's misses, CMA-ES over the genetic optimizer with integer variables, rest on one problem, since no other problem has both integers and limits on outputs. So they are recorded, not acted on. The same goes for pocket-2d at 2,000.
+
+### The design
+
+With output constraints, Bayesian optimization stays the choice up to B evaluations, past the 200 it has without them. B is chosen from 300 and 500 by the measurement below, or stays at 200. Nothing past 500 is considered, since step 1b measured cost only that far. Without output constraints the rule is unchanged. So is a choice parameter with `choose_n`, which still rules Bayesian optimization out. `choose_pareto_optimizer` is unchanged too.
+
+**The cost, stated in seconds.** From `benchmarks/cost-results.md` (10 dimensions, batches of 1), a candidate at 500 evaluations costs:
+- 0.15 s with 1 limit;
+- 0.41 s with 4 limits;
+- 0.78 s with 8 limits.
+
+At 200 evaluations the figures are 0.04 s, 0.10 s and 0.18 s. Summed over a run, the choice up to 500 costs under 4 minutes at 8 limits. The docstring states the cutoff with these figures, so a user whose evaluation takes less than that can pick CMA-ES instead.
+
+### The measurement
+
+- **Problems.** Every problem in `output_problems()`: step 0's 11 and the three engineering designs, 14 in all.
+- **Budgets.** 300 and 500 evaluations on every problem, fixed totals rather than per dimension, since the rule is stated in evaluations.
+- **Runs.** 30 seeds each, for Bayesian optimization, CMA-ES and the genetic optimizer. The three noisy designs are run too, for the record, and not judged.
+- **Where it runs.** A spec on the Measure workflow, which lifts the benchmark's cap of 200 on Bayesian optimization for this spec only.
+
+The rule's current pick in a cell is CMA-ES, or the genetic optimizer if the space has integer or choice variables.
+
+### Pass criteria, fixed before measuring
+
+At each budget b, 300 and 500, the unit is the problem, as it was when the rule was first set:
+
+1. **Error.** Bayesian optimization has a lower median error than the current pick on at least 11 of the 14 problems. Errors below 1e-8 count as equal, and a tie counts against it. If the two were equally good, 11 or more of 14 would happen by chance with probability 0.029, from binomial(14, ½).
+2. **Feasibility.** On no problem is Bayesian optimization's share of truly feasible runs more than 3 of 30 below the current pick's. That is one run in ten, as in items 7 and 8.
+3. **Nothing else moves.** For every search space without output constraints, `choose_optimizer` returns the same class with the same config, for budgets from 1 to 10,000. A test checks this.
+
+**Which B ships:**
+- 500, if b = 300 and b = 500 both pass criteria 1 and 2;
+- 300, if only b = 300 passes;
+- otherwise 200 stays and the rule is unchanged.
+
+If b = 500 passes and b = 300 doesn't, the numbers go to the user. Every problem's medians, feasible shares and the losing problems are reported beside the verdict.
+
 ## 5. CMA-ES flat-run restart
 
 Track the best violation while infeasible with the same flatness test. `_recent_bests` only grows on feasible generations, so its window can span a long infeasible gap: clear the history when the run moves between infeasible and feasible. Add a direct test that a flat violation triggers a restart.
