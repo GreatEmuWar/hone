@@ -34,7 +34,7 @@ The optimizer minimizes by default; set `maximize=True` in the config to maximiz
 
 ### Slow evaluations
 
-When each evaluation takes a while, run them in parallel. `workers` evaluates that many candidates at a time in background processes; the objective function must be defined at the top level of a module, and on macOS and Windows the calling script needs an `if __name__ == "__main__":` guard.
+When each evaluation takes a while, run them in parallel. `workers` evaluates that many candidates at a time in background processes; the objective function must be defined at the top level of a module, not in a notebook or at a prompt, and not be a lambda or a nested function; otherwise a `TypeError` says so before any worker starts. The same goes for a function constraint. On macOS, Windows, and Linux from Python 3.14, where workers are started afresh and import the objective by name, the calling script needs an `if __name__ == "__main__":` guard. Under the fork start method (Linux before Python 3.14), any function works.
 
 ```python
 result = optimizer.optimize(run_simulation, workers=8, timeout=600)

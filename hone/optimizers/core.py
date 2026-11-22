@@ -556,7 +556,9 @@ class OptimizerCore[ResultT](ABC):
         once at least one evaluation has succeeded.
 
         With workers > 1 or a timeout, each evaluation runs in a separate process, so the
-        function must be defined at the top level of a module.
+        function must be defined at the top level of a module, not in a notebook or at a
+        prompt, nor be a lambda or nested function; otherwise a TypeError says so before any
+        worker starts. (Under the fork start method, Linux before Python 3.14, any function works.)
         """
         if workers < 1:
             raise ValueError(f"workers must be at least 1, got {workers}")
