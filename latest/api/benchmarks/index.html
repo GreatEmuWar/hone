@@ -1211,6 +1211,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hone.benchmarks.Run.without_timing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        without_timing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1857,6 +1874,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hone.benchmarks.Run.without_timing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        without_timing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1907,7 +1941,7 @@
 
   
       pydantic-model
-   (hone.benchmarks.problems.Problem)" href="#hone.benchmarks.Problem">Problem</a></span><span class="p">],</span> <span class="n">optimizers</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="hone.benchmarks.runner.OptimizerFactory">OptimizerFactory</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seeds</span><span class="p">:</span> <span class="n"><span title="typing.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="n"><span title="range">range</span></span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="n">budgets_per_dimension</span><span class="p">:</span> <span class="n"><span title="typing.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="n"><span title="hone.benchmarks.runner.BUDGETS">BUDGETS</span></span><span class="p">,</span> <span class="n">jobs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shard</span><span class="p">:</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
+   (hone.benchmarks.problems.Problem)" href="#hone.benchmarks.Problem">Problem</a></span><span class="p">],</span> <span class="n">optimizers</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="hone.benchmarks.runner.OptimizerFactory">OptimizerFactory</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seeds</span><span class="p">:</span> <span class="n"><span title="typing.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="n"><span title="range">range</span></span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="n">budgets_per_dimension</span><span class="p">:</span> <span class="n"><span title="typing.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">=</span> <span class="n"><span title="hone.benchmarks.runner.BUDGETS">BUDGETS</span></span><span class="p">,</span> <span class="n">jobs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shard</span><span class="p">:</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">,</span> <span class="n"><span title="int">int</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">time_at</span><span class="p">:</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
@@ -1926,7 +1960,9 @@ shared among that many processes where the platform can fork them; the results a
 With shard=(index, count), only a count-th of the runs are made, so count machines can share
 one benchmark and their runs be put together afterwards. Runs are dealt round-robin by problem,
 budget and seed, so every optimizer's run of one seed is made on the same machine, where its
-maths libraries round the same way, and each problem's seeds spread over every shard.</p>
+maths libraries round the same way, and each problem's seeds spread over every shard.
+Every run records its wall time and machine; with time_at, also the seconds at which it first reached
+each of those evaluation counts. Timing never changes a run's errors, traces or evaluations.</p>
 
 
     </div>
@@ -2328,6 +2364,18 @@ with every setting always searched, as before conditions, to show what they are 
               <code><span title="hone.benchmarks.runner.Run.reported_feasible">reported_feasible</span></code>
                 (<code><span title="bool">bool</span> | None</code>)
             </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Run.seconds">seconds</span></code>
+                (<code><span title="float">float</span> | None</code>)
+            </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Run.seconds_at">seconds_at</span></code>
+                (<code><span title="dict">dict</span>[<span title="int">int</span>, <span title="float">float</span>] | None</code>)
+            </li>
+            <li>
+              <code><span title="hone.benchmarks.runner.Run.machine">machine</span></code>
+                (<code><span title="str">str</span> | None</code>)
+            </li>
         </ul>
 
 
@@ -2343,6 +2391,31 @@ with every setting always searched, as before conditions, to show what they are 
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hone.benchmarks.Run.without_timing" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">without_timing</span>
+
+
+<a href="#hone.benchmarks.Run.without_timing" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">without_timing</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (hone.benchmarks.runner.Run)" href="#hone.benchmarks.Run">Run</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The run with its timing cleared, so two runs of the same seed compare equal: timing differs between runs, the result doesn't.</p>
+
+
+    </div>
+
+</div>
 
 
 

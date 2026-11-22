@@ -1916,6 +1916,22 @@ python -m hone.benchmarks --multi          # several objectives: 7 problems, sco
 <td>Every run of it</td>
 </tr>
 <tr>
+<td><a href="https://github.com/GreatEmuWar/hone/blob/main/benchmarks/choose-outputs-results.md">choose-outputs-results.md</a></td>
+<td><code>choose_optimizer</code> with output constraints: Bayesian optimization against the current pick at 300 and 500 evaluations, judged on item 4's pass criteria, from the Measure workflow</td>
+</tr>
+<tr>
+<td><code>choose-outputs-summaries.json</code></td>
+<td>The same results as data; the runs themselves are in the Measure run's artifact</td>
+</tr>
+<tr>
+<td><a href="https://github.com/GreatEmuWar/hone/blob/main/benchmarks/choose-outputs-timing-results.md">choose-outputs-timing-results.md</a></td>
+<td>Bayesian optimization's wall time per run at 300 and 500 evaluations on the 14 problems, one run at a time on GitHub's runners, with each run's processor</td>
+</tr>
+<tr>
+<td><code>choose-outputs-timing-runs.json</code></td>
+<td>Every run of it</td>
+</tr>
+<tr>
 <td><code>specs/</code></td>
 <td>Specs for measurements shared among GitHub's runners by the Measure workflow; see below</td>
 </tr>

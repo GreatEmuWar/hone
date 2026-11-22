@@ -1708,17 +1708,23 @@
 <td><code>BayesianOptimizer</code></td>
 </tr>
 <tr>
-<td>More than 200</td>
+<td>500 evaluations or fewer</td>
+<td>Constraints on outputs, noise off, unless a choice parameter has <code>choose_n</code></td>
+<td><code>BayesianOptimizer</code></td>
+</tr>
+<tr>
+<td>Past the cutoff (200, or 500 as above)</td>
 <td>Any choice or integer parameter</td>
 <td><code>GeneticOptimizer</code></td>
 </tr>
 <tr>
-<td>More than 200</td>
+<td>Past the cutoff</td>
 <td>Continuous numbers only</td>
 <td><code>CMAES</code></td>
 </tr>
 </tbody>
 </table>
+<p>With constraints on outputs and noise off, Bayesian optimization stays the choice to 500 evaluations, because on the 14 problems of <a href="https://github.com/GreatEmuWar/hone/blob/main/benchmarks/choose-outputs-results.md">benchmarks/choose-outputs-results.md</a> it beat the old pick on every one. At 500 it spends about 1 to 5 minutes of its own time per run on 2 to 5 parameters with up to 4 limits, and about 12 to 19 with 10 parameters and 8 limits, on GitHub's runners (processors differ by about ×2.4; <a href="https://github.com/GreatEmuWar/hone/blob/main/benchmarks/choose-outputs-timing-results.md">benchmarks/choose-outputs-timing-results.md</a>), and the time per candidate grows as the run converges. With noise the cutoff stays at 200, because Bayesian optimization's final-round feasibility isn't reliable yet. To keep the old choice, construct the optimizer the old rule would pick: <code>GeneticOptimizer</code> with choice or integer parameters, <code>CMAES</code> otherwise, such as <code>CMAES(search_space, CMAESConfig(max_evaluations=400))</code>.</p>
 <p>Other settings, such as <code>seed</code>, <code>maximize</code>, <code>noise</code> or <code>threshold</code>, are passed on to the chosen optimizer's config. On the benchmark's 180 problem and budget pairs, its pick had a median error 1.37 times the best optimizer's, on geometric mean, and was the best on 146; always using CMA-ES gives 7.9 times the best, and it can't run the 15 problems with choice parameters. Its biggest misses are plain Rastrigin with 1,000 evaluations per dimension and plain ellipsoid with 50 to 100, where the genetic optimizer wins because the variables don't interact, which a rule can't know in advance; on the rotated versions CMA-ES wins.</p>
 <p>All four take the same arguments and support <code>optimize()</code>, <code>ask()</code> and <code>tell()</code>. A new optimizer subclasses <code>Optimizer</code> and implements <code>_next_population</code>, which returns each generation's individuals; the base class handles handing out candidates, recording results and failures, tracking the best result, stopping and the <code>Result</code>.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
