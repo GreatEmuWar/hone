@@ -32,7 +32,12 @@ jobs:
       run: poetry run ruff check hone tests pbt
     - name: Type check
       run: poetry run mypy
+    # Coverage slows every test and reads the same on every version, so it is measured on one.
     - name: Test
+      if: matrix.python-version != '3.14'
+      run: poetry run pytest
+    - name: Test, with coverage
+      if: matrix.python-version == '3.14'
       run: poetry run pytest --cov=hone --cov-report=term-missing
     - name: Run the tests that measure wall-clock time, on their own
       run: poetry run pytest -n 0 -m timing

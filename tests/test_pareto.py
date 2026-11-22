@@ -245,6 +245,7 @@ def test_a_checkpointed_run_resumes(tmp_path):
     assert resumed.result() == whole
 
 
+@pytest.mark.slow
 def test_workers_give_the_same_front():
     assert search().optimize(zdt1, workers=2) == search().optimize(zdt1)
 

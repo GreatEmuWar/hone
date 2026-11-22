@@ -108,6 +108,12 @@ class EvaluationPool:
         start_method: str | None = None,
     ) -> None:
         self._context = multiprocessing.get_context(start_method)
+        if self._context.get_start_method() == "forkserver":
+            # A replaced worker is forked from the server, which imports hone once here; otherwise each
+            # new worker imports it first, about 2 seconds a time, and a run with many timeouts waits on that.
+            # The preload list is the process's, shared with anything else that uses forkserver, so this
+            # replaces a list set elsewhere. And it is only a hint: it does nothing once the server is running.
+            self._context.set_forkserver_preload(["__main__", "hone"])
         if self._context.get_start_method() != "fork":
             _check_picklable(evaluate)  # before any worker starts
         self._evaluate = evaluate

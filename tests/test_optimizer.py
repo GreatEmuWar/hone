@@ -169,6 +169,7 @@ def test_optimizer_cannot_be_used_directly():
         Optimizer(bounded_parameters())
 
 
+@pytest.mark.slow
 def test_genetic_beats_random_search_for_the_same_evaluations():
     """A sanity check that the genetic operators do better than chance."""
     genetic = [run(seed=s).best_fitness for s in range(5)]

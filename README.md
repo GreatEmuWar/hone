@@ -504,6 +504,7 @@ Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
 | Command | Does |
 | --- | --- |
 | `make test` | Install the dependencies and run the tests on every core, then the few that measure wall-clock time on their own; CI adds coverage |
+| `make test-fast` | Run the tests on every core without those marked `slow`, which take 10 seconds or more each; run `make test` before a merge, as CI does |
 | `make lint` | Run ruff, then mypy to check types |
 | `make docs` | Serve the documentation site at http://127.0.0.1:8000, rebuilding as files change (see [Docs](#docs)) |
 | `make docs-build` | Build the documentation site into `site/`, failing on any warning, as CI does |

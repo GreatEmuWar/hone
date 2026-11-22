@@ -9,6 +9,11 @@ test: install
 	@poetry run pytest
 	@poetry run pytest -n 0 -m timing
 
+# For local iteration: leaves out the tests marked slow (10 seconds or more, set from durations measured in Docker). CI and make test run everything.
+.PHONY: test-fast
+test-fast: install
+	@poetry run pytest -m "not slow"
+
 .PHONY: lint
 lint: install
 	@poetry run ruff check hone tests pbt

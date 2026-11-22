@@ -67,6 +67,7 @@ def test_a_ball_has_the_volume_it_says_and_its_optimum_on_its_surface(dimensions
     assert feasible_count / 20_000 == pytest.approx(1 / one_in, rel=0.3)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("dimensions", [2, 5])
 def test_a_corner_has_both_limits_active_at_its_optimum(dimensions):
     problem = o.corner(dimensions)
@@ -84,6 +85,7 @@ def test_a_corner_has_both_limits_active_at_its_optimum(dimensions):
     assert at["first"] > 0.5 and at["second"] > 0.5
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("dimensions", [2, 5])
 def test_a_pocket_is_infeasible_at_the_objectives_minimum_and_feasible_in_the_pocket(dimensions):
     problem = o.pocket(dimensions)

@@ -61,11 +61,13 @@ def test_nsga2_closes_in_on_the_true_front():
     assert len(result.front) > 50
 
 
+@pytest.mark.slow
 def test_nsga2_finds_a_three_objective_front():
     problem = dtlz2(5)
     assert gap(problem, nsga2(problem, max_evaluations=3000).optimize(problem.function)) < 0.1
 
 
+@pytest.mark.slow
 def test_nsga2_repeats_exactly_and_doesnt_depend_on_workers():
     first = nsga2(max_evaluations=600).optimize(ZDT1.function)
     assert first == nsga2(max_evaluations=600).optimize(ZDT1.function)
@@ -213,6 +215,7 @@ def test_the_saved_benchmark_backs_choose_pareto_optimizers_rule():
     assert len(decided) >= 10 and wins >= 0.8 * len(decided)
 
 
+@pytest.mark.slow
 def test_the_cantilever_example_finds_the_stiffest_light_cheap_beam():
     """Under 10 kg and 100 the stiffest beam is aluminium, 150 mm deep and as wide as the mass allows: 3.488 mm."""
     example = Path(__file__).parent.parent / "examples" / "cantilever_beam.py"

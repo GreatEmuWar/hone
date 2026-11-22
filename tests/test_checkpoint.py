@@ -84,6 +84,7 @@ def test_a_noisy_run_with_output_limits_resumes_with_its_averages(tmp_path):
     assert resumed == uninterrupted and resumed.feasible and resumed.evaluations == 200
 
 
+@pytest.mark.slow
 def test_a_run_killed_in_another_process_carries_on(tmp_path):
     path = tmp_path / "run.checkpoint"
     script = textwrap.dedent(f"""
@@ -200,6 +201,7 @@ def test_choice_parameters_survive_a_checkpoint(tmp_path):
     assert make().optimize(cost, checkpoint=path) == make().optimize(cost)
 
 
+@pytest.mark.slow
 def test_checkpoints_work_with_workers(tmp_path):
     import objectives
 
@@ -235,6 +237,7 @@ def test_stragglers_out_at_a_checkpoint_are_handed_out_again(tmp_path):
     assert resumed.result().evaluations == 8
 
 
+@pytest.mark.slow
 def test_an_asynchronous_run_carries_on_from_its_checkpoint(tmp_path):
     import objectives
 

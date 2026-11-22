@@ -29,6 +29,7 @@ def test_best_so_far_never_gets_worse():
     assert bests == sorted(bests, reverse=True)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("workers", [1, 2])
 def test_returning_true_stops_the_run(workers):
     def stop_after_three(progress):
@@ -74,6 +75,7 @@ def test_ctrl_c_before_any_result_is_raised():
         make_optimizer(generations=10, population_size=8).optimize(interrupted_after(1))
 
 
+@pytest.mark.slow
 def test_ctrl_c_with_workers_stops_them_and_returns_the_result():
     timer = threading.Timer(0.5, os.kill, (os.getpid(), signal.SIGINT))
 

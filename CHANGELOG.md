@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1 (2026-11-22)
+
+### Fixed
+
+- **On Linux from Python 3.14, a worker replaced after a timeout or a crash no longer imports hone first.** Python 3.14 made forkserver Linux's default start method, and the forkserver imported nothing, so each new worker imported hone before it could evaluate, about 2 seconds on a slow machine, and a run with many timeouts spent most of its time on that: the test of eight hung evaluations on one worker took 30 to 38 seconds in Docker and failed its 30-second check in 5 of 8 runs. hone now sets the forkserver's preload list to `__main__` and `hone` when a pool starts, so each worker is forked with hone already imported, and the same test takes under 5 seconds. The preload replaces any list set before it, and does nothing if the forkserver is already running. Fork is unchanged, and macOS and Windows, which spawn, still import hone in each new worker.
+
 ## 0.15.0 (2026-11-21)
 
 Measuring how output constraints are handled, then improving what the measurements justify; see [docs/design/output-constraints-quality.md](docs/design/output-constraints-quality.md). Noise with constraints on outputs, for one objective and for several, with a margin of safety from a t quantile (`feasibility_confidence`). Batches of Bayesian optimization that keep their candidates apart. `choose_optimizer` keeps Bayesian optimization to 500 evaluations with constraints on outputs and no noise. Pickle checkpoints are deprecated. A benchmark suite, a table against published optima and a measured cost table come with it.

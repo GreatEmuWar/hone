@@ -2,6 +2,7 @@
 import os
 from contextlib import contextmanager
 
+import pytest
 from hypothesis import HealthCheck, assume, given, settings, strategies as st
 
 from hone import ChoiceParameter, GeneticOptimizer, GeneticOptimizerConfig, RangeParameter, SelectionMethod
@@ -75,6 +76,7 @@ def test_runs_until_the_budget_is_spent(space, config):
 
 # Docstring: "The first generation is any initial points, then random candidates. Each later generation keeps the
 # previous one's elites unchanged, then fills the rest of the population with children."
+@pytest.mark.slow
 @run_settings
 @given(spaces, configs(budget=False, generations=4))
 def test_generation_sizes(space, config):
@@ -155,6 +157,7 @@ def test_elitism_keeps_the_best(space, config, _):
 
 
 # optimize(): "The genetic optimizer and random search return it however many workers are used".
+@pytest.mark.slow
 @settings(max_examples=3, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(configs(max_evaluations=40))
 def test_workers_do_not_change_the_result(config):
