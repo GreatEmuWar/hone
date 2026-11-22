@@ -182,6 +182,7 @@ def test_initial_points_must_be_feasible():
         RandomSearch(space, initial_points={"width": 10, "height": 10})
 
 
+@pytest.mark.slow
 def test_constraints_that_leave_nothing_fail_before_any_evaluation():
     space = SearchSpace([WIDTH, HEIGHT], [WIDTH + HEIGHT <= 3, WIDTH >= 2 * HEIGHT])
     with pytest.raises(InfeasibleSearchSpace, match="contradict"):
@@ -191,6 +192,7 @@ def test_constraints_that_leave_nothing_fail_before_any_evaluation():
 CONFIGS = {RandomSearch: OptimizerConfig, GeneticOptimizer: GeneticOptimizerConfig, CMAES: CMAESConfig, BayesianOptimizer: BayesianConfig}
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("optimizer_class", list(CONFIGS))
 def test_every_optimizer_only_asks_for_feasible_points(optimizer_class):
     # A thin wedge, about 5% of the box, whose best point is on its edge.
@@ -209,6 +211,7 @@ def test_every_optimizer_only_asks_for_feasible_points(optimizer_class):
     assert best["width"] * best["height"] <= 20 + 1e-9
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("optimizer_class", list(CONFIGS))
 def test_every_optimizer_checkpoints_with_a_function_constraint(optimizer_class, tmp_path):
     space = SearchSpace([WIDTH, HEIGHT], [Constraint.function(lambda width, height: width * height - 40, name="area")])
@@ -255,6 +258,7 @@ def test_a_checkpoint_resumes_a_run_with_a_function_constraint(tmp_path):
     assert resumed.result() == whole
 
 
+@pytest.mark.slow
 def test_the_pressure_vessel_example_finds_the_published_design():
     example = Path(__file__).parent.parent / "examples" / "pressure_vessel.py"
     output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout
@@ -262,6 +266,7 @@ def test_the_pressure_vessel_example_finds_the_published_design():
     assert float(best.split()[2].rstrip(",")) < 6059.714 * 1.01
 
 
+@pytest.mark.slow
 def test_the_maintenance_example_beats_a_schedule_chosen_by_hand():
     sys.path.insert(0, str(Path(__file__).parent.parent / "examples"))
     try:

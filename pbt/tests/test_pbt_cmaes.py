@@ -48,6 +48,7 @@ def test_default_population_size(space, seed):
 
 # "With restarts on, a run that converges or stalls starts again from a random point with twice the population":
 # every generation's size is the starting population doubled some number of times, and never shrinks.
+@pytest.mark.slow
 @run_settings
 @given(spaces, seeds, st.integers(min_value=2, max_value=8))
 def test_restart_population_doubles(space, seed, population):
@@ -124,6 +125,7 @@ def test_integer_search_reaches_optimum(width, data, seed):
 
 # CMAESConfig: "None: ... or twice the workers if more"; README: "it uses at least twice as many candidates per
 # generation as there are workers".
+@pytest.mark.slow
 @settings(max_examples=2, deadline=None)
 @given(st.integers(min_value=3, max_value=4))
 def test_population_grows_with_workers(workers):

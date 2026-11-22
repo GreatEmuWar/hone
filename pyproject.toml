@@ -58,7 +58,10 @@ xfail_strict = true
 # are skipped on a parallel worker and run on their own: pytest -n 0 -m timing, as make test
 # does. Coverage is measured in CI only, since tracing slows every run.
 addopts = "-n auto"
-markers = ["timing: measures wall-clock time, so it runs on its own rather than beside every other test"]
+markers = [
+    "timing: measures wall-clock time, so it runs on its own rather than beside every other test",
+    "slow: takes 10 seconds or more, mostly quality tests that solve a problem over several seeds; run in full before a merge, and left out by make test-fast",
+]
 
 [tool.ruff]
 target-version = "py312"

@@ -307,6 +307,7 @@ def test_regressions_compare_like_budgets():
 # --- command line ---------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_cli_checks_against_a_baseline(tmp_path, capsys):
     baseline = tmp_path / "baseline.json"
     args = ["--quick", "--seeds", "1", "--budgets", "4", "2"]
@@ -319,6 +320,7 @@ def test_cli_checks_against_a_baseline(tmp_path, capsys):
     assert "No regressions" in capsys.readouterr().out
 
 
+@pytest.mark.slow
 def test_cli_fails_on_a_regression(tmp_path, capsys):
     baseline = tmp_path / "baseline.json"
     runs = run_benchmark(quick_problems(), seeds=range(1), budgets_per_dimension=[4])
@@ -582,6 +584,7 @@ THREE = {name: DEFAULT_MULTI_OPTIMIZERS[name] for name in ("nsga2", "random", "b
 WEIGHTED = {"weighted-sums": DEFAULT_MULTI_OPTIMIZERS["weighted-sums"]}
 
 
+@pytest.mark.slow
 def test_noise_free_multi_runs_are_unchanged_and_their_true_gap_is_their_gap():
     runs = run_multi_benchmark([zdt("zdt1", 3), welded_beam()], THREE, seeds=[0, 1], budgets_per_dimension=[5])
     assert len(runs) == len(MULTI_BEFORE)

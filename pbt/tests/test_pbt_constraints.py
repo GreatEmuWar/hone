@@ -3,6 +3,7 @@ import math
 import operator
 import os
 
+import pytest
 from hypothesis import HealthCheck, given, settings, strategies as st
 
 from hone import (
@@ -117,6 +118,7 @@ OPTIMIZERS = {
 
 
 # "Every optimizer then only ever asks for points that satisfy every constraint."
+@pytest.mark.slow
 @run_settings
 @given(linear_constraints(), seeds, st.sampled_from(list(OPTIMIZERS)))
 def test_every_optimizer_only_asks_for_feasible_points(constraints, seed, optimizer_class):

@@ -139,6 +139,7 @@ def test_every_optimizer_runs_the_final_round_within_its_budget(make):
     assert _key(result.best_params) in optimizer._finalists
 
 
+@pytest.mark.slow
 def test_noise_handling_finds_better_points_on_a_noisy_function():
     """On integers the genetic optimizer revisits points often, and averaging stops a lucky one winning."""
     space = [RangeParameter("a", -10, 10, integer=True), RangeParameter("b", -10, 10, integer=True)]

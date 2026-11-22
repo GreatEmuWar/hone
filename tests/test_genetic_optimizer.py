@@ -125,6 +125,7 @@ def test_more_niches_than_children_breed_the_fittest():
     assert [c.params["material"] for c in niched] == ["steel", "aluminium"]
 
 
+@pytest.mark.slow
 def test_niches_solve_the_categorical_problem_the_default_misses():
     """On material-selection-10d the default often settles on the wrong material; niches don't."""
     from hone import GeneticOptimizer, GeneticOptimizerConfig
@@ -264,6 +265,7 @@ def test_blend_crossover_stays_within_the_bounds():
         assert 0 <= child["x"] <= 1 and 1e-5 <= child["lr"] <= 1
 
 
+@pytest.mark.slow
 def test_blend_crossover_reaches_more_precise_answers():
     blend = [make_optimizer(max_evaluations=1000, seed=seed).optimize(sphere).best_fitness for seed in range(5)]
     uniform = [make_optimizer(max_evaluations=1000, seed=seed, blend_crossover=False).optimize(sphere).best_fitness for seed in range(5)]

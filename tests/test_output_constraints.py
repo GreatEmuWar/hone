@@ -497,6 +497,7 @@ def test_a_mixed_limit_of_outputs_and_parameters():
     assert result.feasible and result.best_fitness == pytest.approx(16, abs=0.05)
 
 
+@pytest.mark.slow
 def test_workers_return_the_dict_from_other_processes():
     result = RandomSearch(SPACE, OptimizerConfig(population_size=4, max_evaluations=8, seed=0)).optimize(bowl, workers=2)
     assert result.evaluations == 8 and result.best_outputs is not None
@@ -572,6 +573,7 @@ FRONT_SPACE = SearchSpace([X, Y], [TOTAL >= 2, Output("cost") <= 5])
 OBJECTIVES = {"a": "minimize", "b": "minimize"}
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "build",
     [
@@ -646,6 +648,7 @@ def test_sensitivity_still_refuses_constraints_on_the_parameters():
 # --- the example and the benchmark's problems ---------------------------------------------
 
 
+@pytest.mark.slow
 def test_the_welded_beam_example_comes_within_two_percent_of_the_published_design():
     import subprocess
     import sys

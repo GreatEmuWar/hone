@@ -278,11 +278,13 @@ def test_other_exceptions_stop_the_analysis():
         sensitivity(buggy, LINEAR_SPACE)
 
 
+@pytest.mark.slow
 def test_workers_give_the_same_report():
     serial = sensitivity(objectives.linear_sensitivity, LINEAR_SPACE, max_evaluations=40, seed=0)
     assert sensitivity(objectives.linear_sensitivity, LINEAR_SPACE, max_evaluations=40, seed=0, workers=3) == serial
 
 
+@pytest.mark.slow
 def test_evaluations_past_the_time_limit_count_as_failed():
     timed = sensitivity(objectives.linear_hangs_right_of_zero, LINEAR_SPACE, max_evaluations=20, seed=0, workers=4, timeout=0.5)
     failing = sensitivity(objectives.linear_fails_right_of_zero, LINEAR_SPACE, max_evaluations=20, seed=0)
@@ -419,6 +421,7 @@ def test_a_reduced_space_can_be_optimized():
     assert result.best_fitness == pytest.approx(-20, abs=0.5)
 
 
+@pytest.mark.slow
 def test_the_heat_sink_example_fixes_four_settings_and_beats_searching_all_eight():
     from pathlib import Path
     import subprocess

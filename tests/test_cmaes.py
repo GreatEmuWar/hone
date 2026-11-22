@@ -54,6 +54,7 @@ def test_default_population_size_grows_with_dimensions():
     assert make(population_size=20).population_size == 20
 
 
+@pytest.mark.slow
 def test_many_workers_get_a_larger_population():
     optimizer = make(max_evaluations=60)
     result = optimizer.optimize(objectives.sphere, workers=8)
@@ -61,10 +62,12 @@ def test_many_workers_get_a_larger_population():
     assert optimizer.optimize(objectives.sphere).generations[0].evaluations == 6, "the next run uses the default again"
 
 
+@pytest.mark.slow
 def test_few_workers_keep_the_default_population():
     assert make(max_evaluations=60).optimize(objectives.sphere, workers=2).generations[0].evaluations == 6
 
 
+@pytest.mark.slow
 def test_a_population_size_that_is_set_ignores_the_workers():
     assert make(max_evaluations=60, population_size=7).optimize(objectives.sphere, workers=8).generations[0].evaluations == 7
 
@@ -143,6 +146,7 @@ def test_reset_restores_the_starting_population():
     assert optimizer.optimize(sphere) == first
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("name", ["sphere-10d", "ellipsoid-10d", "integer-sphere-10d"])
 def test_solves_problems_the_genetic_optimizer_cannot(name):
     """The benchmark's 10-dimensional unimodal problems, solved to 1e-8 on every seed tried."""
@@ -150,6 +154,7 @@ def test_solves_problems_the_genetic_optimizer_cannot(name):
         assert solve(name, seed=seed).best_fitness < 1e-8
 
 
+@pytest.mark.slow
 def test_solves_rosenbrock_on_most_seeds():
     """10-dimensional Rosenbrock, solved to 1e-8 on at least 15 of 20 seeds.
 

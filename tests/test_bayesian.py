@@ -76,6 +76,7 @@ def _at_offset(values, offset):
     return out
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("n", [65, 100, 128])
 def test_the_model_gives_the_same_bits_wherever_its_inputs_sit_in_memory(n):
     """Some BLAS libraries, Apple's Accelerate among them, round differently by where an operand starts;
@@ -172,6 +173,7 @@ def test_finds_the_minimum_of_a_smooth_function_in_few_evaluations():
     assert result.best_fitness < 0.05
 
 
+@pytest.mark.slow
 def test_beats_random_search_on_a_small_budget():
     errors = {"bayesian": [], "random": []}
     for seed in range(3):
@@ -225,6 +227,7 @@ def test_first_generation_is_spread_and_later_ones_are_single_candidates():
     assert len(optimizer.ask()) == 1
 
 
+@pytest.mark.slow
 def test_batch_size_follows_the_config_or_the_workers():
     assert make(population_size=3).batch_size == 3
     optimizer = make(max_evaluations=12, initial_samples=4)

@@ -208,6 +208,7 @@ def test_random_search_handles_failures():
 # --- parallel workers -----------------------------------------------------
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("workers", [2, 4])
 def test_workers_give_the_same_result(workers):
     serial = make_optimizer(generations=3, population_size=12).optimize(objectives.sphere)
@@ -215,12 +216,14 @@ def test_workers_give_the_same_result(workers):
     assert parallel == serial
 
 
+@pytest.mark.slow
 def test_workers_record_failures():
     serial = make_optimizer(generations=3, population_size=12).optimize(objectives.fails_right_of_zero)
     parallel = make_optimizer(generations=3, population_size=12).optimize(objectives.fails_right_of_zero, workers=2)
     assert parallel == serial and parallel.failures > 0
 
 
+@pytest.mark.slow
 def test_workers_pass_other_exceptions_on():
     with pytest.raises(ZeroDivisionError):
         make_optimizer(generations=1, population_size=4).optimize(objectives.raises_a_bug, workers=2)

@@ -174,6 +174,7 @@ def test_maximize_mirrors_minimize(problem):
 
 # README: "Set seed to make a run repeatable"; optimize(): "Run the optimizer from the start ... With a seed, every
 # call with the same number of workers returns the same result."
+@pytest.mark.slow
 @run_settings
 @given(problems())
 def test_same_seed_same_result(problem):
@@ -562,6 +563,7 @@ def test_noisy_checkpoint_resume_gives_the_same_result(tmp_path_factory, problem
 # The same counts and best with min_finished below 1 inside optimize(), where late results come back from worker
 # processes: README "At the end, optimize() waits for the last of them, so the whole budget is used ... every
 # optimizer counts it toward the best result."
+@pytest.mark.slow
 @settings(max_examples=3, deadline=None)
 @given(st.sampled_from(["genetic", "random", "cmaes"]), seeds_, st.floats(min_value=0.4, max_value=0.9))
 def test_min_finished_with_workers(kind, seed, min_finished):

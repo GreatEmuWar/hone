@@ -33,6 +33,7 @@ def test_small_budgets_only():
     assert max(BUDGETS) <= 50
 
 
+@pytest.mark.slow
 def test_cli_runs_the_ml_suite(tmp_path, capsys):
     results = tmp_path / "ml.md"
     assert main(["--ml", "--seeds", "1", "--budgets", "1", "--markdown", str(results)]) == 0
@@ -40,12 +41,14 @@ def test_cli_runs_the_ml_suite(tmp_path, capsys):
     assert "5 problems, 1 seeds" in text and "| svm-breast-cancer |" in text
 
 
+@pytest.mark.slow
 def test_the_iris_example_runs():
     example = Path(__file__).parent.parent / "examples" / "tune_iris.py"
     output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout
     assert output.startswith("accuracy 0.9")
 
 
+@pytest.mark.slow
 def test_the_model_choice_example_runs():
     example = Path(__file__).parent.parent / "examples" / "choose_a_model.py"
     output = subprocess.run([sys.executable, str(example)], capture_output=True, text=True, check=True).stdout

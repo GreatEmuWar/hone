@@ -84,6 +84,7 @@ def test_the_profile_lists_the_costliest_functions_first():
     assert own == sorted(own, reverse=True)
 
 
+@pytest.mark.slow
 def test_the_command_line_writes_the_table_and_checks_the_ceiling(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cost, "measure_cost", functools.partial(cost.measure_cost, (10, 500), (0, 1), (1,), dimensions=2, candidates=2, seeds=1))
     monkeypatch.setattr(cost, "profile_run", functools.partial(cost.profile_run, evaluations=15, top=3))

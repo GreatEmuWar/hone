@@ -33,6 +33,7 @@ def test_the_result_records_how_it_was_produced():
     assert run.started_at is not None and run.started_at.tzinfo is not None and run.elapsed >= 0
 
 
+@pytest.mark.slow
 def test_workers_and_timeout_are_recorded():
     result = make_optimizer(generations=2, population_size=8).optimize(objectives.sphere, workers=2, timeout=30)
     assert result.run.workers == 2 and result.run.timeout == 30
