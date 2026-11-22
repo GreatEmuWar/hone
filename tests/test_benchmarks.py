@@ -172,14 +172,18 @@ def test_trace_is_non_increasing_and_ends_at_the_error(runs):
         assert r.trace[-1][0] == r.evaluations
 
 
+def _untimed(runs):
+    return [run.without_timing() for run in runs]
+
+
 def test_benchmark_is_reproducible():
     args = dict(problems=quick_problems()[:1], optimizers=FAST, seeds=range(2), budgets_per_dimension=[20])
-    assert run_benchmark(**args) == run_benchmark(**args)
+    assert _untimed(run_benchmark(**args)) == _untimed(run_benchmark(**args))
 
 
 def test_jobs_give_the_same_runs():
     args = dict(problems=quick_problems()[:2], optimizers=FAST, seeds=range(2), budgets_per_dimension=[10, 20])
-    assert run_benchmark(**args, jobs=3) == run_benchmark(**args)
+    assert _untimed(run_benchmark(**args, jobs=3)) == _untimed(run_benchmark(**args))
 
 
 def test_bayesian_optimization_runs_only_at_small_budgets():

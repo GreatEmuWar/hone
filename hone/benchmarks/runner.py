@@ -3,7 +3,9 @@ import functools
 import json
 import math
 import multiprocessing
+import platform
 import statistics
+import time
 import zlib
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -108,6 +110,18 @@ class Run(BaseModel):
     output_constrained: bool = False  # whether the problem has constraints on outputs, so a feasible design has to be found
     first_feasible: int | None = None  # evaluations up to the end of the generation that first found a feasible design; None if none did
     reported_feasible: bool | None = None  # with constraints on outputs, whether the result said its design satisfies them, which noise can make untrue
+    # Wall time of the whole optimizer loop (ask, tell and the objective), which includes the objective; on the
+    # benchmark problems that is close to zero. None in runs saved before it was recorded.
+    seconds: float | None = None
+    # Cumulative seconds from the same start when the run's evaluations first reached each count asked for with
+    # run_benchmark's time_at. With batch size 1 each generation is one evaluation, so that is exact; with batches it
+    # is the first generation at or past the count. A count the run never reaches is absent. None when none were asked for.
+    seconds_at: dict[int, float] | None = None
+    machine: str | None = None  # the processor model the run was made on
+
+    def without_timing(self) -> "Run":
+        """The run with its timing cleared, so two runs of the same seed compare equal: timing differs between runs, the result doesn't."""
+        return self.model_copy(update={"seconds": None, "seconds_at": None, "machine": None})
 
 
 class Summary(BaseModel):
@@ -158,6 +172,18 @@ def _quantile(ordered: list[float], q: float) -> float:
     return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
 
 
+@functools.cache
+def _machine() -> str:
+    """The processor model: the first "model name" in /proc/cpuinfo on Linux, else what platform reports. Computed once per process."""
+    try:
+        for line in Path("/proc/cpuinfo").read_text().splitlines():
+            if line.startswith("model name") and ":" in line:
+                return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return platform.processor() or platform.machine()
+
+
 def run_benchmark(
     problems: Iterable[Problem],
     optimizers: dict[str, OptimizerFactory] | None = None,
@@ -165,6 +191,7 @@ def run_benchmark(
     budgets_per_dimension: Iterable[int] = BUDGETS,
     jobs: int = 1,
     shard: tuple[int, int] | None = None,
+    time_at: tuple[int, ...] = (),
 ) -> list[Run]:
     """Run every optimizer on every problem with every seed and every budget.
 
@@ -177,6 +204,8 @@ def run_benchmark(
     one benchmark and their runs be put together afterwards. Runs are dealt round-robin by problem,
     budget and seed, so every optimizer's run of one seed is made on the same machine, where its
     maths libraries round the same way, and each problem's seeds spread over every shard.
+    Every run records its wall time and machine; with time_at, also the seconds at which it first reached
+    each of those evaluation counts. Timing never changes a run's errors, traces or evaluations.
     """
     if shard is not None and not 0 <= shard[0] < shard[1]:
         raise ValueError(f"shard {shard[0]} of {shard[1]} doesn't exist")
@@ -188,8 +217,9 @@ def run_benchmark(
         mine = set(groups[shard[0] :: shard[1]])
         tasks = [task for task in tasks if (task[0], task[2], task[3]) in mine]
 
-    global _shared
+    global _shared, _time_at
     _shared = (problems, optimizers)
+    _time_at = tuple(time_at)
     if jobs == 1 or "fork" not in multiprocessing.get_all_start_methods():
         return [_task(task) for task in tasks]
     # Forked processes inherit the problems and factories, which needn't be picklable.
@@ -218,6 +248,7 @@ def benchmark_tasks(
 
 
 _shared: tuple[list[Problem], dict[str, OptimizerFactory]] = ([], {})  # what run_benchmark's tasks refer to
+_time_at: tuple[int, ...] = ()  # likewise, the evaluation counts to time; forked workers inherit it
 
 
 def _task(task: tuple[int, str, int, int]) -> Run:
@@ -225,12 +256,27 @@ def _task(task: tuple[int, str, int, int]) -> Run:
     problems, optimizers = _shared
     problem = problems[index]
     optimizer = optimizers[name](problem, per_dimension * problem.dimensions, seed)
-    return _run(problem, name, per_dimension, seed, optimizer)
+    return _run(problem, name, per_dimension, seed, optimizer, _time_at)
 
 
-def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: Optimizer) -> Run:
+def _run(
+    problem: Problem, name: str, per_dimension: int, seed: int, optimizer: Optimizer, time_at: tuple[int, ...] = ()
+) -> Run:
     noisy = _noisy(problem)
-    result = optimizer.optimize(_with_noise(problem, seed) if noisy else problem.function)
+    function = _with_noise(problem, seed) if noisy else problem.function
+    seconds_at: dict[int, float] | None = None
+    callback = None
+    start = time.perf_counter()
+    if time_at:
+        seconds_at, wanted = {}, sorted(time_at)
+
+        def callback(progress: Any) -> None:
+            now = time.perf_counter() - start
+            while wanted and progress.evaluations >= wanted[0]:
+                seconds_at[wanted.pop(0)] = now
+
+    result = optimizer.optimize(function, callback=callback)
+    seconds = time.perf_counter() - start
     constrained = bool(problem.search_space.output_constraints)
 
     def truth(fitness: float, params: dict, feasible: bool) -> tuple[float, bool]:
@@ -261,6 +307,9 @@ def _run(problem: Problem, name: str, per_dimension: int, seed: int, optimizer: 
         output_constrained=constrained,
         first_feasible=first_feasible if constrained else None,
         reported_feasible=result.feasible if constrained else None,
+        seconds=seconds,
+        seconds_at=seconds_at,
+        machine=_machine(),
     )
 
 

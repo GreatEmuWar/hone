@@ -4,7 +4,7 @@ import json
 import pytest
 
 from hone.benchmarks import sharded
-from hone.benchmarks.runner import random_search, run_benchmark
+from hone.benchmarks.runner import Run, random_search, run_benchmark
 from hone.benchmarks.problems import quick_problems
 
 SPEC = '''
@@ -41,7 +41,7 @@ def test_the_shards_make_every_run_once_and_the_same_runs():
     whole = run_benchmark(problems, optimizers, range(3), (10, 20))
     shards = [run_benchmark(problems, optimizers, range(3), (10, 20), shard=(i, 5)) for i in range(5)]
     assert sorted(map(_key, whole)) == sorted(_key(run) for shard in shards for run in shard)
-    assert {_key(r): r for r in whole} == {_key(r): r for shard in shards for r in shard}
+    assert {_key(r): r.without_timing() for r in whole} == {_key(r): r.without_timing() for shard in shards for r in shard}
     assert max(map(len, shards)) - min(map(len, shards)) <= 1
 
 
@@ -94,3 +94,36 @@ def test_the_command_line_runs_shards_and_merges_them(spec_file, tmp_path, capsy
 def test_the_smoke_spec_loads():
     spec = sharded.load_spec("benchmarks/specs/smoke.py")
     assert len(sharded.expected_runs(spec)) == 6 * 2 * 4
+
+
+def test_an_old_run_without_timing_loads_with_none(tmp_path):
+    old = {"problem": "p", "optimizer": "o", "budget_per_dimension": 1, "seed": 0, "error": 0.5, "evaluations": 3, "trace": [[3, 0.5]]}
+    path = tmp_path / "old.json"
+    path.write_text(json.dumps([old]))
+    (run,) = sharded._load_runs(path)
+    assert (run.seconds, run.seconds_at, run.machine) == (None, None, None)
+
+
+def test_timing_round_trips_through_saved_runs(tmp_path):
+    run = Run(problem="p", optimizer="o", budget_per_dimension=1, seed=0, error=0.5, evaluations=3, trace=[(3, 0.5)],
+              seconds=1.5, seconds_at={300: 0.7}, machine="CPU")
+    sharded._save_runs([run], tmp_path / "r.json")
+    assert sharded._load_runs(tmp_path / "r.json") == [run]
+
+
+def test_a_run_records_its_time_and_machine_without_changing_its_result():
+    args = dict(problems=quick_problems()[:1], optimizers={"random": random_search}, seeds=range(2), budgets_per_dimension=[10])
+    plain = run_benchmark(**args)
+    timed = run_benchmark(**args, time_at=(20,))
+    assert [r.without_timing() for r in plain] == [r.without_timing() for r in timed]
+    for p, t in zip(plain, timed):
+        assert p.seconds_at is None
+        assert t.seconds is not None and t.seconds > 0
+        assert t.seconds_at is not None and set(t.seconds_at) == {20} and 0 < t.seconds_at[20] <= t.seconds
+        assert isinstance(t.machine, str) and t.machine
+
+
+def test_timing_reaches_forked_workers():
+    args = dict(problems=quick_problems()[:2], optimizers={"random": random_search}, seeds=range(2), budgets_per_dimension=[10], time_at=(20,))
+    runs = run_benchmark(**args, jobs=2)
+    assert all(r.seconds and r.seconds_at and 20 in r.seconds_at for r in runs)

@@ -346,8 +346,11 @@ result = optimizer.optimize(run_simulation)
 | Budget | Parameters | Chosen |
 | --- | --- | --- |
 | 200 evaluations or fewer | Any, unless a choice parameter has `choose_n` | `BayesianOptimizer` |
-| More than 200 | Any choice or integer parameter | `GeneticOptimizer` |
-| More than 200 | Continuous numbers only | `CMAES` |
+| 500 evaluations or fewer | Constraints on outputs, noise off, unless a choice parameter has `choose_n` | `BayesianOptimizer` |
+| Past the cutoff (200, or 500 as above) | Any choice or integer parameter | `GeneticOptimizer` |
+| Past the cutoff | Continuous numbers only | `CMAES` |
+
+With constraints on outputs and noise off, Bayesian optimization stays the choice to 500 evaluations, because on the 14 problems of [benchmarks/choose-outputs-results.md](benchmarks/choose-outputs-results.md) it beat the old pick on every one. At 500 it spends about 1 to 5 minutes of its own time per run on 2 to 5 parameters with up to 4 limits, and about 12 to 19 with 10 parameters and 8 limits, on GitHub's runners (processors differ by about ×2.4; [benchmarks/choose-outputs-timing-results.md](benchmarks/choose-outputs-timing-results.md)), and the time per candidate grows as the run converges. With noise the cutoff stays at 200, because Bayesian optimization's final-round feasibility isn't reliable yet. To keep the old choice, construct the optimizer the old rule would pick: `GeneticOptimizer` with choice or integer parameters, `CMAES` otherwise, such as `CMAES(search_space, CMAESConfig(max_evaluations=400))`.
 
 Other settings, such as `seed`, `maximize`, `noise` or `threshold`, are passed on to the chosen optimizer's config. On the benchmark's 180 problem and budget pairs, its pick had a median error 1.37 times the best optimizer's, on geometric mean, and was the best on 146; always using CMA-ES gives 7.9 times the best, and it can't run the 15 problems with choice parameters. Its biggest misses are plain Rastrigin with 1,000 evaluations per dimension and plain ellipsoid with 50 to 100, where the genetic optimizer wins because the variables don't interact, which a rule can't know in advance; on the rotated versions CMA-ES wins.
 

@@ -124,6 +124,132 @@ With no scale, raw-unit margins reach the bilog transform, and standardizing aft
 
 On the pressure vessel with its limits on outputs, Bayesian optimization at 200 evaluations (31.6) beats CMA-ES at 4,000 (277); the welded beam goes the other way (0.0112 against 3e-7). Measure seconds per candidate up to 500 evaluations (k + 1 Gaussian processes at O(n³)) and state the rule in those terms. Count step 0's problems too. Change the rule only for spaces with output constraints.
 
+### The current rule on suites it wasn't chosen from
+
+The rule was set from the standard suite. Checked on 21 Nov 2026 against the saved summaries of the ML, constrained and outputs suites, 10 seeds each, by asking in each cell whether the rule's pick has the lowest median error of the optimizers run. Errors below 1e-8 count as equal, as in the overview, and batched Bayesian runs count as Bayesian.
+
+- **ML tuning: 13 of 15 cells.** Both misses are at 10 evaluations per dimension (20 and 80 evaluations), by ×1.5, which is one misclassified sample in the validation set. The rule holds.
+- **Constrained, limits on inputs and the engineering designs: 57 of 65.** Past 200 evaluations the misses are:
+  - the boundary ellipsoid at 50 per dimension in 5 and 10 dimensions, where CMA-ES is ×2.1 and ×3.3 behind the genetic optimizer;
+  - the pressure vessel, which has integer variables, so the rule picks the genetic optimizer. CMA-ES beats it by ×1.07 to ×1.09, and with its limits on outputs by ×1.7 to ×2.2.
+- **Outputs, step 0's problems and the engineering designs with limits on outputs: 64 of 70.** The misses are:
+  - pocket-2d at 20 and 40 evaluations, where no optimizer's median run is feasible;
+  - pocket-2d at 2,000, where CMA-ES is ×479 behind the genetic optimizer;
+  - the pressure vessel at 400 and 4,000, where CMA-ES beats the genetic pick by ×2.2 and ×2.5;
+  - the spring at 300, by ×1.04.
+
+Up to 200 evaluations the rule's pick, Bayesian optimization, is best in every constrained and outputs cell but the two pocket cells where nothing is feasible. The question item 4 asks is past 200, where Bayesian optimization isn't run.
+
+**Observations, recorded and not acted on:**
+- **The pressure vessel.** CMA-ES beats the genetic optimizer the rule picks for its integer variables: by ×1.07 at 400 evaluations and ×1.09 at 4,000 with limits on inputs, and by ×2.2 (1,300 against 2,870) and ×1.7 to ×2.5 (193 to 277 against 481) at 400 and 4,000 with limits on outputs. No other problem has both integers and limits on outputs, so a rule from it would rest on one problem.
+- **pocket-2d at 2,000 evaluations.** CMA-ES's median error is 5.26, ×479 the genetic optimizer's 0.011.
+- **The boundary ellipsoid at 50 per dimension.** CMA-ES is behind the genetic optimizer: 33.1 against 15.4 in 5 dimensions (×2.1), and 44.3 against 13.6 in 10 (×3.3).
+
+The last two are CMA-ES behind the genetic optimizer where the feasible region is thin or its optimum lies on a boundary. They go to the roadmap as an experiment, not into this item.
+
+*Recorded, not judged: the three noisy designs.* They were run beside the 14 judged problems, measured on 21 Nov 2026. Truly feasible runs of 30, Bayesian optimization against the current pick:
+
+| Noisy design | 300 evaluations | 500 evaluations |
+| --- | --- | --- |
+| Pressure vessel | 13 against 30 | 7 against 30 |
+| Spring | 16 against 30 | 7 against 30 |
+| Welded beam | 29 against 30 | 27 against 29 |
+
+Feasibility falls as the budget grows. That fits item 7's finding: Bayesian optimization's designs sit closest to the limits, where the margin rests on a final round too small to estimate the noise well. So under noise, extending Bayesian optimization past 200 would make most runs on two of the three designs come back truly infeasible.
+
+### Result: 500, without noise
+
+Measured, and the verdict is 500. Both budgets pass, branch 2. At 300 and 500 evaluations Bayesian optimization has the lower median error on all 14 problems, the 6 that aren't shapes among them. It is truly feasible in 30 of 30 runs on every problem. No loss is over ×2 and no feasibility check trips. The full table is in `benchmarks/choose-outputs-results.md`.
+
+The scope is narrower than designed, by the user's decision of 21 Nov 2026 after measuring, on the noisy designs above. The extension applies only with output constraints and noise off. With noise, the cutoff stays at 200, which item 7 measured, because with noise Bayesian optimization's final-round feasibility isn't reliable yet. Bayesian optimization with noisy output constraints, where the open question is the margin's estimate on the final round, goes to the roadmap as a new item.
+
+*The cost, timed on GitHub's runners* (`benchmarks/choose-outputs-timing-results.md`): one run at a time per runner, 5 seeds per problem, wall time including the objective, which is close to zero. Bayesian optimization's time per run at 500 evaluations, lowest to highest over the seeds:
+
+| Space | At 300 | At 500 |
+| --- | --- | --- |
+| 2 parameters, 1–2 limits | 0.1–1.0 min | 0.5–3.1 min |
+| 5 parameters, 1–2 limits | 0.3–1.4 min | 1.0–4.0 min |
+| 3–4 parameters, 3–4 limits | 0.6–2.0 min | 1.7–5.4 min |
+| 8 parameters, 6 limits (g10) | 1.0–2.8 min | 4.3–9.8 min |
+| 10 parameters, 8 limits (g07) | 2.5–4.9 min | 11.6–19.2 min |
+
+Seven processors served the runs. They differ by about ×2.4 from fastest to slowest, and the highest times are mostly the slowest ones. The time per candidate also grows as a run converges.
+
+g07's 90th percentile at 500, 19.2 minutes, was over the 10 minutes set beforehand for asking the user. The user chose 500 on 21 Nov 2026, with the cost stated in the docs. 300 would cut the worst case to about 5 minutes, but it would keep the current pick from 300 to 500. At 300 evaluations that pick is feasible in only 12 of 30 runs on g10 and 16 of 30 on g07, where Bayesian optimization is feasible in all 30. On the 6 problems that aren't shapes, Bayesian optimization's median error is at most 0.04 of the pick's. A cutoff by dimensions and limits wasn't measured as a rule, so it wasn't considered.
+
+### The design
+
+With output constraints, Bayesian optimization stays the choice up to B evaluations, past the 200 it has without them. B is chosen from 300 and 500 by the measurement below, or stays at 200. Nothing past 500 is considered, since step 1b measured cost only that far. Without output constraints the rule is unchanged. So is a choice parameter with `choose_n`, which still rules Bayesian optimization out. `choose_pareto_optimizer` is unchanged too.
+
+**The cost, stated in seconds.** From `benchmarks/cost-results.md` (10 dimensions, batches of 1), a candidate at 500 evaluations costs:
+- 0.15 s with 1 limit;
+- 0.41 s with 4 limits;
+- 0.78 s with 8 limits.
+
+At 200 evaluations the figures are 0.04 s, 0.10 s and 0.18 s.
+
+Summed over a run, Bayesian optimization's own time comes to these totals. They are interpolated linearly between the measured budgets, which overstates them, since the cost grows faster than linearly:
+
+| Evaluations | 1 limit | 4 limits | 8 limits |
+| ---: | ---: | ---: | ---: |
+| 200 | 5 s | 11 s | 19 s |
+| 300 | 11 s | 27 s | 47 s |
+| 500 | 35 s | 88 s | 163 s |
+
+*Found on 21 Nov 2026: the harness understates a real run.* A full run of Bayesian optimization on ball-2d-1in10 at 500 evaluations spent 145 s proposing candidates. The harness's curve on the same machine (2 dimensions, 1 limit) sums to about 77 s. Profiling puts 90% of the run in refining the acquisition with L-BFGS-B. Both make about 5.5 starts per candidate, but a start takes about 121 steps in the real run against 54 in the harness. A converged run's points cluster near the optimum, so its acquisition surface is sharper than the harness's history of points spread over the space. Main is not slower than 0.14.0 on the same machine: 0.46 s against 0.50 s per candidate at 500 evaluations, 10 dimensions and 1 limit. The harness stays the reference for the ×1.2 ceiling, which is relative. The totals above are superseded for users: the totals the docs state come from timed real runs on GitHub's runners (below), not from the harness.
+
+The user-facing docs state the rule with the total per run, as "at most about", so a user whose objective is cheap can see when to choose otherwise. The figures are for 10 dimensions on the machine in `cost-results.md`.
+
+### The measurement
+
+- **Problems.** Every problem in `output_problems()`: step 0's 11 and the three engineering designs, 14 in all.
+- **Budgets.** 300 and 500 evaluations on every problem, fixed totals rather than per dimension, since the rule is stated in evaluations.
+- **Runs.** 30 seeds each, for Bayesian optimization, CMA-ES and the genetic optimizer. The three noisy designs are run too, for the record, and not judged.
+- **Where it runs.** A spec on the Measure workflow, which lifts the benchmark's cap of 200 on Bayesian optimization for this spec only. The default benchmark's cap stays at 200.
+- **Timing, for the docs, not a criterion.** The benchmark's runs are many to a runner, so they aren't timed. A second spec times Bayesian optimization alone:
+  - each of the 14 problems, 5 seeds, at 500 evaluations, with the cumulative seconds also recorded at evaluation 300 in the same run;
+  - one run at a time per runner, on shards spread over GitHub's ubuntu-latest runners.
+
+  Nothing in Bayesian optimization is set from the budget without noise, so the first 300 evaluations of a 500 run are a 300 run. It reports the median and 90th percentile per problem at 300 and 500, with each runner's processor, since the hardware varies. If the 90th percentile at 500 with 8 limits is over about 10 minutes, that goes to the user with the verdict.
+
+The rule's current pick in a cell is CMA-ES, or the genetic optimizer if the space has integer or choice variables.
+
+### Pass criteria, fixed before measuring
+
+B isn't held out. It is chosen and judged on the same 14 problems, unlike step 1's check. The number of problems is the statistic, as it was when the rule was first set. Only 300 and 500 are measured, so a cutoff between them rests on the result being monotone in the budget.
+
+Criteria 1 and 2 as below were reviewed by Hone Applied Mathematician and decided by the user on 21 Nov 2026, before measuring, with ×2 as the size of a loss that goes to the user.
+
+At each budget b, 300 and 500, the unit is the problem:
+
+1. **Error.** Bayesian optimization has a lower median error than the current pick on at least 11 of the 14 problems, and on at least 4 of the 6 that aren't step 0's shapes: g06, g07, g10, the pressure vessel, the spring and the welded beam. Errors below 1e-8 count as equal, and a tie counts against it.
+
+   The problems aren't independent: step 0's 8 shapes (balls, corners and pockets) are about 3 families, so there are about 9 to 12 independent units. The second count keeps the shapes from carrying the verdict together. If the problems were independent and the two optimizers equally good, 11 or more of 14 would happen by chance with probability 0.029, from binomial(14, ½). If Bayesian optimization truly wins each problem 8 times in 10, the criterion passes with probability 0.70; at 9 in 10, 0.96.
+2. **Feasibility.** On a problem where Bayesian optimization's share of truly feasible runs is more than 3 of 30 below the current pick's:
+   - it **fails** if the pick's share is at least 27 of 30;
+   - it **goes to the user** if the pick's share is under 27 of 30.
+
+   The two shares are unpaired. If they are truly equal, the criterion trips by chance with probability 0.6% at 97%, 6% at 90%, 13% at 80% and 18% at 50%. It catches a true deficit of 10 points 35% of the time and of 20 points 88% of the time. So it detects about 20 points, not 10.
+3. **Size of a loss.** On a problem where Bayesian optimization's median error is more than ×2 the pick's, the numbers go to the user, even when criterion 1 passes. Infeasible runs count as an infinite error.
+
+   For each problem, a two-sided Mann–Whitney test at 0.05 is reported, with infeasible runs as infinite, and does not bind. It is exact at 30 against 30. About 1 of the 14 problems comes out clear by chance.
+4. **Nothing else moves.** For budgets from 1 to 10,000, a test checks that each of these returns the same class with the same config as before:
+   - `choose_optimizer` on every search space without output constraints;
+   - `choose_optimizer` on a space with a choice parameter that has `choose_n`, with or without output constraints;
+   - `choose_pareto_optimizer` on every space.
+
+**Which B ships.** A budget *passes* if it meets criterion 1 and fails nothing under criterion 2. It *goes to the user* if it passes but has a loss under criterion 3 or a feasibility trip that goes to the user under criterion 2. In this order:
+
+| | Outcomes | Ships |
+| --- | --- | --- |
+| 1 | A budget that would decide B goes to the user | The user decides, with that budget's numbers |
+| 2 | b = 300 and b = 500 both pass | 500 |
+| 3 | Only b = 300 passes | 300 |
+| 4 | b = 500 passes and b = 300 doesn't | The user decides, with the numbers |
+| 5 | Neither passes | 200 stays and the rule is unchanged |
+
+Every problem's medians, feasible shares, Mann–Whitney p-values and the losing problems are reported beside the verdict.
+
 ## 5. CMA-ES flat-run restart
 
 Track the best violation while infeasible with the same flatness test. `_recent_bests` only grows on feasible generations, so its window can span a long infeasible gap: clear the history when the run moves between infeasible and feasible. Add a direct test that a flat violation triggers a restart.
