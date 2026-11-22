@@ -140,7 +140,12 @@ The rule was set from the standard suite. Checked on 21 Nov 2026 against the sav
 
 Up to 200 evaluations the rule's pick, Bayesian optimization, is best in every constrained and outputs cell but the two pocket cells where nothing is feasible. The question item 4 asks is past 200, where Bayesian optimization isn't run.
 
-The pressure vessel's misses, CMA-ES over the genetic optimizer with integer variables, rest on one problem, since no other problem has both integers and limits on outputs. So they are recorded, not acted on. The same goes for pocket-2d at 2,000.
+**Observations, recorded and not acted on:**
+- **The pressure vessel.** CMA-ES beats the genetic optimizer the rule picks for its integer variables: by ×1.07 at 400 evaluations and ×1.09 at 4,000 with limits on inputs, and by ×2.2 (1,300 against 2,870) and ×1.7 to ×2.5 (193 to 277 against 481) at 400 and 4,000 with limits on outputs. No other problem has both integers and limits on outputs, so a rule from it would rest on one problem.
+- **pocket-2d at 2,000 evaluations.** CMA-ES's median error is 5.26, ×479 the genetic optimizer's 0.011.
+- **The boundary ellipsoid at 50 per dimension.** CMA-ES is behind the genetic optimizer: 33.1 against 15.4 in 5 dimensions (×2.1), and 44.3 against 13.6 in 10 (×3.3).
+
+The last two are CMA-ES behind the genetic optimizer where the feasible region is thin or its optimum lies on a boundary. They go to the roadmap as an experiment, not into this item.
 
 ### The design
 
@@ -151,24 +156,39 @@ With output constraints, Bayesian optimization stays the choice up to B evaluati
 - 0.41 s with 4 limits;
 - 0.78 s with 8 limits.
 
-At 200 evaluations the figures are 0.04 s, 0.10 s and 0.18 s. Summed over a run, the choice up to 500 costs under 4 minutes at 8 limits. The docstring states the cutoff with these figures, so a user whose evaluation takes less than that can pick CMA-ES instead.
+At 200 evaluations the figures are 0.04 s, 0.10 s and 0.18 s.
+
+Summed over a run, Bayesian optimization's own time comes to these totals. They are interpolated linearly between the measured budgets, which overstates them, since the cost grows faster than linearly:
+
+| Evaluations | 1 limit | 4 limits | 8 limits |
+| ---: | ---: | ---: | ---: |
+| 200 | 5 s | 11 s | 19 s |
+| 300 | 11 s | 27 s | 47 s |
+| 500 | 35 s | 88 s | 163 s |
+
+The user-facing docs state the rule with the total per run, so a user whose objective is cheap can see when to choose otherwise. The figures are for 10 dimensions on the machine in `cost-results.md`.
 
 ### The measurement
 
 - **Problems.** Every problem in `output_problems()`: step 0's 11 and the three engineering designs, 14 in all.
 - **Budgets.** 300 and 500 evaluations on every problem, fixed totals rather than per dimension, since the rule is stated in evaluations.
 - **Runs.** 30 seeds each, for Bayesian optimization, CMA-ES and the genetic optimizer. The three noisy designs are run too, for the record, and not judged.
-- **Where it runs.** A spec on the Measure workflow, which lifts the benchmark's cap of 200 on Bayesian optimization for this spec only.
+- **Where it runs.** A spec on the Measure workflow, which lifts the benchmark's cap of 200 on Bayesian optimization for this spec only. The default benchmark's cap stays at 200.
 
 The rule's current pick in a cell is CMA-ES, or the genetic optimizer if the space has integer or choice variables.
 
 ### Pass criteria, fixed before measuring
 
-At each budget b, 300 and 500, the unit is the problem, as it was when the rule was first set:
+B isn't held out. It is chosen and judged on the same 14 problems, unlike step 1's check. The number of problems is the statistic, as it was when the rule was first set.
+
+At each budget b, 300 and 500, the unit is the problem:
 
 1. **Error.** Bayesian optimization has a lower median error than the current pick on at least 11 of the 14 problems. Errors below 1e-8 count as equal, and a tie counts against it. If the two were equally good, 11 or more of 14 would happen by chance with probability 0.029, from binomial(14, ½).
 2. **Feasibility.** On no problem is Bayesian optimization's share of truly feasible runs more than 3 of 30 below the current pick's. That is one run in ten, as in items 7 and 8.
-3. **Nothing else moves.** For every search space without output constraints, `choose_optimizer` returns the same class with the same config, for budgets from 1 to 10,000. A test checks this.
+3. **Nothing else moves.** For budgets from 1 to 10,000, a test checks that each of these returns the same class with the same config as before:
+   - `choose_optimizer` on every search space without output constraints;
+   - `choose_optimizer` on a space with a choice parameter that has `choose_n`, with or without output constraints;
+   - `choose_pareto_optimizer` on every space.
 
 **Which B ships:**
 - 500, if b = 300 and b = 500 both pass criteria 1 and 2;
