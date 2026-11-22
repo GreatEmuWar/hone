@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 # Up to this many evaluations, Bayesian optimization had the lowest median error on most
 # benchmark problems; past it, each of its candidates costs too long to choose.
 BAYESIAN_UP_TO = 200
+# With constraints on outputs and noise off, Bayesian optimization beat the old pick up to this many
+# evaluations; measured in item 4, see benchmarks/choose-outputs-results.md.
+BAYESIAN_UP_TO_WITH_OUTPUT_LIMITS = 500
 
 
 def choose_optimizer(
@@ -26,11 +29,19 @@ def choose_optimizer(
 ) -> Optimizer:
     """The optimizer the benchmark suggests for this search space and budget, set up to use it.
 
-    - Up to 200 evaluations: Bayesian optimization, unless a choice parameter has choose_n.
+    - Up to 200 evaluations, or 500 with constraints on outputs and noise off: Bayesian optimization,
+      unless a choice parameter has choose_n.
     - More, with choice parameters: the genetic optimizer, since CMA-ES searches numbers only.
     - More, with integer parameters: the genetic optimizer, which did better on the benchmark's
       integer and mixed problems.
     - More, with continuous numbers only: CMA-ES.
+
+    At 500 evaluations Bayesian optimization spends about 1 to 5 minutes of its own time per run on
+    spaces of 2 to 5 parameters with up to 4 limits, and about 12 to 19 with 10 parameters and 8
+    limits, on GitHub's runners; processors differ by about x2.4. With noise the cutoff stays at 200:
+    Bayesian optimization's final-round feasibility isn't reliable yet. To keep the old choice, build
+    the optimizer it would have picked: GeneticOptimizer with choice or integer parameters, CMAES
+    otherwise, as in CMAES(search_space, CMAESConfig(max_evaluations=400)).
 
     Other settings, such as seed, maximize, noise or threshold, are passed on to the chosen
     optimizer's config. The optimizer's class and config show what was chosen.
@@ -39,7 +50,10 @@ def choose_optimizer(
         search_space = SearchSpace(search_space)
     choices = [p for p in search_space.parameters if isinstance(p, ChoiceParameter)]
     settings = dict(config, max_evaluations=max_evaluations)
-    if max_evaluations <= BAYESIAN_UP_TO and not any(p.choose_n is not None for p in choices):
+    bayesian_up_to = BAYESIAN_UP_TO
+    if search_space.output_constraints and not config.get("noise"):
+        bayesian_up_to = BAYESIAN_UP_TO_WITH_OUTPUT_LIMITS
+    if max_evaluations <= bayesian_up_to and not any(p.choose_n is not None for p in choices):
         return BayesianOptimizer(search_space, BayesianConfig(**settings), initial_points=initial_points)
     integers = [p for p in search_space.parameters if isinstance(p, RangeParameter) and p.integer and p.maximum > p.minimum]
     if choices or integers:
