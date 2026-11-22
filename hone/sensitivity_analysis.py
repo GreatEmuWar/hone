@@ -247,7 +247,9 @@ def sensitivity(
         confidence: The confidence level of the intervals, from bootstrapping.
 
     With workers > 1 or a timeout, each evaluation runs in a separate process, so the
-    function must be defined at the top level of a module.
+    function must be defined at the top level of a module, not in a notebook or at a
+    prompt, nor be a lambda or nested function; otherwise a TypeError says so before any
+    worker starts. (Under the fork start method, Linux before Python 3.14, any function works.)
     """
     space = search_space if isinstance(search_space, SearchSpace) else SearchSpace(search_space)
     if space.parameter_constraints:

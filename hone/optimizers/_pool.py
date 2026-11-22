@@ -3,15 +3,50 @@
 concurrent.futures can't stop an evaluation once it has started, so a hung simulation would
 hold up the run forever. Here each worker is a process of its own: one that runs past the
 time limit, or dies, is replaced, and its evaluation counts as failed.
+
+Without fork, the function reaches the workers by pickle, by name: a worker imports it from its
+module. That means macOS, Windows, and Linux from Python 3.14, where forkserver is the default.
+So a lambda, a nested function, or one defined in a notebook or at a prompt can't be used there,
+and is refused with a TypeError before any worker starts.
 """
+import io
 import multiprocessing
+import pickle
 import signal
+import sys
 import time
+import types
 from multiprocessing.connection import Connection, wait
 from typing import Any, Callable
 
 STOP = None  # sent to a worker to make it exit
 READY = "ready"  # sent by a worker once it has started and can evaluate
+
+
+class _Checker(pickle.Pickler):
+    """A pickler that also refuses what pickles by name but that a fresh process can't import."""
+
+    def reducer_override(self, obj: Any) -> Any:
+        if isinstance(obj, (types.FunctionType, type)) and obj.__module__ == "__main__":
+            if not hasattr(sys.modules["__main__"], "__file__"):  # a notebook or a prompt
+                raise pickle.PicklingError(f"{getattr(obj, '__qualname__', obj)} is defined at a prompt or in a notebook")
+        return NotImplemented
+
+
+def _check_picklable(evaluate: Callable[[dict], float | None]) -> None:
+    """Raise a TypeError saying what to do if evaluate can't reach a worker that doesn't fork."""
+    try:
+        _Checker(io.BytesIO(), pickle.HIGHEST_PROTOCOL).dump(evaluate)
+    except Exception as error:
+        raise TypeError(
+            f"The objective can't be sent to a worker process: {type(error).__name__}: {error}. "
+            "Each evaluation runs in a separate process that imports the objective by name, "
+            "so a lambda, a nested function or a function defined in a notebook won't do. "
+            "Define it at the top level of a .py file and import it; do the same for any function constraint. "
+            "Alternatively, use the fork start method, which needs no import: it is available on Linux only "
+            "and unsafe on macOS. hone has no setting for it; it is the default on Linux before Python 3.14, "
+            "and multiprocessing.set_start_method('fork') before the run chooses it."
+        ) from error
 
 
 class _Worker:
@@ -73,6 +108,8 @@ class EvaluationPool:
         start_method: str | None = None,
     ) -> None:
         self._context = multiprocessing.get_context(start_method)
+        if self._context.get_start_method() != "fork":
+            _check_picklable(evaluate)  # before any worker starts
         self._evaluate = evaluate
         self._timeout = timeout
         self._workers = [self._new_worker() for _ in range(workers)]
