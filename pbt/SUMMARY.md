@@ -15,8 +15,8 @@ This was an independent bug hunt on hone 0.8.0. It followed the procedure in [ag
 `make test` runs them along with `tests/`, since `pbt/tests` is in `testpaths` and Hypothesis is a dev dependency. To run them alone:
 
 ```
-poetry run pytest pbt/tests                    # about 30 seconds; 25 examples per property
-PBT_EXAMPLES=300 poetry run pytest pbt/tests   # a deeper search
+uv run pytest pbt/tests                        # about 30 seconds; 25 examples per property
+PBT_EXAMPLES=300 uv run pytest pbt/tests       # a deeper search
 ```
 
 During the hunt, every property was also run at 150 to 300 examples. `pbt_strategies.py` generates any valid parameter or search space. `pbt_runs.py` builds any optimizer on a generated problem, with an objective that records every call.

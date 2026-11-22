@@ -3,14 +3,18 @@ FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87
 
 WORKDIR /src
 
-# Poetry and what it needs, each checked against its hash.
+# uv, checked against its hash. It installs into /opt/venv with the image's own Python, and that
+# environment comes first on the path, so pytest and python below are hone's.
 COPY ./.github/requirements/build.txt /tmp/build.txt
-RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/build.txt \
-    && poetry config virtualenvs.create false
+RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/build.txt
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_NO_CACHE=1 \
+    PATH=/opt/venv/bin:$PATH
 
 # Install dependencies first, so editing the code does not invalidate this layer.
-COPY ./pyproject.toml ./poetry.lock ./README.md ./LICENSE /src/
-RUN poetry install --no-root --no-interaction --no-ansi
+COPY ./pyproject.toml ./uv.lock ./README.md ./LICENSE /src/
+RUN uv sync --locked --no-install-project
 
 COPY ./hone /src/hone
 COPY ./tests /src/tests
@@ -22,7 +26,7 @@ COPY ./benchmarks/*-summaries.json /src/benchmarks/
 COPY ./benchmarks/multi-floor-runs.json /src/benchmarks/
 # The specs for measurements shared among machines, which the image can run and its tests load.
 COPY ./benchmarks/specs /src/benchmarks/specs
-RUN poetry install --only-root --no-interaction --no-ansi
+RUN uv sync --locked
 
 # Run the tests as an ordinary user, who owns /src for pytest's cache.
 RUN useradd --create-home hone && chown -R hone:hone /src

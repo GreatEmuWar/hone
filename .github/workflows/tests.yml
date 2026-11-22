@@ -13,6 +13,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # Makes uv use the interpreter setup-python installed.
+      UV_PYTHON: ${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -27,23 +30,25 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --require-hashes -r .github/requirements/build.txt
-        poetry install --no-interaction
+        uv sync --locked
     - name: Lint
-      run: poetry run ruff check hone tests pbt
+      run: uv run ruff check hone tests pbt
     - name: Type check
-      run: poetry run mypy
+      run: uv run mypy
     # Coverage slows every test and reads the same on every version, so it is measured on one.
     - name: Test
       if: matrix.python-version != '3.14'
-      run: poetry run pytest
+      run: uv run pytest
     - name: Test, with coverage
       if: matrix.python-version == '3.14'
-      run: poetry run pytest --cov=hone --cov-report=term-missing
+      run: uv run pytest --cov=hone --cov-report=term-missing
     - name: Run the tests that measure wall-clock time, on their own
-      run: poetry run pytest -n 0 -m timing
+      run: uv run pytest -n 0 -m timing
 
   benchmark:
     runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.14"
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -54,9 +59,27 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --require-hashes -r .github/requirements/build.txt
-        poetry install --no-interaction
+        uv sync --locked
     - name: Check for benchmark regressions
-      run: poetry run python -m hone.benchmarks --quick --jobs 4 --baseline benchmarks/quick-baseline.json
+      run: uv run python -m hone.benchmarks --quick --jobs 4 --baseline benchmarks/quick-baseline.json
+
+  # Poetry stays a fallback so the project can move back from uv; this job keeps it working.
+  poetry-fallback:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: "3.12"
+    - name: Install Poetry
+      run: python -m pip install --require-hashes -r .github/requirements/poetry.txt
+    # The repository has no poetry.lock, so this builds one.
+    - name: Lock
+      run: poetry lock --no-interaction
+    - name: Test
+      run: make test-fast RUNNER="poetry run" INSTALL="poetry install --no-interaction"
 
   # On main, once the checks pass: tag and release the version in pyproject.toml if it
   # hasn't been released yet, with its section of CHANGELOG.md as the notes.
@@ -64,6 +87,8 @@ jobs:
     needs: [ test, benchmark ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.14"
     permissions:
       # To create the release and its tag.
       contents: write
@@ -96,7 +121,7 @@ jobs:
       if: steps.version.outputs.new == 'true'
       run: |
         python -m pip install --require-hashes -r .github/requirements/build.txt
-        poetry build
+        uv build
     # Signs a record tying the packages to this workflow run, which `gh attestation verify` checks.
     - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
       if: steps.version.outputs.new == 'true'

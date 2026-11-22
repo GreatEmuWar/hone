@@ -14,8 +14,8 @@ updates:
       actions:
         update-types: [ "minor", "patch" ]
 
-  # hone's own dependencies, in pyproject.toml and poetry.lock.
-  - package-ecosystem: pip
+  # hone's own dependencies, in pyproject.toml and uv.lock.
+  - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
@@ -25,7 +25,7 @@ updates:
       python:
         update-types: [ "minor", "patch" ]
 
-  # Poetry and what it needs, installed by hash before Poetry takes over.
+  # uv, installed by hash before uv takes over, and Poetry, for the fallback job.
   - package-ecosystem: pip
     directory: /.github/requirements
     schedule:

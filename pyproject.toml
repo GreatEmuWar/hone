@@ -19,7 +19,8 @@ dependencies = [
 [tool.poetry]
 packages = [{ include = "hone" }]
 
-# Only for building the docs site: poetry install --with docs
+# Only for building the docs site: uv sync --group docs, or with the Poetry fallback,
+# poetry install --with docs. This table keeps the group out of a plain poetry install.
 [tool.poetry.group.docs]
 optional = true
 
