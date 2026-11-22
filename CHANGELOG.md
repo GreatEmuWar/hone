@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Development moves from Poetry to uv, for speed.** `uv.lock` replaces `poetry.lock`, with every dependency at the same version. The package is still built by poetry-core, so what's installed from PyPI is unchanged. Poetry 2 still works as a fallback; see the README's Development section.
+
 ## 0.15.1 (2026-11-22)
 
 ### Fixed

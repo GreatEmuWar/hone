@@ -1,70 +1,76 @@
 .DEFAULT_GOAL := test
 
+# uv installs and runs everything. Poetry 2 still works as a fallback: run poetry lock once, then
+#   make test-fast RUNNER="poetry run" INSTALL="poetry install" DOCS_INSTALL="poetry install --with docs"
+RUNNER ?= uv run
+INSTALL ?= uv sync --locked
+DOCS_INSTALL ?= uv sync --locked --group docs
+
 .PHONY: install
 install:
-	@poetry install
+	@$(INSTALL)
 
 .PHONY: test
 test: install
-	@poetry run pytest
-	@poetry run pytest -n 0 -m timing
+	@$(RUNNER) pytest
+	@$(RUNNER) pytest -n 0 -m timing
 
 # For local iteration: leaves out the tests marked slow (10 seconds or more, set from durations measured in Docker). CI and make test run everything.
 .PHONY: test-fast
 test-fast: install
-	@poetry run pytest -m "not slow"
+	@$(RUNNER) pytest -m "not slow"
 
 .PHONY: lint
 lint: install
-	@poetry run ruff check hone tests pbt
-	@poetry run mypy
+	@$(RUNNER) ruff check hone tests pbt
+	@$(RUNNER) mypy
 
 .PHONY: docs
 docs:
-	@poetry install --with docs
-	@NO_MKDOCS_2_WARNING=1 poetry run mkdocs serve
+	@$(DOCS_INSTALL)
+	@NO_MKDOCS_2_WARNING=1 $(RUNNER) mkdocs serve
 
 .PHONY: docs-build
 docs-build:
-	@poetry install --with docs
-	@NO_MKDOCS_2_WARNING=1 poetry run mkdocs build --strict
+	@$(DOCS_INSTALL)
+	@NO_MKDOCS_2_WARNING=1 $(RUNNER) mkdocs build --strict
 
 .PHONY: benchmark
 benchmark: install
-	@poetry run python -m hone.benchmarks --jobs 4 --markdown benchmarks/results.md --save benchmarks/full-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --jobs 4 --markdown benchmarks/results.md --save benchmarks/full-summaries.json
 
 .PHONY: benchmark-ml
 benchmark-ml: install
-	@poetry run python -m hone.benchmarks --ml --jobs 4 --markdown benchmarks/ml-results.md --save benchmarks/ml-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --ml --jobs 4 --markdown benchmarks/ml-results.md --save benchmarks/ml-summaries.json
 
 .PHONY: benchmark-noisy
 benchmark-noisy: install
-	@poetry run python -m hone.benchmarks --noisy --jobs 4 --markdown benchmarks/noisy-results.md --save benchmarks/noisy-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --noisy --jobs 4 --markdown benchmarks/noisy-results.md --save benchmarks/noisy-summaries.json
 
 .PHONY: benchmark-multi
 benchmark-multi: install
-	@poetry run python -m hone.benchmarks --multi --jobs 4 --markdown benchmarks/multi-results.md --save benchmarks/multi-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --multi --jobs 4 --markdown benchmarks/multi-results.md --save benchmarks/multi-summaries.json
 
 .PHONY: benchmark-conditional
 benchmark-conditional: install
-	@poetry run python -m hone.benchmarks --conditional --jobs 4 --markdown benchmarks/conditional-results.md --save benchmarks/conditional-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --conditional --jobs 4 --markdown benchmarks/conditional-results.md --save benchmarks/conditional-summaries.json
 
 .PHONY: benchmark-constrained
 benchmark-constrained: install
-	@poetry run python -m hone.benchmarks --constrained --jobs 4 --markdown benchmarks/constrained-results.md --save benchmarks/constrained-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --constrained --jobs 4 --markdown benchmarks/constrained-results.md --save benchmarks/constrained-summaries.json
 
 .PHONY: benchmark-cost
 benchmark-cost: install
-	@poetry run python -m hone.benchmarks --cost --markdown benchmarks/cost-results.md --save benchmarks/cost-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --cost --markdown benchmarks/cost-results.md --save benchmarks/cost-summaries.json
 
 .PHONY: benchmark-outputs
 benchmark-outputs: install
-	@poetry run python -m hone.benchmarks --outputs --jobs 4 --markdown benchmarks/outputs-results.md --save benchmarks/outputs-summaries.json
+	@$(RUNNER) python -m hone.benchmarks --outputs --jobs 4 --markdown benchmarks/outputs-results.md --save benchmarks/outputs-summaries.json
 
 # Runs nothing: tabulates the summaries that benchmark-constrained and benchmark-outputs save.
 .PHONY: benchmark-engineering
 benchmark-engineering: install
-	@poetry run python -m hone.benchmarks --engineering --markdown benchmarks/engineering-results.md
+	@$(RUNNER) python -m hone.benchmarks --engineering --markdown benchmarks/engineering-results.md
 
 .PHONY: docker-build
 docker-build:

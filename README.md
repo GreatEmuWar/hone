@@ -499,7 +499,7 @@ result = BayesianOptimizer(search_space, BayesianConfig(max_evaluations=30, maxi
 
 ## Development
 
-Requires Python 3.12 or later and [Poetry](https://python-poetry.org/) 2.
+Requires Python 3.12 or later and [uv](https://docs.astral.sh/uv/). `uv sync` installs hone with its development dependencies, `uv sync --group docs` adds the docs tools, and commands run with `uv run`, as in `uv run pytest pbt/tests`. Poetry 2 still works as a fallback: run `poetry lock` once, as there is no `poetry.lock` in the repository, then pass `RUNNER="poetry run" INSTALL="poetry install"` to make, as in `make test-fast RUNNER="poetry run" INSTALL="poetry install"`. A CI job keeps that path working.
 
 | Command | Does |
 | --- | --- |
@@ -534,7 +534,7 @@ Links to `/latest/...` keep working throughout, now pointing at the newest relea
 
 ### Running in Docker
 
-With [Docker](https://docs.docker.com/get-docker/) installed you can run hone without Python or Poetry on your machine. The image holds hone with its development dependencies, the tests, the examples and the saved benchmark summaries, on Python 3.14.
+With [Docker](https://docs.docker.com/get-docker/) installed you can run hone without Python or uv on your machine. The image holds hone with its development dependencies, the tests, the examples and the saved benchmark summaries, on Python 3.14.
 
 ```sh
 make docker-build                    # build the image, tagged hone

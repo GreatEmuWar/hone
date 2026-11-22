@@ -1,0 +1,4 @@
+# Poetry and what it needs, for the CI job that keeps Poetry working as a fallback to uv.
+# Compile poetry.txt from this with:
+#   uv pip compile .github/requirements/poetry.in --universal --python-version 3.12 --generate-hashes -o .github/requirements/poetry.txt
+poetry==2.5.1
