@@ -16,6 +16,10 @@ on:
         description: "Number of shards, each a job of its own (1 to 40)"
         required: true
         default: "20"
+      jobs:
+        description: "Runs at a time per shard; empty for one per processor"
+        required: false
+        default: ""
 
 # Read-only: the jobs only read the repository and keep their results as artifacts.
 permissions:
@@ -32,6 +36,7 @@ jobs:
       env:
         SPEC: ${{ inputs.spec }}
         SHARDS: ${{ inputs.shards }}
+        JOBS: ${{ inputs.jobs }}
       run: |
         case "$SPEC" in
           benchmarks/specs/*.py) ;;
@@ -40,6 +45,9 @@ jobs:
         case "$SPEC" in *..*) echo "The spec path may not contain .."; exit 1 ;; esac
         if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || [ "$SHARDS" -lt 1 ] || [ "$SHARDS" -gt 40 ]; then
           echo "Shards must be a whole number from 1 to 40"; exit 1
+        fi
+        if [ -n "$JOBS" ] && { ! [[ "$JOBS" =~ ^[0-9]+$ ]] || [ "$JOBS" -lt 1 ]; }; then
+          echo "Jobs must be empty or a whole number of at least 1"; exit 1
         fi
         echo "shards=$(seq -s, 0 $((SHARDS - 1)) | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
 
@@ -67,7 +75,8 @@ jobs:
         SPEC: ${{ inputs.spec }}
         SHARDS: ${{ inputs.shards }}
         SHARD: ${{ matrix.shard }}
-      run: poetry run python -m hone.benchmarks.sharded run "$SPEC" --shard "$SHARD" --of "$SHARDS" --jobs "$(nproc)" --out "runs-$SHARD.json"
+        JOBS: ${{ inputs.jobs }}
+      run: poetry run python -m hone.benchmarks.sharded run "$SPEC" --shard "$SHARD" --of "$SHARDS" --jobs "${JOBS:-$(nproc)}" --out "runs-$SHARD.json"
     - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: runs-${{ matrix.shard }}

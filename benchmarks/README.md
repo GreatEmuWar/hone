@@ -29,6 +29,10 @@ This folder holds the results of `python -m hone.benchmarks`:
 | `multi-floor-runs.json` | Every run of it |
 | [multi-compare-results.md](multi-compare-results.md) | Noise with several objectives: each reserve (a tenth, a fifth) against believing every draw, judged on section 8's pass criteria, from the Measure workflow |
 | `multi-compare-runs.json` | Every run of it |
+| [choose-outputs-results.md](choose-outputs-results.md) | `choose_optimizer` with output constraints: Bayesian optimization against the current pick at 300 and 500 evaluations, judged on item 4's pass criteria, from the Measure workflow |
+| `choose-outputs-summaries.json` | The same results as data; the runs themselves are in the Measure run's artifact |
+| [choose-outputs-timing-results.md](choose-outputs-timing-results.md) | Bayesian optimization's wall time per run at 300 and 500 evaluations on the 14 problems, one run at a time on GitHub's runners, with each run's processor |
+| `choose-outputs-timing-runs.json` | Every run of it |
 | `specs/` | Specs for measurements shared among GitHub's runners by the Measure workflow; see below |
 
 ## What the suite measures
