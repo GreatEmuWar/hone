@@ -248,7 +248,7 @@ def test_an_asynchronous_run_carries_on_from_its_checkpoint(tmp_path):
     assert resumed.evaluations == 64 and not resumed.stopped
 
 
-DEPRECATED = r"Pickle checkpoints are deprecated.*safe format arrives in hone 0\.17\.0.*will be removed in 0\.19\.0"
+DEPRECATED = r"Pickle checkpoints are deprecated.*safe format arrives in hone 0\.16\.0.*will be removed in 0\.19\.0"
 
 
 def test_loading_a_checkpoint_warns_once_at_the_caller(tmp_path):

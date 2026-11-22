@@ -484,7 +484,7 @@ class OptimizerCore[ResultT](ABC):
 
         A checkpoint is a pickle, which can run code when it is loaded: only load checkpoints
         you saved yourself. Loading one warns with a FutureWarning: pickle checkpoints are
-        deprecated, a safe format arrives in hone 0.17.0, and loading pickles will be removed
+        deprecated, a safe format arrives in hone 0.16.0, and loading pickles will be removed
         in 0.19.0.
         """
         _warn_pickle_checkpoint(path, stacklevel=3)  # at the caller of load_checkpoint()
@@ -680,7 +680,7 @@ def _warn_pickle_checkpoint(path: str | Path, stacklevel: int) -> None:
     """Warn that path, a pickle checkpoint, is being loaded; stacklevel counts from this function."""
     warnings.warn(
         f"Pickle checkpoints are deprecated, since loading one can run code: a safe format arrives in "
-        f"hone 0.17.0, and loading pickle checkpoints will be removed in 0.19.0 (loading {path})",
+        f"hone 0.16.0, and loading pickle checkpoints will be removed in 0.19.0 (loading {path})",
         FutureWarning,
         stacklevel=stacklevel,
     )
