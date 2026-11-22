@@ -166,6 +166,8 @@ Summed over a run, Bayesian optimization's own time comes to these totals. They 
 | 300 | 11 s | 27 s | 47 s |
 | 500 | 35 s | 88 s | 163 s |
 
+*Found on 21 Nov 2026: the harness understates a real run.* A full run of Bayesian optimization on ball-2d-1in10 at 500 evaluations spent 145 s proposing candidates. The harness's curve on the same machine (2 dimensions, 1 limit) sums to about 77 s. Profiling puts 90% of the run in refining the acquisition with L-BFGS-B. Both make about 5.5 starts per candidate, but a start takes about 121 steps in the real run against 54 in the harness. A converged run's points cluster near the optimum, so its acquisition surface is sharper than the harness's history of points spread over the space. Main is not slower than 0.14.0 on the same machine: 0.46 s against 0.50 s per candidate at 500 evaluations, 10 dimensions and 1 limit. The harness stays the reference for the ×1.2 ceiling, which is relative. The totals above are superseded for users: the totals the docs state come from timed real runs on GitHub's runners (below), not from the harness.
+
 The user-facing docs state the rule with the total per run, as "at most about", so a user whose objective is cheap can see when to choose otherwise. The figures are for 10 dimensions on the machine in `cost-results.md`.
 
 ### The measurement
@@ -174,6 +176,11 @@ The user-facing docs state the rule with the total per run, as "at most about", 
 - **Budgets.** 300 and 500 evaluations on every problem, fixed totals rather than per dimension, since the rule is stated in evaluations.
 - **Runs.** 30 seeds each, for Bayesian optimization, CMA-ES and the genetic optimizer. The three noisy designs are run too, for the record, and not judged.
 - **Where it runs.** A spec on the Measure workflow, which lifts the benchmark's cap of 200 on Bayesian optimization for this spec only. The default benchmark's cap stays at 200.
+- **Timing, for the docs, not a criterion.** The benchmark's runs are many to a runner, so they aren't timed. A second spec times Bayesian optimization alone:
+  - each of the 14 problems, 5 seeds, at 500 evaluations, with the cumulative seconds also recorded at evaluation 300 in the same run;
+  - one run at a time per runner, on shards spread over GitHub's ubuntu-latest runners.
+
+  Nothing in Bayesian optimization is set from the budget without noise, so the first 300 evaluations of a 500 run are a 300 run. It reports the median and 90th percentile per problem at 300 and 500, with each runner's processor, since the hardware varies. If the 90th percentile at 500 with 8 limits is over about 10 minutes, that goes to the user with the verdict.
 
 The rule's current pick in a cell is CMA-ES, or the genetic optimizer if the space has integer or choice variables.
 
