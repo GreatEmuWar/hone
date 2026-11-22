@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- **A worker replaced after a timeout or a crash starts in milliseconds, not seconds, where workers aren't forked.** On macOS and Windows, and on Linux from Python 3.14, which starts workers by forkserver, each worker imported hone before it could evaluate, about 2 seconds on a slow machine, so a run with many timeouts spent most of its time starting workers: the test of eight hung evaluations on one worker took 30 to 38 seconds in Docker and failed its 30-second check in 5 of 8 runs. The forkserver now imports hone once, when the pool is created, and each worker is forked from it, so the same test takes under 5 seconds. Fork, and spawn on Windows, are unchanged.
+- **On Linux from Python 3.14, a worker replaced after a timeout or a crash no longer imports hone first.** Python 3.14 made forkserver Linux's default start method, and the forkserver imported nothing, so each new worker imported hone before it could evaluate, about 2 seconds on a slow machine, and a run with many timeouts spent most of its time on that: the test of eight hung evaluations on one worker took 30 to 38 seconds in Docker and failed its 30-second check in 5 of 8 runs. hone now sets the forkserver's preload list to `__main__` and `hone` when a pool starts, so each worker is forked with hone already imported, and the same test takes under 5 seconds. The preload replaces any list set before it, and does nothing if the forkserver is already running. Fork is unchanged, and macOS and Windows, which spawn, still import hone in each new worker.
 
 ## 0.15.0 (2026-11-21)
 
