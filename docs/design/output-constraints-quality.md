@@ -175,7 +175,7 @@ The scope is narrower than designed, by the user's decision of 21 Nov 2026 after
 
 Seven processors served the runs. They differ by about ×2.4 from fastest to slowest, and the highest times are mostly the slowest ones. The time per candidate also grows as a run converges.
 
-g07's 90th percentile at 500, 19.2 minutes, was over the 10 minutes set beforehand for asking the user. The user chose 500 on 21 Nov 2026, with the cost stated in the docs. 300 would cut the worst case to about 5 minutes, but it would keep the current pick from 300 to 500. That pick isn't feasible in 2 of 30 runs on g10 at 500, and Bayesian optimization's median error on the 6 problems that aren't shapes is at most 0.04 of the pick's. A cutoff by dimensions and limits wasn't measured as a rule, so it wasn't considered.
+g07's 90th percentile at 500, 19.2 minutes, was over the 10 minutes set beforehand for asking the user. The user chose 500 on 21 Nov 2026, with the cost stated in the docs. 300 would cut the worst case to about 5 minutes, but it would keep the current pick from 300 to 500. At 300 evaluations that pick is feasible in only 12 of 30 runs on g10 and 16 of 30 on g07, where Bayesian optimization is feasible in all 30. On the 6 problems that aren't shapes, Bayesian optimization's median error is at most 0.04 of the pick's. A cutoff by dimensions and limits wasn't measured as a rule, so it wasn't considered.
 
 ### The design
 
