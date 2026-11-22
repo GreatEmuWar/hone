@@ -179,23 +179,39 @@ The rule's current pick in a cell is CMA-ES, or the genetic optimizer if the spa
 
 ### Pass criteria, fixed before measuring
 
-B isn't held out. It is chosen and judged on the same 14 problems, unlike step 1's check. The number of problems is the statistic, as it was when the rule was first set.
+B isn't held out. It is chosen and judged on the same 14 problems, unlike step 1's check. The number of problems is the statistic, as it was when the rule was first set. Only 300 and 500 are measured, so a cutoff between them rests on the result being monotone in the budget.
+
+Criteria 1 and 2 as below were reviewed by Hone Applied Mathematician and decided by the user on 21 Nov 2026, before measuring, with ×2 as the size of a loss that goes to the user.
 
 At each budget b, 300 and 500, the unit is the problem:
 
-1. **Error.** Bayesian optimization has a lower median error than the current pick on at least 11 of the 14 problems. Errors below 1e-8 count as equal, and a tie counts against it. If the two were equally good, 11 or more of 14 would happen by chance with probability 0.029, from binomial(14, ½).
-2. **Feasibility.** On no problem is Bayesian optimization's share of truly feasible runs more than 3 of 30 below the current pick's. That is one run in ten, as in items 7 and 8.
-3. **Nothing else moves.** For budgets from 1 to 10,000, a test checks that each of these returns the same class with the same config as before:
+1. **Error.** Bayesian optimization has a lower median error than the current pick on at least 11 of the 14 problems, and on at least 4 of the 6 that aren't step 0's shapes: g06, g07, g10, the pressure vessel, the spring and the welded beam. Errors below 1e-8 count as equal, and a tie counts against it.
+
+   The problems aren't independent: step 0's 8 shapes (balls, corners and pockets) are about 3 families, so there are about 9 to 12 independent units. The second count keeps the shapes from carrying the verdict together. If the problems were independent and the two optimizers equally good, 11 or more of 14 would happen by chance with probability 0.029, from binomial(14, ½). If Bayesian optimization truly wins each problem 8 times in 10, the criterion passes with probability 0.70; at 9 in 10, 0.96.
+2. **Feasibility.** On a problem where Bayesian optimization's share of truly feasible runs is more than 3 of 30 below the current pick's:
+   - it **fails** if the pick's share is at least 27 of 30;
+   - it **goes to the user** if the pick's share is under 27 of 30.
+
+   The two shares are unpaired. If they are truly equal, the criterion trips by chance with probability 0.6% at 97%, 6% at 90%, 13% at 80% and 18% at 50%. It catches a true deficit of 10 points 35% of the time and of 20 points 88% of the time. So it detects about 20 points, not 10.
+3. **Size of a loss.** On a problem where Bayesian optimization's median error is more than ×2 the pick's, the numbers go to the user, even when criterion 1 passes. Infeasible runs count as an infinite error.
+
+   For each problem, a two-sided Mann–Whitney test at 0.05 is reported, with infeasible runs as infinite, and does not bind. It is exact at 30 against 30. About 1 of the 14 problems comes out clear by chance.
+4. **Nothing else moves.** For budgets from 1 to 10,000, a test checks that each of these returns the same class with the same config as before:
    - `choose_optimizer` on every search space without output constraints;
    - `choose_optimizer` on a space with a choice parameter that has `choose_n`, with or without output constraints;
    - `choose_pareto_optimizer` on every space.
 
-**Which B ships:**
-- 500, if b = 300 and b = 500 both pass criteria 1 and 2;
-- 300, if only b = 300 passes;
-- otherwise 200 stays and the rule is unchanged.
+**Which B ships.** A budget *passes* if it meets criterion 1 and fails nothing under criterion 2. It *goes to the user* if it passes but has a loss under criterion 3 or a feasibility trip that goes to the user under criterion 2. In this order:
 
-If b = 500 passes and b = 300 doesn't, the numbers go to the user. Every problem's medians, feasible shares and the losing problems are reported beside the verdict.
+| | Outcomes | Ships |
+| --- | --- | --- |
+| 1 | A budget that would decide B goes to the user | The user decides, with that budget's numbers |
+| 2 | b = 300 and b = 500 both pass | 500 |
+| 3 | Only b = 300 passes | 300 |
+| 4 | b = 500 passes and b = 300 doesn't | The user decides, with the numbers |
+| 5 | Neither passes | 200 stays and the rule is unchanged |
+
+Every problem's medians, feasible shares, Mann–Whitney p-values and the losing problems are reported beside the verdict.
 
 ## 5. CMA-ES flat-run restart
 
