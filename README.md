@@ -388,7 +388,32 @@ print(choice.params, choice.values)
 
 `choose_pareto_optimizer(search_space, objectives, max_evaluations)` picks `MultiObjectiveBayesian` up to 200 evaluations, unless a choice parameter has `choose_n`, and `NSGA2` otherwise, as the benchmark suggests; other settings are passed on to the chosen optimizer's config. On it, Bayesian optimization's median front beats NSGA2's on 12 of the 13 problem and budget pairs both run on and don't tie.
 
-Everything else works as with one objective: constraints, conditions, workers and time limits, failed evaluations, checkpoints, `ask()` and `tell(trial, {...})`, starting points, `save()`, `load()` and `rebuild_optimizer()`. With `noise=True`, each point on the front is an average, with its number of evaluations and the `standard_error` of each objective. `print_progress` prints the size of the front and its hypervolume. A dict with missing or extra keys, or a value that isn't a number, raises `TypeError`; `maximize`, `threshold` and `final_evaluations` don't apply, and `noise=True` isn't supported with constraints on outputs yet.
+Everything else works as with one objective: constraints, conditions, workers and time limits, failed evaluations, checkpoints, `ask()` and `tell(trial, {...})`, starting points, `save()`, `load()` and `rebuild_optimizer()`. With `noise=True`, each point on the front is an average, with its number of evaluations and the `standard_error` of each objective. `print_progress` prints the size of the front and its hypervolume. A dict with missing or extra keys, or a value that isn't a number, raises `TypeError`; `maximize` and `threshold` don't apply, and `final_evaluations` applies only with noise and constraints on outputs, below.
+
+#### Noise with constraints on outputs
+
+With `noise=True` and a limit on an output, as in `Output("stress") <= 250`, a point's outputs are averaged like its values, and the point is judged on the averages. The limit is on the true output, and a single noisy draw can pass it by luck.
+
+```python
+from hone import NSGA2, NSGA2Config, Output, SearchSpace
+
+search_space = SearchSpace([width, height], constraints=[Output("stress") <= 250])
+config = NSGA2Config(objectives={"mass": "minimize", "deflection": "minimize"}, noise=True, max_evaluations=2000, seed=0)
+result = NSGA2(search_space, config).optimize(analyse)  # analyse returns mass, deflection and stress
+```
+
+Every draw counts toward a point's averages, including those that break a limit; a draw that broke it is also counted in `result.infeasible`. A point passes a limit only if its average clears it with the margin of safety: about 1.64 standard errors with many repeats, more with few (`feasibility_confidence=0.95`; `None` judges on the averages alone). The front is that of the points that pass, with dominance judged on their average values. Each `ParetoPoint.outputs` holds average outputs, and `ParetoResult.feasible` says whether any point passes on its averages.
+
+By default a tenth of `max_evaluations` is kept back for a final round, at least 10 and at most half. With the margin on, the round comes in two halves. The first evaluates points spread along the front, chosen by hypervolume contribution, and topped up until every limit has at least 3 degrees of freedom to estimate its noise. The second goes to up to 4 front points whose pass is least certain. With the margin off there is one round. `final_evaluations=0` keeps nothing back. `final_evaluations` with noise and no constraints on outputs is refused, since there is nothing to judge. Without noise, or with noise and no constraints on outputs, nothing changes.
+
+What the rule guarantees, and what it doesn't:
+
+- A design that truly breaks any one limit passes with probability at most 1 − `feasibility_confidence`. That is a rate per reported point, judged before selection, not the chance that every point on the front is feasible. Each limit has its own margin, so a point on several limits must stand further back from each.
+- Selection is stronger on a front. A point that passes a limit by luck dominates its truly feasible neighbours and removes them from the front, so the share of returned points that truly break a limit can exceed 1 − `feasibility_confidence`, most where the whole front sits on limits.
+- Concentrated repeats bias what survives. A point evaluated several times regresses toward its mean, while one evaluated once keeps its lucky draw, so points that survive unrepeated are those well inside the limits, and the front leans toward the interior. A region of it can disappear when a false pass is exposed.
+- Dominance is judged on averages and ignores noise in the objectives. A point can be on the front because of a lucky objective draw. The margin protects the limits, not the objectives.
+- Each limit's noise is pooled over every point evaluated more than once, which assumes it is about the same everywhere. A front spans more of the space than one optimum, so this is stretched further.
+- With a small budget the reserve is the minimum of 10, so each half is 5 evaluations and the front is judged on few measured points. Fronts then come back smaller, and honest.
 
 [examples/cantilever_beam.py](examples/cantilever_beam.py) designs a beam in steel, aluminium or carbon fibre that is light, cheap and stiff, three objectives, under a stress limit that depends on the material, and chooses the stiffest design under a mass and a cost limit. Tuning for more than three objectives is out of scope for now: with many objectives nearly every design is on the front, and the search loses its pull.
 

@@ -20,6 +20,7 @@ same seed repeats within about 5%.
 Times depend on the machine, so the table records it, and a comparison against the table is
 only fair on the same one.
 """
+import argparse
 import cProfile
 import io
 import json
@@ -27,6 +28,7 @@ import os
 import platform
 import pstats
 import subprocess
+import sys
 import time
 from importlib.metadata import version
 from pathlib import Path
@@ -35,7 +37,8 @@ from typing import Any
 import numpy as np
 from pydantic import BaseModel
 
-from hone.config import BayesianConfig
+from hone.config import BayesianConfig, MultiObjectiveBayesianConfig
+from hone.optimizers import MultiObjectiveBayesian
 from hone.optimizers.bayesian import BayesianOptimizer
 from hone.parameters import Output, RangeParameter, SearchSpace
 
@@ -58,6 +61,17 @@ class CostCell(BaseModel):
     cold_fit_seconds: float  # the first proposal, fitting every model's hyperparameters from scratch
 
 
+class MultiCostCell(BaseModel):
+    """Seconds per MultiObjectiveBayesian candidate, by method, evaluations so far, limits on outputs, candidates per batch and noise."""
+    method: str  # "parego" or "models"
+    evaluations: int
+    limits: int
+    batch_size: int
+    noise: bool = False
+    seconds_per_candidate: float
+    cold_fit_seconds: float
+
+
 class CostProfile(BaseModel):
     """Where the time goes in one real run: the functions that took the most time themselves."""
     problem: str
@@ -75,6 +89,7 @@ class CostTable(BaseModel):
     seeds: int = 1
     cells: list[CostCell]
     profile: CostProfile | None = None
+    multi: list[MultiCostCell] = []  # absent from tables saved before multi-objective cells
 
 
 def machine() -> dict[str, str]:
@@ -122,6 +137,125 @@ def _problem(dimensions: int, limits: int, seed: int = 0) -> tuple[SearchSpace, 
         return {"objective": value, **{f"g{j}": float(directions[j] @ x) for j in range(limits)}}
 
     return space, objective
+
+
+MULTI_METHODS = ("parego", "models")
+MULTI_LIMITS = (0, 8)
+NOISE_SD = 0.05  # of the Gaussian noise added to every number the noisy multi-objective problem returns
+
+
+def _multi_problem(dimensions: int, limits: int, seed: int = 0, noise: bool = False) -> tuple[SearchSpace, Any]:
+    """`_problem`'s box and limits with two objectives: the sphere, and the sphere about the point (1, ..., 1).
+
+    The objective returns a dict of f1, f2 and g0..g{limits-1}. With noise, every number gets seeded
+    Gaussian noise of sd NOISE_SD, so repeated evaluations differ.
+    """
+    space, single = _problem(dimensions, limits, seed)
+    names = [f"x{i}" for i in range(dimensions)]
+    rng = np.random.default_rng(seed + 1000)
+
+    def objective(params: dict[str, Any]) -> dict[str, float]:
+        x = np.array([params[n] for n in names])
+        outputs = {"f1": float(x @ x), "f2": float((x - 1) @ (x - 1))}
+        if limits:
+            outputs.update({k: v for k, v in single(params).items() if k != "objective"})
+        if noise:
+            outputs = {k: v + float(rng.normal(0, NOISE_SD)) for k, v in outputs.items()}
+        return outputs
+
+    return space, objective
+
+
+def measure_multi_cell(
+    method: str,
+    evaluations: int,
+    limits: int,
+    batch_size: int,
+    *,
+    noise: bool = False,
+    dimensions: int = DIMENSIONS,
+    candidates: int = CANDIDATES,
+    seed: int = 0,
+) -> MultiCostCell:
+    """Time the proposals of one MultiObjectiveBayesian cell as `measure_cell` does: the cold fit, then `candidates` more in batches.
+
+    This uses only the public API that main has (hone.optimizers.MultiObjectiveBayesian,
+    hone.config.MultiObjectiveBayesianConfig, hone.parameters, ask and tell), so this file can be
+    copied out and this function run against main's hone package to time main in the same session.
+    """
+    if candidates % batch_size:
+        raise ValueError(f"candidates {candidates} must be a multiple of batch_size {batch_size}")
+    space, objective = _multi_problem(dimensions, limits, seed, noise)
+    batches = candidates // batch_size + 1  # the first is the cold fit
+    # With noise, no final round: its re-evaluations are chosen without a proposal, so they'd only cut the timed batches
+    # short. The margin stays on, so each proposal pays for re-judging every row on its averages.
+    settings: dict[str, Any] = {"noise": True, "final_evaluations": 0} if noise else {}
+    config = MultiObjectiveBayesianConfig(
+        objectives={"f1": "minimize", "f2": "minimize"},
+        method=method,
+        initial_samples=evaluations,
+        population_size=batch_size,
+        max_evaluations=evaluations + batches * batch_size,
+        seed=seed,
+        **settings,
+    )
+    optimizer = MultiObjectiveBayesian(space, config)
+    for trial in optimizer.ask():
+        optimizer.tell(trial, objective(trial.params))
+    seconds = []
+    for _ in range(batches):
+        start = time.perf_counter()
+        trials = optimizer.ask()
+        seconds.append(time.perf_counter() - start)
+        assert len(trials) == batch_size, f"expected a batch of {batch_size}, got {len(trials)}"
+        for trial in trials:
+            optimizer.tell(trial, objective(trial.params))
+    return MultiCostCell(
+        method=method,
+        evaluations=evaluations,
+        limits=limits,
+        batch_size=batch_size,
+        noise=noise,
+        seconds_per_candidate=sum(seconds[1:]) / candidates,
+        cold_fit_seconds=seconds[0],
+    )
+
+
+def measure_multi_cost(
+    methods: tuple[str, ...] = MULTI_METHODS,
+    evaluations: tuple[int, ...] = EVALUATIONS,
+    limits: tuple[int, ...] = MULTI_LIMITS,
+    batch_sizes: tuple[int, ...] = BATCH_SIZES,
+    *,
+    noise: bool = False,
+    dimensions: int = DIMENSIONS,
+    candidates: int = CANDIDATES,
+    seeds: int = SEEDS,
+    progress: bool = False,
+) -> list[MultiCostCell]:
+    """Every multi-objective cell, each the mean over seeds, one after another in this process."""
+    cells = []
+    for method in methods:
+        for batch_size in batch_sizes:
+            for n in evaluations:
+                for k in limits:
+                    runs = [
+                        measure_multi_cell(method, n, k, batch_size, noise=noise, dimensions=dimensions, candidates=candidates, seed=seed)
+                        for seed in range(seeds)
+                    ]
+                    cell = MultiCostCell(
+                        method=method,
+                        evaluations=n,
+                        limits=k,
+                        batch_size=batch_size,
+                        noise=noise,
+                        seconds_per_candidate=sum(r.seconds_per_candidate for r in runs) / seeds,
+                        cold_fit_seconds=sum(r.cold_fit_seconds for r in runs) / seeds,
+                    )
+                    if progress:
+                        print(f"  {_multi_label(cell)}: {cell.seconds_per_candidate:.3f}s per candidate", flush=True)
+                    cells.append(cell)
+    return cells
 
 
 def measure_cell(
@@ -230,6 +364,94 @@ def ceiling_breaches(cells: list[CostCell], baseline: list[CostCell], ratio: flo
     return found
 
 
+def _multi_key(c: MultiCostCell) -> tuple[str, int, int, int, bool]:
+    return (c.method, c.evaluations, c.limits, c.batch_size, c.noise)
+
+
+def _noise_free_key(c: MultiCostCell) -> tuple[str, int, int, int]:
+    """What a branch cell is paired with in main's table: the noise-free cell of its method, evaluations, limits and batch size."""
+    return (c.method, c.evaluations, c.limits, c.batch_size)
+
+
+def _noise_free_baseline(baseline: list[MultiCostCell]) -> dict[tuple[str, int, int, int], float]:
+    return {_noise_free_key(c): c.seconds_per_candidate for c in baseline if not c.noise}
+
+
+def _multi_label(cell: MultiCostCell) -> str:
+    noisy = ", noisy" if cell.noise else ""
+    return f"{cell.method}{noisy}, {cell.evaluations} evaluations, {cell.limits} limits, batches of {cell.batch_size}"
+
+
+def multi_ceiling_breaches(
+    cells: list[MultiCostCell], baseline: list[MultiCostCell], ratio: float = CEILING, at: int = CEILING_AT
+) -> list[str]:
+    """Multi-objective cells at `at` evaluations whose seconds per candidate exceed ratio times the baseline's, described.
+
+    A cell is judged against the baseline's noise-free cell of the same method, limits, batch size and
+    evaluations, whatever its own noise: a noisy branch cell is held to main's noise-free cost.
+    """
+    before = _noise_free_baseline(baseline)
+    found = []
+    for cell in cells:
+        key = _noise_free_key(cell)
+        if cell.evaluations != at or key not in before:
+            continue
+        if cell.seconds_per_candidate > ratio * before[key]:
+            found.append(
+                f"{_multi_label(cell)}: {cell.seconds_per_candidate:.3f}s per candidate against {before[key]:.3f}s, "
+                f"×{cell.seconds_per_candidate / before[key]:.2f}"
+            )
+    return found
+
+
+def compare_multi(main: list[MultiCostCell], branch: list[MultiCostCell], at: int = CEILING_AT) -> list[str]:
+    """One line per branch cell at `at` evaluations: the ratio of its seconds per candidate to main's noise-free cell of the same method, limits and batch size."""
+    before = _noise_free_baseline(main)
+    return [
+        f"{_multi_label(c)}: {before[_noise_free_key(c)]:.3f}s -> {c.seconds_per_candidate:.3f}s, ×{c.seconds_per_candidate / before[_noise_free_key(c)]:.2f}"
+        for c in branch
+        if c.evaluations == at and _noise_free_key(c) in before
+    ]
+
+
+def cli(argv: list[str] | None = None) -> int:
+    """`python -m hone.benchmarks.cost multi --save F` times the multi-objective cells of whichever hone is imported;
+    `... compare MAIN.json BRANCH.json` prints the ratios at 500 evaluations and exits 1 past the ceiling."""
+    parser = argparse.ArgumentParser(prog="python -m hone.benchmarks.cost")
+    sub = parser.add_subparsers(dest="command", required=True)
+    compare = sub.add_parser("compare", help="ratio branch/main of multi-objective seconds per candidate at 500 evaluations")
+    compare.add_argument("main")
+    compare.add_argument("branch")
+    run = sub.add_parser("multi", help="time the multi-objective cells and save them")
+    run.add_argument("--save", required=True, help="write the table as JSON to this file")
+    run.add_argument("--noise", action="store_true", help="also time the noisy problem (needs noise with limits), after the noise-free cells")
+    args = parser.parse_args(argv)
+    if args.command == "multi":
+        table = CostTable(
+            hone=version("hone-python"), machine=machine(), dimensions=DIMENSIONS, candidates=CANDIDATES, seeds=SEEDS, cells=[],
+            multi=measure_multi_cost(progress=True) + (measure_multi_cost(noise=True, progress=True) if args.noise else []),
+        )
+        save_cost(table, args.save)
+        return 0
+    main_cells, branch_cells = load_cost(args.main).multi, load_cost(args.branch).multi
+    status = 0
+    for title, noisy in (
+        ("Noise-free branch cells against main's noise-free cells", False),
+        ("Noisy branch cells against main's noise-free cells", True),
+    ):
+        group = [c for c in branch_cells if c.noise == noisy]
+        if not group:
+            continue
+        print(f"{title}, ratio at {CEILING_AT} evaluations:", *compare_multi(main_cells, group), sep="\n  ")
+        found = multi_ceiling_breaches(group, main_cells)
+        if found:
+            print(f"Over the ceiling of ×{CEILING}:", *found, sep="\n  ")
+            status = 1
+        else:
+            print(f"Within the ceiling of ×{CEILING}.")
+    return status
+
+
 def save_cost(table: CostTable, path: str | Path) -> None:
     Path(path).write_text(table.model_dump_json(indent=2) + "\n")
 
@@ -257,14 +479,17 @@ def cost_markdown(table: CostTable) -> str:
             row = [f"{by_key[(n, k, batch_size)].seconds_per_candidate:.3f}" if (n, k, batch_size) in by_key else "" for k in limits]
             lines += [f"| {n} | " + " | ".join(row) + " |"]
         lines += [""]
-    lines += ["### Cold fit, seconds, batches of 1", ""]
-    lines += ["| Evaluations | " + " | ".join(f"{k} limits" if k != 1 else "1 limit" for k in limits) + " |"]
-    lines += ["| ---: | " + " | ".join("---:" for _ in limits) + " |"]
-    smallest = min(c.batch_size for c in table.cells)
-    for n in sorted({c.evaluations for c in table.cells}):
-        row = [f"{by_key[(n, k, smallest)].cold_fit_seconds:.2f}" if (n, k, smallest) in by_key else "" for k in limits]
-        lines += [f"| {n} | " + " | ".join(row) + " |"]
-    lines += [""]
+    if table.cells:
+        lines += ["### Cold fit, seconds, batches of 1", ""]
+        lines += ["| Evaluations | " + " | ".join(f"{k} limits" if k != 1 else "1 limit" for k in limits) + " |"]
+        lines += ["| ---: | " + " | ".join("---:" for _ in limits) + " |"]
+        smallest = min(c.batch_size for c in table.cells)
+        for n in sorted({c.evaluations for c in table.cells}):
+            row = [f"{by_key[(n, k, smallest)].cold_fit_seconds:.2f}" if (n, k, smallest) in by_key else "" for k in limits]
+            lines += [f"| {n} | " + " | ".join(row) + " |"]
+        lines += [""]
+    if table.multi:
+        lines += _multi_markdown(table.multi)
     if table.profile:
         p = table.profile
         lines += [
@@ -276,3 +501,30 @@ def cost_markdown(table: CostTable) -> str:
         lines += [f"| `{name}` | {calls:,} | {own:.2f} | {cumulative:.2f} |" for name, calls, own, cumulative in p.top]
         lines += [""]
     return "\n".join(lines)
+
+
+def _multi_markdown(cells: list[MultiCostCell]) -> list[str]:
+    """Seconds per MultiObjectiveBayesian candidate: one table per method, noise and batch size, by evaluations and limits."""
+    lines = ["## Several objectives", ""]
+    by_key = {(c.method, c.noise, c.batch_size, c.evaluations, c.limits): c for c in cells}
+    limits = sorted({c.limits for c in cells})
+    head = [
+        "| Evaluations | " + " | ".join(f"{k} limits" if k != 1 else "1 limit" for k in limits) + " |",
+        "| ---: | " + " | ".join("---:" for _ in limits) + " |",
+    ]
+    for method in sorted({c.method for c in cells}):
+        for noise in sorted({c.noise for c in cells if c.method == method}):
+            for batch_size in sorted({c.batch_size for c in cells if c.method == method and c.noise == noise}):
+                lines += [f"### Seconds per candidate, {method}{', noisy' if noise else ''}, batches of {batch_size}", "", *head]
+                for n in sorted({c.evaluations for c in cells if (c.method, c.noise, c.batch_size) == (method, noise, batch_size)}):
+                    row = []
+                    for k in limits:
+                        cell = by_key.get((method, noise, batch_size, n, k))
+                        row.append(f"{cell.seconds_per_candidate:.3f}" if cell else "")
+                    lines += [f"| {n} | " + " | ".join(row) + " |"]
+                lines += [""]
+    return lines
+
+
+if __name__ == "__main__":
+    sys.exit(cli())

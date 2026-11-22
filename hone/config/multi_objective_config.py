@@ -14,8 +14,14 @@ class MultiObjectiveConfig(OptimizerConfig):
 
     objectives names each objective and whether to minimize or maximize it, such as
     {"accuracy": "maximize", "cost": "minimize"}; the objective function returns a dict with
-    exactly those keys. It takes the place of maximize, and threshold and final_evaluations
-    don't apply.
+    exactly those keys. It takes the place of maximize, and threshold doesn't apply.
+
+    With noise and constraints on outputs, final_evaluations and feasibility_confidence work as
+    for one objective: by default a tenth of max_evaluations is kept back for a final round that
+    re-evaluates points of the front, and a limit is judged on a point's average outputs with a
+    margin of safety. final_evaluations=0 keeps nothing back, and feasibility_confidence=None
+    turns the margin off. With noise and no constraints on outputs, a final_evaluations above 0
+    is refused when the optimizer is created, raising UnsupportedSearchSpace, rather than ignored.
     """
     objectives: dict[str, Direction] = Field(min_length=2)
     """Each objective's name, and whether to minimize or maximize it."""
@@ -29,8 +35,6 @@ class MultiObjectiveConfig(OptimizerConfig):
             raise ValueError("objectives says whether to minimize or maximize each objective, so maximize doesn't apply")
         if self.threshold is not None:
             raise ValueError("threshold doesn't apply to several objectives; stop a run with a callback instead")
-        if self.final_evaluations:
-            raise ValueError("final_evaluations doesn't apply to several objectives yet")
         if self.reference is not None and set(self.reference) != set(self.objectives):
             raise ValueError(f"reference needs a value for each objective: {', '.join(self.objectives)}")
         return self

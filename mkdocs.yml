@@ -121,4 +121,5 @@ nav:
       - Conditional problems: benchmarks/conditional-results.md
       - Several objectives: benchmarks/multi-results.md
       - Noise floor, several objectives: benchmarks/multi-floor-results.md
+      - Noise with several objectives: benchmarks/multi-compare-results.md
   - Changelog: changelog.md
