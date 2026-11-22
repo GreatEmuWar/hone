@@ -163,7 +163,8 @@ def test_noisy_problems_add_noise_but_score_the_true_value():
     problems = noisy_problems()
     assert all(p.noise > 0 and p.name.startswith("noisy-") for p in problems)
     runs = run_benchmark(problems[:1], seeds=range(2), budgets_per_dimension=[4])
-    assert runs == run_benchmark(problems[:1], seeds=range(2), budgets_per_dimension=[4]), "the noise is repeatable"
+    again = run_benchmark(problems[:1], seeds=range(2), budgets_per_dimension=[4])
+    assert [r.without_timing() for r in runs] == [r.without_timing() for r in again], "the noise is repeatable"
     for run in runs:
         assert run.error >= 0 and run.trace[-1][1] >= 0
 

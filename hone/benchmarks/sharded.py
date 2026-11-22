@@ -7,6 +7,7 @@ A spec is a Python file that defines what to run:
     SEEDS = 30                      # seeds 0 to SEEDS - 1
     BUDGETS = (10, 20)              # evaluations per dimension
     def report(runs: list[Run]) -> str: ...   # optional: markdown added to the results, such as a check of pass criteria
+    TIME_AT = (300,)                # optional, single-objective only: evaluation counts whose seconds each run records
 
 Run one shard of it, and put the shards together:
 
@@ -60,8 +61,12 @@ def expected_runs(spec: ModuleType) -> set[tuple[str, str, int, int]]:
 
 
 def run_shard(spec: ModuleType, shard: int, of: int, jobs: int = 1) -> list[Run] | list[MultiRun]:
-    run = run_multi_benchmark if is_multi(spec) else run_benchmark
-    return run(spec.problems(), spec.optimizers(), range(spec.SEEDS), spec.BUDGETS, jobs=jobs, shard=(shard, of))
+    problems, optimizers, seeds = spec.problems(), spec.optimizers(), range(spec.SEEDS)
+    if is_multi(spec):
+        return run_multi_benchmark(problems, optimizers, seeds, spec.BUDGETS, jobs=jobs, shard=(shard, of))
+    return run_benchmark(
+        problems, optimizers, seeds, spec.BUDGETS, jobs=jobs, shard=(shard, of), time_at=getattr(spec, "TIME_AT", ())
+    )
 
 
 def merge(spec: ModuleType, shards: list[list[Any]]) -> list[Run] | list[MultiRun]:
