@@ -157,6 +157,12 @@ The last two are CMA-ES behind the genetic optimizer where the feasible region i
 
 Feasibility falls as the budget grows. That fits item 7's finding: Bayesian optimization's designs sit closest to the limits, where the margin rests on a final round too small to estimate the noise well. So under noise, extending Bayesian optimization past 200 would make most runs on two of the three designs come back truly infeasible.
 
+### Result: 500, without noise
+
+Measured, and the verdict is 500. Both budgets pass, branch 2. At 300 and 500 evaluations Bayesian optimization has the lower median error on all 14 problems, the 6 that aren't shapes among them. It is truly feasible in 30 of 30 runs on every problem. No loss is over ×2 and no feasibility check trips. The full table is in `benchmarks/choose-outputs-results.md`.
+
+The scope is narrower than designed, by the user's decision of 21 Nov 2026 after measuring, on the noisy designs above. The extension applies only with output constraints and noise off. With noise, the cutoff stays at 200, which item 7 measured, because with noise Bayesian optimization's final-round feasibility isn't reliable yet. Bayesian optimization with noisy output constraints, where the open question is the margin's estimate on the final round, goes to the roadmap as a new item.
+
 ### The design
 
 With output constraints, Bayesian optimization stays the choice up to B evaluations, past the 200 it has without them. B is chosen from 300 and 500 by the measurement below, or stays at 200. Nothing past 500 is considered, since step 1b measured cost only that far. Without output constraints the rule is unchanged. So is a choice parameter with `choose_n`, which still rules Bayesian optimization out. `choose_pareto_optimizer` is unchanged too.
