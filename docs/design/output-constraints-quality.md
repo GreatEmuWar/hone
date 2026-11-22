@@ -166,7 +166,7 @@ Summed over a run, Bayesian optimization's own time comes to these totals. They 
 | 300 | 11 s | 27 s | 47 s |
 | 500 | 35 s | 88 s | 163 s |
 
-The user-facing docs state the rule with the total per run, so a user whose objective is cheap can see when to choose otherwise. The figures are for 10 dimensions on the machine in `cost-results.md`.
+The user-facing docs state the rule with the total per run, as "at most about", so a user whose objective is cheap can see when to choose otherwise. The figures are for 10 dimensions on the machine in `cost-results.md`.
 
 ### The measurement
 
