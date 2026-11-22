@@ -147,6 +147,16 @@ Up to 200 evaluations the rule's pick, Bayesian optimization, is best in every c
 
 The last two are CMA-ES behind the genetic optimizer where the feasible region is thin or its optimum lies on a boundary. They go to the roadmap as an experiment, not into this item.
 
+*Recorded, not judged: the three noisy designs.* They were run beside the 14 judged problems, measured on 21 Nov 2026. Truly feasible runs of 30, Bayesian optimization against the current pick:
+
+| Noisy design | 300 evaluations | 500 evaluations |
+| --- | --- | --- |
+| Pressure vessel | 13 against 30 | 7 against 30 |
+| Spring | 16 against 30 | 7 against 30 |
+| Welded beam | 29 against 30 | 27 against 29 |
+
+Feasibility falls as the budget grows. That fits item 7's finding: Bayesian optimization's designs sit closest to the limits, where the margin rests on a final round too small to estimate the noise well. So under noise, extending Bayesian optimization past 200 would make most runs on two of the three designs come back truly infeasible.
+
 ### The design
 
 With output constraints, Bayesian optimization stays the choice up to B evaluations, past the 200 it has without them. B is chosen from 300 and 500 by the measurement below, or stays at 200. Nothing past 500 is considered, since step 1b measured cost only that far. Without output constraints the rule is unchanged. So is a choice parameter with `choose_n`, which still rules Bayesian optimization out. `choose_pareto_optimizer` is unchanged too.
