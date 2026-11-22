@@ -2155,6 +2155,8 @@
       
         
       
+        
+      
     
     
     
@@ -2504,6 +2506,34 @@
     
   
     Noise floor, several objectives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/multi-compare-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Noise with several objectives
   
 
     
@@ -7012,7 +7042,7 @@ function must be defined at the top level of a module.</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="hone.optimizers.core.OptimizerCore">OptimizerCore</span>[<a class="autorefs autorefs-internal" title="            ParetoResult
+              Bases: <code><span title="hone.optimizers.core._OutputNoise">_OutputNoise</span></code>, <code><span title="hone.optimizers.core.OptimizerCore">OptimizerCore</span>[<a class="autorefs autorefs-internal" title="            ParetoResult
 
 
   
@@ -7033,6 +7063,14 @@ evaluations, and the front comes with their standard errors.</p>
 <p>With constraints on outputs, the dict also holds a number for each output they use; a name
 can be both an objective and an output. Only points that satisfy every one join the front,
 and the optimizers rank the others behind them by their total violation.</p>
+<p>With noise and constraints on outputs, a point's outputs are averaged like its values, and
+whether it satisfies a limit is judged on the averages, with a margin of safety set by
+feasibility_confidence, as for one objective. Every successful evaluation of a point counts
+toward its averages, including those that break a limit, so a point isn't biased toward
+passing. The front is then that of the points that pass, and each point's outputs are its
+averages. By default a tenth of max_evaluations is kept back for a final round that
+re-evaluates points of the front (see final_evaluations): in two halves, the first spreading
+over the front to measure the noise, the second on the points whose pass is least certain.</p>
 
 
 

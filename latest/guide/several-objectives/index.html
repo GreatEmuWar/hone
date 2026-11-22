@@ -478,6 +478,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Several objectives
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -494,6 +512,36 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#noise-with-constraints-on-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Noise with constraints on outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1095,6 +1143,8 @@
       
         
       
+        
+      
     
     
     
@@ -1457,6 +1507,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/multi-compare-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Noise with several objectives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1510,6 +1588,25 @@
   
     
   
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#noise-with-constraints-on-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Noise with constraints on outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1597,7 +1694,26 @@
 </tbody>
 </table>
 <p><code>choose_pareto_optimizer(search_space, objectives, max_evaluations)</code> picks <code>MultiObjectiveBayesian</code> up to 200 evaluations, unless a choice parameter has <code>choose_n</code>, and <code>NSGA2</code> otherwise, as the benchmark suggests; other settings are passed on to the chosen optimizer's config. On it, Bayesian optimization's median front beats NSGA2's on 12 of the 13 problem and budget pairs both run on and don't tie.</p>
-<p>Everything else works as with one objective: constraints, conditions, workers and time limits, failed evaluations, checkpoints, <code>ask()</code> and <code>tell(trial, {...})</code>, starting points, <code>save()</code>, <code>load()</code> and <code>rebuild_optimizer()</code>. With <code>noise=True</code>, each point on the front is an average, with its number of evaluations and the <code>standard_error</code> of each objective. <code>print_progress</code> prints the size of the front and its hypervolume. A dict with missing or extra keys, or a value that isn't a number, raises <code>TypeError</code>; <code>maximize</code>, <code>threshold</code> and <code>final_evaluations</code> don't apply, and <code>noise=True</code> isn't supported with constraints on outputs yet.</p>
+<p>Everything else works as with one objective: constraints, conditions, workers and time limits, failed evaluations, checkpoints, <code>ask()</code> and <code>tell(trial, {...})</code>, starting points, <code>save()</code>, <code>load()</code> and <code>rebuild_optimizer()</code>. With <code>noise=True</code>, each point on the front is an average, with its number of evaluations and the <code>standard_error</code> of each objective. <code>print_progress</code> prints the size of the front and its hypervolume. A dict with missing or extra keys, or a value that isn't a number, raises <code>TypeError</code>; <code>maximize</code> and <code>threshold</code> don't apply, and <code>final_evaluations</code> applies only with noise and constraints on outputs, below.</p>
+<h4 id="noise-with-constraints-on-outputs">Noise with constraints on outputs<a class="headerlink" href="#noise-with-constraints-on-outputs" title="Permanent link">&para;</a></h4>
+<p>With <code>noise=True</code> and a limit on an output, as in <code>Output("stress") &lt;= 250</code>, a point's outputs are averaged like its values, and the point is judged on the averages. The limit is on the true output, and a single noisy draw can pass it by luck.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hone</span><span class="w"> </span><span class="kn">import</span> <span class="n">NSGA2</span><span class="p">,</span> <span class="n">NSGA2Config</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">SearchSpace</span>
+
+<span class="n">search_space</span> <span class="o">=</span> <span class="n">SearchSpace</span><span class="p">([</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">],</span> <span class="n">constraints</span><span class="o">=</span><span class="p">[</span><span class="n">Output</span><span class="p">(</span><span class="s2">"stress"</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">250</span><span class="p">])</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">NSGA2Config</span><span class="p">(</span><span class="n">objectives</span><span class="o">=</span><span class="p">{</span><span class="s2">"mass"</span><span class="p">:</span> <span class="s2">"minimize"</span><span class="p">,</span> <span class="s2">"deflection"</span><span class="p">:</span> <span class="s2">"minimize"</span><span class="p">},</span> <span class="n">noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_evaluations</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">NSGA2</span><span class="p">(</span><span class="n">search_space</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">analyse</span><span class="p">)</span>  <span class="c1"># analyse returns mass, deflection and stress</span>
+</code></pre></div>
+<p>Every draw counts toward a point's averages, including those that break a limit; a draw that broke it is also counted in <code>result.infeasible</code>. A point passes a limit only if its average clears it with the margin of safety: about 1.64 standard errors with many repeats, more with few (<code>feasibility_confidence=0.95</code>; <code>None</code> judges on the averages alone). The front is that of the points that pass, with dominance judged on their average values. Each <code>ParetoPoint.outputs</code> holds average outputs, and <code>ParetoResult.feasible</code> says whether any point passes on its averages.</p>
+<p>By default a tenth of <code>max_evaluations</code> is kept back for a final round, at least 10 and at most half. With the margin on, the round comes in two halves. The first evaluates points spread along the front, chosen by hypervolume contribution, and topped up until every limit has at least 3 degrees of freedom to estimate its noise. The second goes to up to 4 front points whose pass is least certain. With the margin off there is one round. <code>final_evaluations=0</code> keeps nothing back. <code>final_evaluations</code> with noise and no constraints on outputs is refused, since there is nothing to judge. Without noise, or with noise and no constraints on outputs, nothing changes.</p>
+<p>What the rule guarantees, and what it doesn't:</p>
+<ul>
+<li>A design that truly breaks any one limit passes with probability at most 1 − <code>feasibility_confidence</code>. That is a rate per reported point, judged before selection, not the chance that every point on the front is feasible. Each limit has its own margin, so a point on several limits must stand further back from each.</li>
+<li>Selection is stronger on a front. A point that passes a limit by luck dominates its truly feasible neighbours and removes them from the front, so the share of returned points that truly break a limit can exceed 1 − <code>feasibility_confidence</code>, most where the whole front sits on limits.</li>
+<li>Concentrated repeats bias what survives. A point evaluated several times regresses toward its mean, while one evaluated once keeps its lucky draw, so points that survive unrepeated are those well inside the limits, and the front leans toward the interior. A region of it can disappear when a false pass is exposed.</li>
+<li>Dominance is judged on averages and ignores noise in the objectives. A point can be on the front because of a lucky objective draw. The margin protects the limits, not the objectives.</li>
+<li>Each limit's noise is pooled over every point evaluated more than once, which assumes it is about the same everywhere. A front spans more of the space than one optimum, so this is stretched further.</li>
+<li>With a small budget the reserve is the minimum of 10, so each half is 5 evaluations and the front is judged on few measured points. Fronts then come back smaller, and honest.</li>
+</ul>
 <p><a href="../../examples/cantilever_beam/">examples/cantilever_beam.py</a> designs a beam in steel, aluminium or carbon fibre that is light, cheap and stiff, three objectives, under a stress limit that depends on the material, and chooses the stiffest design under a mass and a cost limit. Tuning for more than three objectives is out of scope for now: with many objectives nearly every design is on the front, and the search loses its pull.</p>
 
 

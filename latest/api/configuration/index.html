@@ -2516,6 +2516,8 @@
       
         
       
+        
+      
     
     
     
@@ -2865,6 +2867,34 @@
     
   
     Noise floor, several objectives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/multi-compare-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Noise with several objectives
   
 
     
@@ -6753,8 +6783,13 @@ late, on large budgets; costs on small ones. 0 turns niches off. None, the defau
         <p>Settings for optimizing several objectives together.</p>
 <p>objectives names each objective and whether to minimize or maximize it, such as
 {"accuracy": "maximize", "cost": "minimize"}; the objective function returns a dict with
-exactly those keys. It takes the place of maximize, and threshold and final_evaluations
-don't apply.</p>
+exactly those keys. It takes the place of maximize, and threshold doesn't apply.</p>
+<p>With noise and constraints on outputs, final_evaluations and feasibility_confidence work as
+for one objective: by default a tenth of max_evaluations is kept back for a final round that
+re-evaluates points of the front, and a limit is judged on a point's average outputs with a
+margin of safety. final_evaluations=0 keeps nothing back, and feasibility_confidence=None
+turns the margin off. With noise and no constraints on outputs, a final_evaluations above 0
+is refused when the optimizer is created, raising UnsupportedSearchSpace, rather than ignored.</p>
 
     
 
