@@ -163,6 +163,20 @@ Measured, and the verdict is 500. Both budgets pass, branch 2. At 300 and 500 ev
 
 The scope is narrower than designed, by the user's decision of 21 Nov 2026 after measuring, on the noisy designs above. The extension applies only with output constraints and noise off. With noise, the cutoff stays at 200, which item 7 measured, because with noise Bayesian optimization's final-round feasibility isn't reliable yet. Bayesian optimization with noisy output constraints, where the open question is the margin's estimate on the final round, goes to the roadmap as a new item.
 
+*The cost, timed on GitHub's runners* (`benchmarks/choose-outputs-timing-results.md`): one run at a time per runner, 5 seeds per problem, wall time including the objective, which is close to zero. Bayesian optimization's time per run at 500 evaluations, lowest to highest over the seeds:
+
+| Space | At 300 | At 500 |
+| --- | --- | --- |
+| 2 parameters, 1–2 limits | 0.1–1.0 min | 0.5–3.1 min |
+| 5 parameters, 1–2 limits | 0.3–1.4 min | 1.0–4.0 min |
+| 3–4 parameters, 3–4 limits | 0.6–2.0 min | 1.7–5.4 min |
+| 8 parameters, 6 limits (g10) | 1.0–2.8 min | 4.3–9.8 min |
+| 10 parameters, 8 limits (g07) | 2.5–4.9 min | 11.6–19.2 min |
+
+Seven processors served the runs. They differ by about ×2.4 from fastest to slowest, and the highest times are mostly the slowest ones. The time per candidate also grows as a run converges.
+
+g07's 90th percentile at 500, 19.2 minutes, was over the 10 minutes set beforehand for asking the user. The user chose 500 on 21 Nov 2026, with the cost stated in the docs. 300 would cut the worst case to about 5 minutes, but it would keep the current pick from 300 to 500. That pick isn't feasible in 2 of 30 runs on g10 at 500, and Bayesian optimization's median error on the 6 problems that aren't shapes is at most 0.04 of the pick's. A cutoff by dimensions and limits wasn't measured as a rule, so it wasn't considered.
+
 ### The design
 
 With output constraints, Bayesian optimization stays the choice up to B evaluations, past the 200 it has without them. B is chosen from 300 and 500 by the measurement below, or stays at 200. Nothing past 500 is considered, since step 1b measured cost only that far. Without output constraints the rule is unchanged. So is a choice parameter with `choose_n`, which still rules Bayesian optimization out. `choose_pareto_optimizer` is unchanged too.
