@@ -413,7 +413,7 @@ What the rule guarantees, and what it doesn't:
 - Concentrated repeats bias what survives. A point evaluated several times regresses toward its mean, while one evaluated once keeps its lucky draw, so points that survive unrepeated are those well inside the limits, and the front leans toward the interior. A region of it can disappear when a false pass is exposed.
 - Dominance is judged on averages and ignores noise in the objectives. A point can be on the front because of a lucky objective draw. The margin protects the limits, not the objectives.
 - Each limit's noise is pooled over every point evaluated more than once, which assumes it is about the same everywhere. A front spans more of the space than one optimum, so this is stretched further.
-- With a small budget the reserve is the minimum of 10, so each half is 5 evaluations and the front is judged on few measured points.
+- With a small budget the reserve is the minimum of 10, so each half is 5 evaluations and the front is judged on few measured points. Fronts then come back smaller, and honest.
 
 [examples/cantilever_beam.py](examples/cantilever_beam.py) designs a beam in steel, aluminium or carbon fibre that is light, cheap and stiff, three objectives, under a stress limit that depends on the material, and chooses the stiffest design under a mass and a cost limit. Tuning for more than three objectives is out of scope for now: with many objectives nearly every design is on the front, and the search loses its pull.
 

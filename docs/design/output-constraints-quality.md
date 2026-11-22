@@ -389,6 +389,17 @@ Delivery: three pull requests in order, each reviewable alone, by the user's dec
 - **(b) The benchmark infrastructure and the floor run,** with no optimizer change. The floor runs on the Measure workflow while (c) is built.
 - **(c) The feature:** the averaging, the final round, the validator, `supports_noisy_outputs`, the comparison spec, the cost cells and the docs.
 
+### Result: the tenth ships
+
+Measured, and shipped with a tenth kept back by the user's decision of 21 Nov 2026. The Measure workflow made 5,040 runs on GitHub's runners, and the full table is in `benchmarks/multi-compare-results.md`. Both reserves failed some cells, which is branch 4, so the user decided. The user accepted the tenth's 16 failing cells as a cost of honest fronts, as for item 7.
+
+- **Honest reporting passes everywhere,** for both reserves. On OSY, the share of Bayesian optimization's front points that truly break a limit falls from 14–38% to at most 1.4%. On TNK at 100 per dimension it falls from 14% to 2–3%.
+- **Criterion 3 fails in 10 cells, which are accepted.** Eight are Bayesian optimization at 10–20 per dimension on OSY and TNK, where a reserve of 10 shrinks the median front from about 6 points to 2–3. The other two are NSGA-II at 100 per dimension on both problems.
+- **Criterion 2 fails in 6 cells, which are accepted.** These are NSGA-II and random search at 10–20 per dimension, where more fronts come back empty.
+- **The cantilever passes every cell.**
+- **The fifth is rejected.** It fails 21 cells, two of them on the cantilever. In the cells the floor can't resolve, it gives clearly fewer truly feasible points than the tenth in 4 and clearly more in none.
+- **Cost is within ×1.2 in every cell,** ×0.91 to ×1.08 against main's noise-free cells at 500 evaluations.
+
 ## Delivery
 
 Separate pull requests, in the roadmap's order: (1) step 0, the measuring tools with a new baseline, done; (2) item 1, measured, the current method staying; (3) step 1b, the cost of a Bayesian candidate measured, which sets the ceiling for every later item; (4) item 2, with item 5's measurement, which didn't pass; (5) item 6, taken ahead of noise with several objectives on 8 Nov 2026 since its measurement had started; (6) item 7, the margin of safety, added on 8 Nov 2026; (6b) the margin's t quantile and the rename to `feasibility_confidence`, decided on 20 Nov 2026 from item 7's review; (7) noise with several objectives, which reuses it, as three pull requests: the refactor, the benchmark and its floor, then the feature; (8) item 4 last, because the earlier changes alter what it measures. Item 3 only if its test shows a need.
